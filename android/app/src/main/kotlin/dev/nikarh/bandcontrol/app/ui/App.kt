@@ -78,6 +78,7 @@ fun BandControlApp(
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
     var repairing by remember { mutableStateOf(false) }
+    var sharing by rememberSaveable { mutableStateOf(false) }
     // Keeps each tab's scroll positions and selections while another tab is shown.
     val tabStates = rememberSaveableStateHolder()
     val groups = remember(state.tracks) { state.groups() }
@@ -112,6 +113,12 @@ fun BandControlApp(
         return
     }
 
+    if (sharing) {
+        val name = info.name.ifEmpty { (status as? ConnectionStatus.Connected)?.serverName ?: "" }
+        ShareScreen(info.copy(name = name), onClose = { sharing = false })
+        return
+    }
+
     val connected = status is ConnectionStatus.Connected
     Scaffold(
         containerColor = Palette.gray900,
@@ -123,6 +130,7 @@ fun BandControlApp(
                 onRequestPermissions = onRequestPermissions,
                 onEnableBluetooth = onEnableBluetooth,
                 onRepair = { repairing = true },
+                onShare = { sharing = true },
                 onUnpair = model::unpair,
             )
         },
@@ -240,6 +248,7 @@ private fun StatusBar(
     onRequestPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
     onRepair: () -> Unit,
+    onShare: () -> Unit,
     onUnpair: () -> Unit,
 ) {
     val name = pairedName.ifEmpty { "REAPER" }
@@ -307,6 +316,10 @@ private fun StatusBar(
                 Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Palette.gray400)
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(text = { Text("Share pairing with another phone") }, onClick = {
+                    menu = false
+                    onShare()
+                })
                 DropdownMenuItem(text = { Text("Pair with another computer") }, onClick = {
                     menu = false
                     onRepair()

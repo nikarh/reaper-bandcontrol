@@ -38,4 +38,19 @@ class QrDecoderTest {
     fun noCode() {
         assertNull(QrDecoder().decode(ByteArray(640 * 480) { (it % 251).toByte() }, 640, 480))
     }
+
+    @Test
+    fun encodedCodesDecode() {
+        val matrix = QrMatrix.encode(url)
+        val scale = 6
+        val border = 4 * scale
+        val side = matrix.size * scale + 2 * border
+        val pixels = ByteArray(side * side) { 230.toByte() }
+        for (y in 0 until matrix.size * scale) {
+            for (x in 0 until matrix.size * scale) {
+                if (matrix[x / scale, y / scale]) pixels[(border + y) * side + border + x] = 20
+            }
+        }
+        assertEquals(url, QrDecoder().decode(pixels, side, side))
+    }
 }

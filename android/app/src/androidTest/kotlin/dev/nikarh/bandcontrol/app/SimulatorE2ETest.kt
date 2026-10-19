@@ -3,8 +3,10 @@ package dev.nikarh.bandcontrol.app
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -20,6 +22,8 @@ import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import dev.nikarh.bandcontrol.core.protocol.PairingInfo
+import dev.nikarh.bandcontrol.core.protocol.QrDecoder
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -234,5 +238,24 @@ class SimulatorE2ETest {
         )
         compose.onNodeWithText("Pair again").performClick()
         compose.onNodeWithTag("pair-code").assertExists()
+    }
+
+    @Test
+    fun sharedPairingQrScans() {
+        compose.onNodeWithContentDescription("Menu").performClick()
+        compose.onNodeWithText("Share pairing with another phone").performClick()
+        val image = compose.onNodeWithTag("share-qr").captureToImage().toPixelMap()
+        val luminance =
+            ByteArray(image.width * image.height) { i ->
+                val c = image[i % image.width, i / image.width]
+                ((c.red * 0.299f + c.green * 0.587f + c.blue * 0.114f) * 255).toInt().toByte()
+            }
+        val url = QrDecoder().decode(luminance, image.width, image.height)
+        val info = PairingInfo.fromUrl(url ?: "")
+        assertEquals(secret, info?.secret?.toCode())
+        assertEquals("Simulator", info?.name)
+        assertEquals(null, info?.tcp)
+        compose.onNodeWithTag("share-close").performClick()
+        compose.onNodeWithTag("region-1").assertExists()
     }
 }
