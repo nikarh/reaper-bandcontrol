@@ -44,8 +44,15 @@ jobs:
       - run: mise run test
 
   reaper:
-    name: REAPER e2e
+    name: REAPER e2e (${{ matrix.reaper }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest supported release (see the README) and the newest tested one.
+        reaper: ["5.93", "7.82"]
+    env:
+      REAPER_VERSION: ${{ matrix.reaper }}
     steps:
       - uses: actions/checkout@v7
       - name: Install REAPER and a virtual display
@@ -66,7 +73,7 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: reaper-e2e-logs
+          name: reaper-e2e-logs-${{ matrix.reaper }}
           path: target/reaper-e2e/**/*.log
 
   android:

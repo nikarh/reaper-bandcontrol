@@ -10,4 +10,12 @@ arch=$(uname -m)
 major=${version%%.*}
 mkdir -p "$dir"
 curl -sSfL "https://www.reaper.fm/files/$major.x/reaper${version//./}_linux_$arch.tar.xz" | tar xJ -C "$dir"
-echo "$dir/reaper_linux_$arch/REAPER/reaper"
+# REAPER 5 calls its executable reaper5.
+for exe in reaper reaper5; do
+  if [[ -x $dir/reaper_linux_$arch/REAPER/$exe ]]; then
+    echo "$dir/reaper_linux_$arch/REAPER/$exe"
+    exit 0
+  fi
+done
+echo "no REAPER executable in $dir" >&2
+exit 1

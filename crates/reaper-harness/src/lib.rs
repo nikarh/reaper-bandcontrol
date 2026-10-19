@@ -334,7 +334,7 @@ impl Reaper {
             Display::Windowed => Command::new(&binary),
         };
         command
-            .args(["-newinst", "-nosplash", "-cfgfile"])
+            .args(["-newinst", "-cfgfile"])
             .arg(&ini)
             .arg(&project)
             .envs(options.env.iter().map(|(k, v)| (k, v)))
