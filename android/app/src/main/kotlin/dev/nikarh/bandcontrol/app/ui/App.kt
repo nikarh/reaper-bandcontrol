@@ -86,6 +86,7 @@ fun BandControlApp(
     // Pairing again replaces the computer that rejected this phone instead of adding a stale entry.
     var replacing by remember { mutableStateOf<PairingInfo?>(null) }
     var sharing by rememberSaveable { mutableStateOf(false) }
+    var about by rememberSaveable { mutableStateOf(false) }
     var chooserDismissed by remember { mutableStateOf(false) }
     // Keeps each tab's scroll positions and selections while another tab is shown.
     val tabStates = rememberSaveableStateHolder()
@@ -130,6 +131,11 @@ fun BandControlApp(
         return
     }
 
+    if (about) {
+        AboutScreen(onClose = { about = false })
+        return
+    }
+
     if (sharing && info != null) {
         val name = info.name.ifEmpty { (status as? ConnectionStatus.Connected)?.serverName ?: "" }
         ShareScreen(info.copy(name = name), onClose = { sharing = false })
@@ -162,6 +168,7 @@ fun BandControlApp(
                     onPairAnother = { repairing = true },
                     onSwitch = model::use,
                     onShare = { sharing = true },
+                    onAbout = { about = true },
                     onForget = model::forget,
                 )
                 notice?.let { NearbyNotice(it, onSwitch = { model.use(it) }, onDismiss = model::dismissNotice) }
@@ -287,6 +294,7 @@ private fun StatusBar(
     onPairAnother: () -> Unit,
     onSwitch: (PairingInfo) -> Unit,
     onShare: () -> Unit,
+    onAbout: () -> Unit,
     onForget: (PairingInfo) -> Unit,
 ) {
     val name = current?.label() ?: "REAPER"
@@ -370,6 +378,14 @@ private fun StatusBar(
                     menu = false
                     onPairAnother()
                 })
+                DropdownMenuItem(
+                    text = { Text("About & share the app") },
+                    onClick = {
+                        menu = false
+                        onAbout()
+                    },
+                    modifier = Modifier.testTag("about"),
+                )
                 if (current != null) {
                     DropdownMenuItem(
                         text = { Text("Forget ${current.label()}", color = Color(0xFFF87171)) },

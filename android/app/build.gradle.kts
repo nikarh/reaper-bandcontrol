@@ -5,15 +5,18 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// One version for everything: the workspace version in the root Cargo.toml.
-val appVersion: String =
+// One version and one project address for everything: `[workspace.package]` in the root Cargo.toml.
+fun workspacePackage(key: String): String =
     rootProject
         .file("../Cargo.toml")
         .readLines()
         .dropWhile { it.trim() != "[workspace.package]" }
-        .first { it.trim().startsWith("version") }
+        .first { it.trim().startsWith(key) }
         .substringAfter('"')
         .substringBefore('"')
+
+val appVersion: String = workspacePackage("version")
+val repository: String = workspacePackage("repository")
 val appVersionCode: Int = appVersion.split('.').map(String::toInt).let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
 
 // Release signing comes from the environment (the release workflow); local builds fall back to the debug key.
@@ -30,6 +33,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "REPOSITORY", "\"$repository\"")
     }
 
     signingConfigs {
