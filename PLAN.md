@@ -204,6 +204,10 @@ designed to be broadcast-safe on every OS:
 - [x] drag and drop (`sh.calvin.reorderable`): handle or long press, haptic ticks, auto scroll, the order sent once
       on drop; a switch per song to skip it; Move up / Move down accessibility actions; phone e2e drags a row
 
+### 10c. Sharing the app
+- [x] menu → About & share the app: QR code for `releases/latest/download/bandcontrol.apk`, Share link, GitHub
+      link, version; the repository comes from `[workspace.package]` in Cargo.toml (`BuildConfig.REPOSITORY`)
+
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
 - [x] the app keeps every pairing; with one in range it connects by itself, several in range at start ask, another
