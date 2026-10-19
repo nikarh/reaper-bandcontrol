@@ -10,6 +10,12 @@ repository   = "https://github.com/nikarh/reaper-bandcontrol"
 rust-version = "1.99"
 version      = "0.1.0"
 
+# The oldest REAPER the extension supports and the newest it is tested with. The extension, CI (the e2e tests run
+# against both on every change), the scripts and the docs read them from here: raising either is one edit.
+[workspace.metadata.reaper]
+min    = "5.93"
+tested = "7.82"
+
 [profile.release]
 codegen-units = 1
 lto           = "fat"
