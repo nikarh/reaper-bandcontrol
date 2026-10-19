@@ -158,8 +158,8 @@ designed to be broadcast-safe on every OS:
 ### 7. Device automation & e2e
 - [x] scripts: deploy (`mise run android:deploy [url]`), grant permissions (`install -g`), stay awake, screenshot
 - [x] instrumented e2e over TCP (adb reverse) against `bandctl sim` (`mise run android:e2e`); JVM e2e Kotlin client vs sim (`mise run android:test`)
-- [ ] instrumented e2e over BLE against `bandctl sim --ble`
-- [ ] full e2e: phone ↔ BLE ↔ real REAPER
+- [x] instrumented e2e over BLE against `bandctl sim --ble` (`mise run android:e2e ble`)
+- [x] full e2e: phone ↔ BLE ↔ real REAPER (`mise run android:e2e:reaper [tcp]`, observed through REAPER's web API)
 
 ### 8. Polish
 - [ ] GitHub Actions: Rust lint/test (linux), extension builds (linux/macos/windows), APK build
@@ -187,3 +187,8 @@ designed to be broadcast-safe on every OS:
 - Android: compileSdk 37 is required by current Compose; `connectGatt(settings, ...)` is API 37 only so the old
   overload is used. API 33+ GATT write calls return `BluetoothStatusCodes`, not GATT status (lint caught it).
 - Faders use relative drags (no jump on tap) and keep a local value while dragging + 800 ms after release.
+- Optimistic UI must expire: if REAPER reverts a phone's change within the server's 1 s debounce, the server sends
+  nothing (the snapshot equals what it last published), so the app drops unconfirmed local region order after 3 s.
+  Found by the phone ↔ REAPER e2e.
+- REAPER's web API can't read receives (`TRACK/n/SEND/-k` returns nothing); the mute button only renders server
+  state, so asserting its toggle state proves the REAPER round trip.

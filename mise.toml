@@ -72,5 +72,9 @@ description = "Install and start the app on the connected phone (optional arg: p
 run         = "scripts/android-deploy.sh"
 
 [tasks."android:e2e"]
-description = "Instrumented end-to-end tests on the connected phone against bandctl sim"
+description = "Instrumented end-to-end tests on the connected phone against bandctl sim (arg: tcp or ble)"
 run         = "scripts/android-e2e.sh"
+
+[tasks."android:e2e:reaper"]
+description = "Instrumented end-to-end tests on the connected phone against headless REAPER (arg: ble or tcp)"
+run         = "scripts/android-reaper-e2e.sh"

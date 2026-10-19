@@ -38,7 +38,7 @@ adb install -r -g "$APK/debug/app-debug.apk" > /dev/null
 adb install -r -g "$APK/androidTest/debug/app-debug-androidTest.apk" > /dev/null
 scripts/android-wake.sh
 
-adb shell am instrument -w \
+adb shell am instrument -w -e class dev.nikarh.bandcontrol.app.SimulatorE2ETest \
   -e ble "$([[ $MODE == ble ]] && echo true || echo false)" -e simTcp "127.0.0.1:$TCP_PORT" -e simControl "127.0.0.1:$CONTROL_PORT" -e secret "$SECRET" \
   dev.nikarh.bandcontrol.test/androidx.test.runner.AndroidJUnitRunner | tee target/android-e2e.txt
 grep -q '^OK (' target/android-e2e.txt
