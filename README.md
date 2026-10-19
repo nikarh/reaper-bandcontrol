@@ -120,13 +120,20 @@ Google Play services are not needed; it runs on de-Googled phones like LineageOS
 
 ### Pairing
 
-1. In REAPER, run the action **BandControl: Show pairing QR code** (*Actions → Show action list*). A page with a QR
-   code and the pairing code opens in the browser.
+<img src="docs/screenshots/reaper-pairing.png" alt="The pairing window in REAPER" width="300" align="right">
+
+1. In REAPER, run the action **BandControl: Show pairing QR code** (*Actions → Show action list*, or give it a
+   toolbar button). A window opens with the QR code, the code to type, the name phones will see and whether
+   Bluetooth is up. Make the window bigger and the QR code grows with it, which helps phones on the far side of
+   the room.
 2. In the app, tap **Scan QR code**, or type the code.
 3. Pair the other phones from the first one: menu (⋮) → **Share pairing with another phone** shows the same QR code.
 
-All phones share one pairing code. **BandControl: Reset pairing key** creates a new one and unpairs every phone.
-**BandControl: Show status** shows the name, whether Bluetooth is up and how many phones are connected.
+All phones share one pairing code. **Reset pairing key…** in the window (or the action **BandControl: Reset pairing
+key**) creates a new one and unpairs every phone; **Rename…** sets the name phones show. **BandControl: Show status**
+shows the details, including why Bluetooth doesn't work if it doesn't.
+
+<br clear="right">
 
 ### Where pairings are saved, and which computer is which
 
