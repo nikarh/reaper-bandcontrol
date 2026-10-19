@@ -78,3 +78,7 @@ run         = "scripts/android-e2e.sh"
 [tasks."android:e2e:reaper"]
 description = "Instrumented end-to-end tests on the connected phone against headless REAPER (arg: ble or tcp)"
 run         = "scripts/android-reaper-e2e.sh"
+
+[tasks.install]
+description = "Build the extension in release mode and install it into REAPER's UserPlugins (restart REAPER after)"
+run         = "scripts/install-extension.sh"
