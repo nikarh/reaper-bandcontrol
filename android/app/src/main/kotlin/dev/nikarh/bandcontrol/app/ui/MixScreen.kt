@@ -1,7 +1,6 @@
 package dev.nikarh.bandcontrol.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -193,9 +192,8 @@ private fun MuteButton(
     Box(
         Modifier
             .size(width = 48.dp, height = 40.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (row.mute) Palette.red600 else Palette.gray800)
-            .border(1.dp, if (row.mute) Palette.red600 else Palette.gray600, RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (row.mute) Palette.red600 else Palette.gray700)
             .toggleable(value = row.mute, enabled = enabled, role = Role.Switch) {
                 send(Commands.receiveMute(output.id, row.index, row.source.id, it))
             }.semantics { contentDescription = "Mute ${row.source.name}" }
@@ -204,7 +202,7 @@ private fun MuteButton(
     ) {
         Text(
             "M",
-            color = if (row.mute) Color.White else Palette.gray400,
+            color = if (row.mute) Color.White else Palette.gray300,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
