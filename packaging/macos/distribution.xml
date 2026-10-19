@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Installer layout for scripts/package-macos.sh; VERSION is filled in by the script. -->
+<installer-gui-script minSpecVersion="2">
+    <title>BandControl for REAPER</title>
+    <welcome file="welcome.html" mime-type="text/html"/>
+    <conclusion file="conclusion.html" mime-type="text/html"/>
+    <!-- Into the current user's REAPER folder: no administrator password. -->
+    <domains enable_anywhere="false" enable_currentUserHome="true" enable_localSystem="false"/>
+    <options customize="never" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="dev.nikarh.bandcontrol.extension"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="dev.nikarh.bandcontrol.extension" visible="false">
+        <pkg-ref id="dev.nikarh.bandcontrol.extension"/>
+    </choice>
+    <pkg-ref id="dev.nikarh.bandcontrol.extension" version="VERSION" onConclusion="none">extension.pkg</pkg-ref>
+</installer-gui-script>

@@ -5,7 +5,7 @@ git-cliff                         = "2.14.2"
 gradle                            = "9.8.1"
 "http:android-cmdline-tools"      = { version = "16111833", url = "https://dl.google.com/android/repository/commandlinetools-linux-{{version}}_latest.zip", bin_path = "cmdline-tools/bin" }
 java                              = "temurin-21.0.12+8.0.LTS"
-rust                              = { version = "1.99.1", components = "rustfmt,clippy", targets = "x86_64-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin" }
+rust                              = { version = "1.99.1", components = "rustfmt,clippy", targets = "x86_64-pc-windows-msvc,arm64ec-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin" }
 shellcheck                        = "0.11.0"
 taplo                             = "0.10.0"
 
@@ -35,6 +35,7 @@ run = [
   "cargo clippy --workspace --all-targets",
   "cargo clippy --workspace --target aarch64-apple-darwin",
   "cargo clippy --workspace --target x86_64-pc-windows-msvc",
+  "cargo clippy -p reaper-bandcontrol --target arm64ec-pc-windows-msvc",
   "cargo deny check",
   "cargo fmt --all --check",
   "shellcheck scripts/*.sh",
@@ -54,6 +55,14 @@ run = "cargo test -p reaper-harness -- --ignored --test-threads=1"
 [tasks."e2e:reaper-versions"]
 description = "REAPER e2e against several REAPER releases for Linux (args: versions, default 5.93 to 7.82)"
 run         = "scripts/reaper-versions.sh"
+
+[tasks."package:windows"]
+description = "Windows installer (args: x64|arm64 [DLL] [OUTDIR]); signed when WINDOWS_SIGN_PFX is set; needs makensis"
+run         = "scripts/package-windows.sh"
+
+[tasks."package:macos"]
+description = "macOS installer (args: [DYLIB] [OUTDIR]); signed and notarized when MACOS_* are set; needs macOS"
+run         = "scripts/package-macos.sh"
 [tasks.reaper]
 description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"
 run         = "cargo run -q -p reaper-harness --"
