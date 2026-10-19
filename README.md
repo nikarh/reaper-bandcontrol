@@ -2,7 +2,13 @@
 
 [![Check](https://github.com/nikarh/reaper-bandcontrol/actions/workflows/check.yml/badge.svg)](https://github.com/nikarh/reaper-bandcontrol/actions/workflows/check.yml)
 [![Release](https://img.shields.io/github/v/release/nikarh/reaper-bandcontrol)](https://github.com/nikarh/reaper-bandcontrol/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/nikarh/reaper-bandcontrol/total)](https://github.com/nikarh/reaper-bandcontrol/releases)
+[![Stars](https://img.shields.io/github/stars/nikarh/reaper-bandcontrol?style=flat)](https://github.com/nikarh/reaper-bandcontrol/stargazers)
 [![License](https://img.shields.io/github/license/nikarh/reaper-bandcontrol)](LICENSE)
+[![REAPER 5.93+](https://img.shields.io/badge/REAPER-5.93%2B-1a6fb5)](#requirements)
+[![Platforms](https://img.shields.io/badge/extension-Windows%20%7C%20macOS%20%7C%20Linux-555)](#reaper-extension)
+[![Android 9+](https://img.shields.io/badge/Android-9%2B-3ddc84?logo=android&logoColor=white)](#android-app)
+[![Website](https://img.shields.io/badge/website-nikarh.github.io-informational)](https://nikarh.github.io/reaper-bandcontrol/)
 
 Control REAPER from the band's phones over Bluetooth: playback and setlist, input and front of house levels, and a personal
 in-ear mix for every band member. No Wi-Fi, no tethering, no IP addresses.
