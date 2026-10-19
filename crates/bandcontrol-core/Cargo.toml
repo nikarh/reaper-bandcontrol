@@ -1,0 +1,22 @@
+[package]
+categories             = ["multimedia::audio"]
+description            = "DAW abstraction and state synchronization engine for reaper-bandcontrol"
+edition.workspace      = true
+keywords               = ["ble", "reaper", "remote"]
+license.workspace      = true
+name                   = "bandcontrol-core"
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[dependencies]
+bandcontrol-proto = { workspace = true }
+thiserror         = { workspace = true }
+tracing           = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true
