@@ -101,7 +101,7 @@ run         = ["python3 scripts/build-docs.py readme", "python3 scripts/build-do
 
 [tasks."docs:serve"]
 description = "Build the website and serve it on http://localhost:8000"
-run         = ["python3 -m http.server -d target/site 8000", "python3 scripts/build-docs.py site target/site"]
+run         = ["python3 -m http.server -b 127.0.0.1 -d target/site 8000", "python3 scripts/build-docs.py site target/site"]
 
 [tasks."docs:screenshots"]
 description = "Regenerate docs/screenshots (headless REAPER and the app on a phone or emulator)"
