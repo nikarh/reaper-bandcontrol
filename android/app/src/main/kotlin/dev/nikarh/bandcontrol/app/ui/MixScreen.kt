@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -181,9 +185,10 @@ private fun ReceiveCard(
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (row.mute) Palette.red600 else Palette.gray800)
                     .border(1.dp, Palette.gray600, RoundedCornerShape(8.dp))
-                    .clickable(enabled = enabled) {
-                        send(Commands.receiveMute(output.id, row.index, row.source.id, !row.mute))
-                    }.padding(horizontal = 24.dp, vertical = 10.dp)
+                    .toggleable(value = row.mute, enabled = enabled, role = Role.Switch) {
+                        send(Commands.receiveMute(output.id, row.index, row.source.id, it))
+                    }.semantics { contentDescription = "Mute ${row.source.name}" }
+                    .padding(horizontal = 24.dp, vertical = 10.dp)
                     .testTag("mute-${row.source.id}"),
         )
     }
