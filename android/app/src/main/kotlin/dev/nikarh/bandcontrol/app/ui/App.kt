@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
+import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.state.groups
 
 enum class Tab(
@@ -68,6 +69,7 @@ enum class Tab(
 fun BandControlApp(
     model: AppModel,
     onRequestPermissions: () -> Unit,
+    onEnableBluetooth: () -> Unit,
 ) {
     val pairing by model.pairing.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
@@ -119,6 +121,7 @@ fun BandControlApp(
                 pairedName = info.name,
                 needsPermission = !permitted && info.tcp == null,
                 onRequestPermissions = onRequestPermissions,
+                onEnableBluetooth = onEnableBluetooth,
                 onRepair = { repairing = true },
                 onUnpair = model::unpair,
             )
@@ -210,15 +213,36 @@ private fun CompactTabBar(
     }
 }
 
+/** What went wrong and what happens next, without technical terms. */
+fun problemText(
+    problem: Problem,
+    name: String,
+): String =
+    when (problem) {
+        Problem.BluetoothUnavailable -> "This phone has no Bluetooth"
+        Problem.BluetoothOff -> "Bluetooth is off"
+        Problem.PermissionMissing -> "Allow access to nearby devices to connect"
+        Problem.NotFound -> "$name not found nearby. Is REAPER running? Still looking…"
+        Problem.Unreachable -> "Can't connect to $name. Trying again…"
+        Problem.NoAnswer -> "$name doesn't answer. Trying again…"
+        Problem.Lost -> "Connection to $name lost. Reconnecting…"
+        Problem.PairingRejected -> "$name doesn't accept this phone's pairing code"
+        Problem.TooManyPhones -> "Too many phones are connected to $name"
+        Problem.Incompatible -> "This app and the REAPER extension don't match. Update both."
+        Problem.Unknown -> "Can't connect to $name. Trying again…"
+    }
+
 @Composable
 private fun StatusBar(
     status: ConnectionStatus,
     pairedName: String,
     needsPermission: Boolean,
     onRequestPermissions: () -> Unit,
+    onEnableBluetooth: () -> Unit,
     onRepair: () -> Unit,
     onUnpair: () -> Unit,
 ) {
+    val name = pairedName.ifEmpty { "REAPER" }
     val (color, text) =
         when (status) {
             is ConnectionStatus.Connected -> {
@@ -226,21 +250,23 @@ private fun StatusBar(
             }
 
             ConnectionStatus.Connecting -> {
-                Palette.yellow600 to "Looking for ${pairedName.ifEmpty { "REAPER" }}…"
+                Palette.yellow600 to "Looking for $name…"
             }
 
             ConnectionStatus.Authenticating -> {
-                Palette.yellow600 to "Authenticating…"
+                Palette.yellow600 to "Connecting to $name…"
             }
 
             is ConnectionStatus.Disconnected -> {
-                Palette.red500 to if (status.authRejected) "Pairing code rejected, pair again" else status.reason
+                Palette.red500 to problemText(status.problem, name)
             }
 
             ConnectionStatus.Idle -> {
-                Palette.gray500 to if (needsPermission) "Bluetooth permission needed" else "Idle"
+                Palette.gray500 to
+                    if (needsPermission) "Allow access to nearby devices to connect" else "Not connected"
             }
         }
+    val problem = (status as? ConnectionStatus.Disconnected)?.problem
     var menu by remember { mutableStateOf(false) }
     Row(
         Modifier
@@ -257,13 +283,24 @@ private fun StatusBar(
                 text,
                 color = Palette.gray300,
                 fontSize = 13.sp,
-                maxLines = 1,
+                lineHeight = 16.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("status"),
+                modifier = Modifier.padding(vertical = 4.dp).testTag("status"),
             )
         }
-        if (needsPermission) {
-            TextButton(onClick = onRequestPermissions) { Text("Allow", color = Palette.blue500) }
+        when {
+            needsPermission || problem == Problem.PermissionMissing -> {
+                TextButton(onClick = onRequestPermissions) { Text("Allow", color = Palette.blue500) }
+            }
+
+            problem == Problem.BluetoothOff -> {
+                TextButton(onClick = onEnableBluetooth) { Text("Turn on", color = Palette.blue500) }
+            }
+
+            problem == Problem.PairingRejected -> {
+                TextButton(onClick = onRepair) { Text("Pair again", color = Palette.blue500) }
+            }
         }
         Box {
             IconButton(onClick = { menu = true }) {

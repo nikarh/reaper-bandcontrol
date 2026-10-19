@@ -1,5 +1,6 @@
 package dev.nikarh.bandcontrol.core
 
+import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.link.TcpConnector
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
@@ -148,10 +149,17 @@ class SimulatorTest {
     }
 
     @Test
+    fun closedPortIsUnreachable() {
+        val c = Connection(scope, TcpConnector("127.0.0.1", freePort()), secret, "JVM test").also { it.start() }
+        val status = c.status.await { it is ConnectionStatus.Disconnected } as ConnectionStatus.Disconnected
+        assertEquals(Problem.Unreachable, status.problem)
+    }
+
+    @Test
     fun wrongSecretIsRejected() {
         val c = connection(PairingSecret(ByteArray(16) { 9 }))
         val status = c.status.await { it is ConnectionStatus.Disconnected } as ConnectionStatus.Disconnected
-        assertTrue(status.toString(), status.authRejected)
+        assertEquals(status.toString(), Problem.PairingRejected, status.problem)
         assertTrue(!c.send(Commands.play))
     }
 
@@ -161,7 +169,11 @@ class SimulatorTest {
         c.status.await { it is ConnectionStatus.Connected }
         sim.destroy()
         sim.waitFor()
-        c.status.await { it is ConnectionStatus.Disconnected }
+        val lost = c.status.await { it is ConnectionStatus.Disconnected } as ConnectionStatus.Disconnected
+        assertEquals(lost.toString(), Problem.Lost, lost.problem)
+        // Failed reconnect attempts keep reporting the lost connection.
+        Thread.sleep(2_500)
+        assertEquals(Problem.Lost, (c.status.value as? ConnectionStatus.Disconnected)?.problem ?: Problem.Lost)
         startSimulatorOnSamePorts()
         c.status.await { it is ConnectionStatus.Connected }
         c.state.await(BandState::loaded)

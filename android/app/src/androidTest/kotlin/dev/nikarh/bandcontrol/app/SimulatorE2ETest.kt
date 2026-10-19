@@ -217,8 +217,22 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("scan-button").performClick()
         compose.waitUntilAtLeastOneExists(hasText("Point the camera at the QR code shown by REAPER"), 5_000)
         Thread.sleep(1_000)
-        compose.onNodeWithText("Camera unavailable", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("camera couldn't be started", substring = true).assertDoesNotExist()
         compose.onNodeWithTag("qr-close").performClick()
+        compose.onNodeWithTag("pair-code").assertExists()
+    }
+
+    @Test
+    fun rejectedPairingIsExplained() {
+        val wrong = "EEEEEEEEEEEEEEEEEEEEEEEEEE"
+        val uri = Uri.parse("bandcontrol://pair?s=$wrong&n=Studio" + (tcp?.let { "&t=$it" } ?: ""))
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        scenario.onActivity { it.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName)) }
+        compose.waitUntilAtLeastOneExists(
+            hasTestTag("status") and hasText("Studio doesn't accept this phone's pairing code"),
+            20_000,
+        )
+        compose.onNodeWithText("Pair again").performClick()
         compose.onNodeWithTag("pair-code").assertExists()
     }
 }

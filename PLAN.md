@@ -219,3 +219,6 @@ designed to be broadcast-safe on every OS:
   in a composable keeps Compose busy and breaks Espresso, so meters only animate while falling.
 - REAPER reports the custom-color flag without a color (`0x1000000`) for some tracks; treated as no color.
 - Fixture colors in .RPP: PEAKCOL is stored BGR, marker colors RGB (both checked against REAPER via the parser test).
+- Connection errors are classified into `Problem`s (`core/link/LinkException.kt`) and shown as plain sentences with
+  an action where one helps (Turn on Bluetooth, Allow, Pair again); exception details only go to logcat. After a
+  working session, failing reconnects keep saying "connection lost, reconnecting".

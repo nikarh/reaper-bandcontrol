@@ -23,7 +23,7 @@ class TcpConnector(
                 TcpLink(socket, maxPacket)
             } catch (e: IOException) {
                 socket.close()
-                throw e
+                throw LinkException(Problem.Unreachable, "cannot connect to $host:$port", e)
             }
         }
 

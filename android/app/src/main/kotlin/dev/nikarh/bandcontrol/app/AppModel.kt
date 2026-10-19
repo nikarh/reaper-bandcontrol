@@ -3,6 +3,7 @@ package dev.nikarh.bandcontrol.app
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -62,6 +63,9 @@ class AppModel(
     private var meterTracks: List<Int> = emptyList()
 
     init {
+        status
+            .onEach { if (it is ConnectionStatus.Disconnected) Log.w(TAG, "disconnected: ${it.problem} (${it.detail})") }
+            .launchIn(viewModelScope)
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
     }
 
@@ -140,6 +144,7 @@ class AppModel(
     }
 
     private companion object {
+        const val TAG = "BandControl"
         const val KEY_SECRET = "secret"
         const val KEY_NAME = "name"
         const val KEY_TCP = "tcp"
