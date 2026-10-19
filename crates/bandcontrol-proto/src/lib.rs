@@ -8,6 +8,7 @@
 pub mod client;
 pub mod crypto;
 pub mod framing;
+pub mod meters;
 pub mod pairing;
 pub mod random;
 pub mod server;

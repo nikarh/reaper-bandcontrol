@@ -5,18 +5,20 @@
 //! * Structural changes are broadcast as a full `State` after `structure_debounce` of quiet (at most
 //!   `structure_max_wait` after the first change). Gain deltas pause while a structural change is pending.
 //! * `Transport` is broadcast every `transport_interval` while playing and immediately on discontinuities.
+//! * Sessions with a meter subscription get the highest peak of each subscribed track every `meter_interval`.
+//!   Peaks are sampled on every tick; frames where everything is silent are only sent once.
 
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet, HashMap},
     time::{Duration, Instant},
 };
 
-use bandcontrol_proto::{pb, server::SessionId};
+use bandcontrol_proto::{meters, pb, server::SessionId};
 
 use crate::{
     convert,
     daw::Daw,
-    model::{Mix, PlayState, Structure, TransportState},
+    model::{Mix, PlayState, Structure, TrackId, TransportState},
 };
 
 #[derive(Debug, Clone)]
@@ -28,6 +30,7 @@ pub struct EngineConfig {
     pub transport_interval: Duration,
     /// Position difference from the extrapolated position that counts as a seek, in seconds.
     pub seek_threshold: f64,
+    pub meter_interval: Duration,
 }
 
 impl Default for EngineConfig {
@@ -38,6 +41,7 @@ impl Default for EngineConfig {
             structure_poll: Duration::from_secs(2),
             transport_interval: Duration::from_secs(1),
             seek_threshold: 0.25,
+            meter_interval: Duration::from_millis(100),
         }
     }
 }
@@ -68,6 +72,14 @@ struct Pending {
     structure: Structure,
 }
 
+#[derive(Debug)]
+struct MeterSubscription {
+    id: u32,
+    tracks: Vec<TrackId>,
+    /// The last frame sent was all silence.
+    silent: bool,
+}
+
 #[derive(Debug, Default)]
 pub struct Engine {
     config: EngineConfig,
@@ -77,6 +89,10 @@ pub struct Engine {
     last_token: Option<u64>,
     last_structure_read: Option<Instant>,
     last_transport: Option<(TransportState, Instant)>,
+    meters: BTreeMap<SessionId, MeterSubscription>,
+    /// Highest peak per track since the last meter frame.
+    peaks: HashMap<TrackId, f32>,
+    next_meter_frame: Option<Instant>,
 }
 
 fn message(msg: pb::server_message::Msg) -> pb::ServerMessage {
@@ -110,14 +126,22 @@ impl Engine {
                         self.published = None;
                         self.pending = None;
                         self.last_transport = None;
+                        self.meters.clear();
                     }
                     self.sessions.insert(s);
                     joined.push(s);
                 }
                 Input::Left(s) => {
                     self.sessions.remove(&s);
+                    self.meters.remove(&s);
                     joined.retain(|j| *j != s);
                 }
+                Input::Command(
+                    s,
+                    pb::ClientMessage {
+                        msg: Some(pb::client_message::Msg::SubscribeMeters(sub)),
+                    },
+                ) => self.subscribe_meters(s, sub),
                 Input::Command(s, msg) => {
                     let Some(command) = convert::command(msg) else {
                         tracing::debug!(session = s, "ignoring invalid command");
@@ -134,6 +158,7 @@ impl Engine {
         self.check_structure(daw, now, force_structure, &mut out);
         self.check_gains(daw, &mut out);
         self.check_transport(daw, now, &mut out);
+        self.check_meters(daw, now, &mut out);
 
         if !joined.is_empty() {
             let state = self.state_message(daw);
@@ -151,6 +176,67 @@ impl Engine {
         }
 
         out
+    }
+
+    fn subscribe_meters(&mut self, session: SessionId, sub: pb::SubscribeMeters) {
+        if sub.tracks.is_empty() || !self.sessions.contains(&session) {
+            self.meters.remove(&session);
+        } else {
+            self.meters.insert(
+                session,
+                MeterSubscription {
+                    id: sub.subscription,
+                    tracks: sub.tracks,
+                    silent: false,
+                },
+            );
+        }
+    }
+
+    fn check_meters(&mut self, daw: &mut dyn Daw, now: Instant, out: &mut Vec<Output>) {
+        if self.meters.is_empty() {
+            self.peaks.clear();
+            return;
+        }
+        let tracks: Vec<TrackId> = self
+            .meters
+            .values()
+            .flat_map(|m| m.tracks.iter().copied())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        for (track, peak) in tracks.iter().zip(daw.meters(&tracks)) {
+            let max = self.peaks.entry(*track).or_insert(0.0);
+            *max = max.max(peak);
+        }
+        if self.next_meter_frame.is_some_and(|t| now < t) {
+            return;
+        }
+        // Deadlines advance by the interval so frames average the interval even with coarse ticks.
+        self.next_meter_frame = Some(match self.next_meter_frame {
+            Some(t) if now.duration_since(t) < self.config.meter_interval => t + self.config.meter_interval,
+            _ => now + self.config.meter_interval,
+        });
+        for (session, sub) in &mut self.meters {
+            let peaks: Vec<u8> = sub
+                .tracks
+                .iter()
+                .map(|t| meters::encode(self.peaks.get(t).copied().unwrap_or(0.0)))
+                .collect();
+            let silent = peaks.iter().all(|&p| p == 0);
+            if silent && sub.silent {
+                continue;
+            }
+            sub.silent = silent;
+            out.push(Output::Unicast(
+                *session,
+                message(pb::server_message::Msg::Meters(pb::Meters {
+                    subscription: sub.id,
+                    peaks,
+                })),
+            ));
+        }
+        self.peaks.clear();
     }
 
     fn state_message(&mut self, daw: &mut dyn Daw) -> pb::State {

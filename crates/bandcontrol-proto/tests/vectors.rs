@@ -110,6 +110,19 @@ fn framing() -> Value {
         .collect()
 }
 
+/// Peak levels: linear amplitude to byte, and byte to dBFS.
+fn meters() -> Value {
+    let encode: Vec<Value> = [0.0_f32, 0.0005, 0.001, 0.5, 1.0, 1.5, 2.0, 1e9]
+        .into_iter()
+        .map(|peak| json!({"peak": peak, "byte": bandcontrol_proto::meters::encode(peak)}))
+        .collect();
+    let decode: Vec<Value> = [0_u8, 1, 2, 120, 121, 133, 255]
+        .into_iter()
+        .map(|byte| json!({"byte": byte, "db": bandcontrol_proto::meters::decode(byte)}))
+        .collect();
+    json!({"encode": encode, "decode": decode})
+}
+
 fn sample_state() -> pb::ServerMessage {
     pb::ServerMessage {
         msg: Some(pb::server_message::Msg::State(pb::State {
@@ -122,6 +135,7 @@ fn sample_state() -> pb::ServerMessage {
                     volume: 1.0,
                     output: false,
                     receives: vec![],
+                    parent: None,
                 },
                 pb::Track {
                     id: 13,
@@ -142,6 +156,7 @@ fn sample_state() -> pb::ServerMessage {
                             mute: true,
                         },
                     ],
+                    parent: Some(11),
                 },
             ],
             regions: vec![pb::Region {
@@ -246,9 +261,16 @@ fn session() -> Value {
             recording: false,
         })),
     };
+    let meters = pb::ServerMessage {
+        msg: Some(pb::server_message::Msg::Meters(pb::Meters {
+            subscription: 7,
+            peaks: vec![0, 1, 121, 255],
+        })),
+    };
     let mut server_packets = to_client(server.broadcast(&sample_state()));
     server_packets.extend(to_client(server.unicast(session, &transport)));
     server_packets.extend(to_client(server.broadcast(&gains)));
+    server_packets.extend(to_client(server.unicast(session, &meters)));
     for p in &server_packets {
         for e in client.receive(p).unwrap() {
             if let ClientEvent::Message(m) = e {
@@ -256,7 +278,7 @@ fn session() -> Value {
             }
         }
     }
-    assert_eq!(expected_messages.len(), 3);
+    assert_eq!(expected_messages.len(), 4);
 
     // Client commands.
     let commands: Vec<Value> = [
@@ -275,6 +297,10 @@ fn session() -> Value {
         pb::client_message::Msg::Goto(pb::Goto {
             region: 3,
             marker: Some(6),
+        }),
+        pb::client_message::Msg::SubscribeMeters(pb::SubscribeMeters {
+            subscription: 7,
+            tracks: vec![7, 8, 12],
         }),
     ]
     .into_iter()
@@ -314,6 +340,7 @@ fn vectors_are_up_to_date() {
         "aead": aead(),
         "framing": framing(),
         "session": session(),
+        "meters": meters(),
     });
     let text = serde_json::to_string_pretty(&vectors).unwrap() + "\n";
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../proto/test-vectors.json");

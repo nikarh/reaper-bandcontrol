@@ -63,5 +63,8 @@ pub trait Daw {
 
     fn transport(&mut self) -> TransportState;
 
+    /// Current peak of each track as linear amplitude (highest of its channels), 0 for unknown tracks.
+    fn meters(&mut self, tracks: &[TrackId]) -> Vec<f32>;
+
     fn apply(&mut self, command: &Command) -> Result<(), CommandError>;
 }

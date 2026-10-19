@@ -72,6 +72,7 @@ message ServerMessage {
     State state = 2;
     Transport transport = 3;
     GainDelta gains = 4;
+    Meters meters = 5;
   }
 }
 
@@ -83,7 +84,7 @@ message Welcome {
 
 // Full snapshot of everything that changes rarely. Replaces the previous snapshot completely.
 message State {
-  // Tracks that are mixable outputs plus all tracks that feed them.
+  // All tracks in REAPER order.
   repeated Track tracks = 1;
   repeated Region regions = 2;
   repeated Marker markers = 3;
@@ -105,6 +106,8 @@ message Track {
   bool output = 6;
   // Receives of output tracks, the position in this list is the receive index.
   repeated Receive receives = 7;
+  // The folder track containing this track, absent at the top level.
+  optional uint32 parent = 8;
 }
 
 message Receive {
@@ -154,6 +157,15 @@ message GainDelta {
   repeated ReceiveGain receives = 2;
 }
 
+// Unicast to sessions with a meter subscription, about 10 times a second while any level is above silence.
+message Meters {
+  // Echo of `SubscribeMeters.subscription`, so stale frames can be dropped.
+  uint32 subscription = 1;
+  // One byte per subscribed track, in subscription order: the highest peak (of all channels) since the previous
+  // frame. 0 = below -60 dBFS, otherwise dBFS = (byte - 1) / 2 - 60, so 121 = 0 dBFS and 255 = +67 dBFS.
+  bytes peaks = 2;
+}
+
 message TrackGain {
   uint32 track = 1;
   float volume = 2;
@@ -177,6 +189,7 @@ message ClientMessage {
     SetTrackVolume set_track_volume = 3;
     SetReceive set_receive = 4;
     SetRegionOrder set_region_order = 5;
+    SubscribeMeters subscribe_meters = 6;
   }
 }
 
@@ -211,4 +224,10 @@ message SetReceive {
 
 message SetRegionOrder {
   repeated RegionOrder order = 1;
+}
+
+// Replaces the session's meter subscription. No tracks stops the meters.
+message SubscribeMeters {
+  uint32 subscription = 1;
+  repeated uint32 tracks = 2;
 }

@@ -146,6 +146,7 @@ fn big_state() -> pb::ServerMessage {
                     volume: 0.5,
                     output: i > 15,
                     receives: vec![],
+                    parent: None,
                 })
                 .collect(),
             ..Default::default()

@@ -51,6 +51,7 @@ pub fn state(structure: &Structure, mix: &Mix) -> pb::State {
                             }
                         })
                         .collect(),
+                    parent: t.parent,
                 }
             })
             .collect(),
@@ -177,6 +178,8 @@ pub fn command(msg: pb::ClientMessage) -> Option<Command> {
                 })
                 .collect(),
         ),
+        // Session state, handled by the engine.
+        Msg::SubscribeMeters(_) => return None,
     })
 }
 

@@ -1,9 +1,10 @@
 //! Simulated REAPER: fake project + real server + engine ticking at 30 Hz, with optional scripted activity and a
-//! line based control port for tests (`dump`, `volume 13 0.5`, `play`, ...).
+//! line based control port for tests (`dump`, `volume 13 0.5`, `play`, `meter 7 -3`, `reset band`, ...).
 
 use std::{
     io::{BufRead as _, BufReader, Write as _},
     net::{SocketAddr, TcpListener, TcpStream},
+    path::PathBuf,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -13,6 +14,7 @@ use bandcontrol_core::{
     engine::{Engine, EngineConfig},
     fake::FakeDaw,
     model::{Marker, PlayState},
+    rpp,
 };
 use bandcontrol_server::{Server, ServerOptions};
 use parking_lot::Mutex;
@@ -39,6 +41,20 @@ pub struct SimArgs {
     /// Simulate activity: playback, fader moves, mutes and renames.
     #[arg(long)]
     activity: bool,
+    /// REAPER project to simulate instead of the Mother Project, `band` for the bundled band layout.
+    #[arg(long)]
+    project: Option<PathBuf>,
+}
+
+/// A project shaped like a real band's: input, IEM output and PA output folders.
+const BAND_PROJECT: &str = include_str!("../../../tests/fixtures/Band Project.RPP");
+
+fn load(project: Option<&str>) -> anyhow::Result<FakeDaw> {
+    Ok(match project {
+        None | Some("mother") => FakeDaw::mother_project(),
+        Some("band") => rpp::parse(BAND_PROJECT)?,
+        Some(path) => rpp::parse(&std::fs::read_to_string(path)?)?,
+    })
 }
 
 pub fn run(args: &SimArgs) -> anyhow::Result<()> {
@@ -51,7 +67,8 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         ble: args.ble,
         tcp: args.tcp,
     })?;
-    let daw = Arc::new(Mutex::new(FakeDaw::mother_project()));
+    let project = args.project.as_ref().map(|p| p.to_string_lossy().into_owned());
+    let daw = Arc::new(Mutex::new(load(project.as_deref())?));
 
     if let Some(addr) = args.control {
         let listener = TcpListener::bind(addr)?;
@@ -60,7 +77,8 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let daw = daw.clone();
-                std::thread::spawn(move || control_connection(stream, &daw));
+                let project = project.clone();
+                std::thread::spawn(move || control_connection(stream, &daw, project.as_deref()));
             }
         });
     }
@@ -140,11 +158,11 @@ fn activity(daw: &mut FakeDaw, step: u64) {
     }
 }
 
-fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>) {
+fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>, project: Option<&str>) {
     let Ok(mut writer) = stream.try_clone() else { return };
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { return };
-        let reply = match control(line.trim(), &mut daw.lock()) {
+        let reply = match control(line.trim(), &mut daw.lock(), project) {
             Ok(reply) => reply,
             Err(e) => format!("error {e}"),
         };
@@ -161,12 +179,23 @@ fn arg<T: std::str::FromStr>(parts: &[&str], i: usize) -> anyhow::Result<T> {
         .ok_or_else(|| anyhow::anyhow!("missing or invalid argument {i}"))
 }
 
-fn control(line: &str, daw: &mut FakeDaw) -> anyhow::Result<String> {
+fn control(line: &str, daw: &mut FakeDaw, project: Option<&str>) -> anyhow::Result<String> {
     let parts: Vec<&str> = line.split_whitespace().collect();
     let command = parts.first().copied().unwrap_or_default();
     match command {
         "dump" => return Ok(dump(daw).to_string()),
-        "reset" => *daw = FakeDaw::mother_project(),
+        // `reset` reloads the simulated project, `reset band` / `reset mother` / `reset <file>` switch projects.
+        "reset" => daw.replace_project(load(parts.get(1).copied().or(project))?),
+        // `meter <track> <dBFS>` fixes a track's meter, `meter <track> off` returns to generated levels.
+        "meter" => {
+            let id: u32 = arg(&parts, 1)?;
+            if parts.get(2) == Some(&"off") {
+                daw.meter_overrides.remove(&id);
+            } else {
+                let db: f32 = arg(&parts, 2)?;
+                daw.meter_overrides.insert(id, 10f32.powf(db / 20.0));
+            }
+        }
         "play" => daw.apply(&Command::Play)?,
         "pause" => daw.apply(&Command::Pause)?,
         "stop" => daw.apply(&Command::Stop)?,
