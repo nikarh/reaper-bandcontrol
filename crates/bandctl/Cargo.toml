@@ -1,0 +1,29 @@
+[package]
+categories             = ["command-line-utilities"]
+description            = "Development tool for reaper-bandcontrol: simulator, test client, pairing codes"
+edition.workspace      = true
+keywords               = ["ble", "reaper", "remote"]
+license.workspace      = true
+name                   = "bandctl"
+publish.workspace      = true
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[dependencies]
+anyhow             = { workspace = true }
+bandcontrol-core   = { workspace = true }
+bandcontrol-proto  = { workspace = true }
+bandcontrol-server = { workspace = true }
+clap               = { workspace = true }
+parking_lot        = { workspace = true }
+qrcode             = { workspace = true }
+serde_json         = { workspace = true }
+tokio              = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid               = { workspace = true }
+
+[lints]
+workspace = true
