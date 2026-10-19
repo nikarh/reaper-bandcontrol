@@ -1,11 +1,14 @@
 //! Simulated REAPER: fake project + real server + engine ticking at 30 Hz, with optional scripted activity and a
-//! line based control port for tests (`dump`, `volume 13 0.5`, `play`, `meter 7 -3`, `reset band`, ...).
+//! line based control port for tests (`dump`, `volume 13 0.5`, `play`, `meter 7 -3`, `reset band`, `offline`, ...).
 
 use std::{
     io::{BufRead as _, BufReader, Write as _},
     net::{SocketAddr, TcpListener, TcpStream},
     path::PathBuf,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -61,12 +64,15 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
     let secret = args.secret.load()?;
     crate::print_pairing(&secret, &args.name);
 
-    let mut server = Server::start(ServerOptions {
-        secret,
+    let options = || ServerOptions {
+        secret: secret.clone(),
         name: args.name.clone(),
         ble: args.ble,
         tcp: args.tcp,
-    })?;
+    };
+    let mut server = Some(Server::start(options())?);
+    // Cleared by the `offline` control command to stop serving, as if the computer left.
+    let online = Arc::new(AtomicBool::new(true));
     let project = args.project.as_ref().map(|p| p.to_string_lossy().into_owned());
     let daw = Arc::new(Mutex::new(load(project.as_deref())?));
 
@@ -74,11 +80,13 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         let listener = TcpListener::bind(addr)?;
         tracing::info!(%addr, "control port listening");
         let daw = daw.clone();
+        let online = online.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let daw = daw.clone();
+                let online = online.clone();
                 let project = project.clone();
-                std::thread::spawn(move || control_connection(stream, &daw, project.as_deref()));
+                std::thread::spawn(move || control_connection(stream, &daw, &online, project.as_deref()));
             }
         });
     }
@@ -90,6 +98,16 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
     let mut step = 0u64;
     loop {
         let now = Instant::now();
+        let serving = online.load(Ordering::Relaxed);
+        if serving != server.is_some() {
+            tracing::info!(serving, "switching the server");
+            engine = Engine::new(EngineConfig::default());
+            server = if serving { Some(Server::start(options())?) } else { None };
+        }
+        let Some(server) = server.as_mut() else {
+            std::thread::sleep(Duration::from_millis(33));
+            continue;
+        };
         let outputs = {
             let mut daw = daw.lock();
             daw.advance(now - last);
@@ -166,11 +184,19 @@ fn activity(daw: &mut FakeDaw, step: u64) {
     }
 }
 
-fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>, project: Option<&str>) {
+fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>, online: &AtomicBool, project: Option<&str>) {
     let Ok(mut writer) = stream.try_clone() else { return };
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { return };
-        let reply = match control(line.trim(), &mut daw.lock(), project) {
+        let line = line.trim();
+        let reply = match line {
+            "offline" | "online" => {
+                online.store(line == "online", Ordering::Relaxed);
+                Ok("ok".into())
+            }
+            _ => control(line, &mut daw.lock(), project),
+        };
+        let reply = match reply {
             Ok(reply) => reply,
             Err(e) => format!("error {e}"),
         };
