@@ -5,10 +5,11 @@
 1. Run the **Create a release PR** workflow (Actions → Create a release PR → patch / minor / major). It bumps the
    workspace version in `Cargo.toml` (the Android app reads it from there), regenerates `CHANGELOG.md` with
    git-cliff and opens a pull request titled `Release vX.Y.Z` with the release notes as its body.
-2. Review and merge it. The **Release** workflow tags the merge commit and creates the GitHub release with the notes.
+2. Review and merge it. The **Release** workflow tags the merge commit and creates the GitHub release with the notes;
+   the **Site** workflow redeploys the website with the new version and changelog.
 3. The **Publish** workflow builds every artifact, builds the installers and signs them and the libraries inside
    (when the certificates below are set up), signs the APK with the release key, writes `SHA256SUMS` and its GPG
-   signature, and uploads everything to the release. The **Site** workflow redeploys the website.
+   signature, and uploads everything to the release.
 
 Asset names never change, so `https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/<name>` always
 points at the newest file:
@@ -113,8 +114,8 @@ Commit `docs/signing-key.asc`; the README and the website link to it for verifyi
 ### Website
 
 Settings → Pages → Build and deployment → Source: **GitHub Actions**. The **Site** workflow builds the page from
-`site/`, `docs/features.toml`, `docs/screenshots` and `CHANGELOG.md` on every relevant push to `main` and every
-release; there is no `gh-pages` branch. For a custom domain, enter it in the same settings page and add the DNS
+`site/`, `docs/features.toml`, `docs/screenshots` and `CHANGELOG.md` on every relevant push to `main` (a merged
+release PR is one); there is no `gh-pages` branch. Only `main` may deploy to the `github-pages` environment. For a custom domain, enter it in the same settings page and add the DNS
 record GitHub shows (a `CNAME` to `nikarh.github.io` for a subdomain); with Actions deployments no `CNAME` file is
 needed.
 
