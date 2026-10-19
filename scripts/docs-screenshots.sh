@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerates docs/screenshots from the example project (tests/fixtures/Band Project.RPP).
+# Regenerates docs/screenshots from the example project (examples/BandControl-Example.RPP).
 #
 #   scripts/docs-screenshots.sh reaper   # headless REAPER (cage locally, Xvfb on CI)
 #   scripts/docs-screenshots.sh app      # the app on the connected phone or emulator, against the simulator
@@ -16,14 +16,25 @@ IM=$(command -v magick || command -v convert)
 
 reaper() {
   cargo build -q -p reaper-harness -p reaper-bandcontrol
-  local tmp
+  local tmp attempt
   tmp=$(mktemp -d)
-  # Whole project in view, small tracks, no mixer.
-  # Then the pairing window, alone where windows can be told apart (Xvfb).
-  printf '%s\n' "40295;40110;40078" "sleep 2000" "screenshot $tmp/reaper-project.png" \
-    _BANDCONTROL_SHOW_PAIRING "sleep 1500" "screenshot-window $tmp/reaper-pairing.png ^BandControl pairing$" q |
-    BANDCONTROL_BLE=0 BANDCONTROL_TCP=127.0.0.1:0 BANDCONTROL_NAME="Rehearsal laptop" BANDCONTROL_SECRET=MZXW6YTBOI2DGNBVGY3TQOJQGE \
-      ./target/debug/reaper-harness --dir target/reaper-harness-docs > target/docs-reaper.log 2>&1
+  # REAPER under Xvfb now and then dies while starting (an X error in GDK): try again.
+  for attempt in 1 2 3; do
+    rm -f "$tmp"/*.png
+    # Whole project in view, track heights to fit, no mixer. Then the pairing window, alone where windows can be told apart (Xvfb).
+    printf '%s\n' "40295;40110;40111;40111;40078" "sleep 2000" "screenshot $tmp/reaper-project.png" \
+      _BANDCONTROL_SHOW_PAIRING "sleep 1500" "screenshot-window $tmp/reaper-pairing.png ^BandControl pairing$" q |
+      BANDCONTROL_BLE=0 BANDCONTROL_TCP=127.0.0.1:0 BANDCONTROL_NAME="Rehearsal laptop" \
+        BANDCONTROL_SECRET=MZXW6YTBOI2DGNBVGY3TQOJQGE ./target/debug/reaper-harness --dir target/reaper-harness-docs \
+        --project examples/BandControl-Example.RPP >| target/docs-reaper.log 2>&1 || true
+    if ! grep -q '^error' target/docs-reaper.log && [[ -s $tmp/reaper-project.png ]]; then
+      break
+    fi
+    echo "REAPER screenshots failed (attempt $attempt), see target/docs-reaper.log" >&2
+    if [[ $attempt == 3 ]]; then
+      return 1
+    fi
+  done
   for f in "$tmp"/*.png; do
     "$IM" "$f" -strip "$OUT/$(basename "$f")"
   done
@@ -38,7 +49,7 @@ app() {
   local files=/sdcard/Android/data/dev.nikarh.bandcontrol/files/screenshots
   cargo build -q -p bandctl
   (cd android && ./gradlew -q --console=plain :app:assembleDebug :app:assembleDebugAndroidTest)
-  ./target/debug/bandctl sim --name "Band PC" --secret "$secret" --project band \
+  ./target/debug/bandctl sim --name "Band PC" --secret "$secret" --project example \
     --tcp "127.0.0.1:$tcp" --control "127.0.0.1:$control" > target/docs-sim.log 2>&1 &
   local sim=$!
   trap 'kill $sim 2>/dev/null || true; adb reverse --remove-all >/dev/null 2>&1 || true' RETURN

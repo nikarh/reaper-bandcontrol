@@ -75,8 +75,9 @@ title = "No Wi-Fi, no IP addresses"
 id = "project"
 screenshot = "reaper-project"
 text = """
-No special plugins or routing: songs are regions, an IEM mix is a track with a hardware output and receives, and
-folders named "Inputs", "PA" and "IEM" decide what shows up in which tab. Existing reaper-remote-bandui projects
-work as they are.
+BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder
+named "Inputs" fill the Inputs tab, those in a "PA" folder the PA tab, and the in-ear mixes (hardware outputs with
+receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename
+three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
 """
-title = "Works with your REAPER project"
+title = "A project layout that explains itself"

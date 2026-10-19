@@ -122,6 +122,7 @@ def build_site(out: Path) -> None:
         shutil.rmtree(out)
     shutil.copytree(ROOT / "site", out)
     shutil.copytree(SCREENSHOTS, out / "screenshots")
+    shutil.copytree(ROOT / "examples", out / "examples")
     page = (out / "index.html").read_text()
     for key, value in {
         "features": features_html(),

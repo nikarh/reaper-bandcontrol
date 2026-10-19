@@ -15,6 +15,8 @@ Low Energy device, and an **Android app** that every band member installs.
 > [releases](https://github.com/nikarh/reaper-bandcontrol/releases/latest). The Linux Bluetooth backend is tested
 > daily; the macOS and Windows backends are implemented but have seen little real hardware so far.
 
+**Works with REAPER 5.93 and newer**, on Windows, macOS and Linux; see [requirements](#requirements).
+
 ## Why this exists
 
 BandControl supersedes [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui), a web page for
@@ -91,11 +93,11 @@ REAPER shows a QR code; scan it with the app (no Google services needed) or type
 
 Phones talk to the computer over Bluetooth Low Energy, wherever you play: no router, no tethering, no addresses to type. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
 
-### Works with your REAPER project
+### A project layout that explains itself
 
-No special plugins or routing: songs are regions, an IEM mix is a track with a hardware output and receives, and folders named "Inputs", "PA" and "IEM" decide what shows up in which tab. Existing reaper-remote-bandui projects work as they are.
+BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "PA" folder the PA tab, and the in-ear mixes (hardware outputs with receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
 
-<img src="docs/screenshots/reaper-project.png" alt="Works with your REAPER project">
+<img src="docs/screenshots/reaper-project.png" alt="A project layout that explains itself">
 
 <!-- features:end -->
 
@@ -104,18 +106,44 @@ No special plugins or routing: songs are regions, an IEM mix is a track with a h
 Download the files from the [latest release](https://github.com/nikarh/reaper-bandcontrol/releases/latest), or use
 the [website](https://nikarh.github.io/reaper-bandcontrol/).
 
+### Requirements
+
+| | |
+| --- | --- |
+| REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
+| Windows | Windows 10 1803 or newer, x64 or ARM, with a Bluetooth adapter that supports the LE peripheral role (most built-in ones do). |
+| macOS | macOS 10.12 or newer (11 on Apple silicon). REAPER must be allowed to use Bluetooth, see [quirks](#quirks-and-limitations). |
+| Linux | x86_64 or aarch64 (e.g. a Raspberry Pi 5) with BlueZ (`bluetoothd`) and glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and newer. |
+| Phones | Android 9 or newer with Bluetooth LE. |
+
 ### REAPER extension
 
-Copy the file for your platform into REAPER's `UserPlugins` folder (in REAPER: *Options → Show REAPER resource
-path*, then open `UserPlugins`) and restart REAPER. The file name doesn't matter as long as it starts with
-`reaper_`.
+Quit REAPER, run the installer, start REAPER again: the actions are under *Actions → Show action list*, starting
+with "BandControl".
 
-| Platform | File | Notes |
+| Platform | Installer | |
 | --- | --- | --- |
-| Windows 10 1803+ (x64) | `reaper_bandcontrol-windows-x86_64.dll` | Needs an adapter that supports the Bluetooth LE peripheral role (most built-in ones do). |
-| macOS (Apple Silicon and Intel) | `reaper_bandcontrol-macos-universal.dylib` | Not notarized yet: run `xattr -d com.apple.quarantine <file>` once. See [quirks](#quirks-and-limitations). |
-| Linux x86_64 | `reaper_bandcontrol-linux-x86_64.so` | Needs BlueZ (`bluetoothd`); the adapter is powered on automatically. |
-| Linux aarch64 | `reaper_bandcontrol-linux-aarch64.so` | Same as above, e.g. a Raspberry Pi 5. |
+| Windows, x64 (most PCs) | `bandcontrol-windows-x64-setup.exe` | For your user, into `%APPDATA%\REAPER`; for a portable REAPER choose its folder. Uninstall from *Settings → Apps*. |
+| Windows on ARM | `bandcontrol-windows-arm64-setup.exe` | For REAPER's ARM64EC build. An x64 REAPER running under emulation needs the x64 installer. |
+| macOS, Apple silicon and Intel | `bandcontrol-macos.pkg` | Into `~/Library/Application Support/REAPER`, no administrator password. |
+| Linux | – | Copy the library, see below. |
+
+Until a release is signed with the project's certificates, Windows SmartScreen asks first (*More info → Run anyway*),
+and macOS opens the package only from the context menu (*right click → Open*).
+
+#### Manual install: the plain library
+
+For a portable REAPER, Linux, or to see exactly what goes where: copy the library for your platform into REAPER's
+`UserPlugins` folder (in REAPER: *Options → Show REAPER resource path*, then `UserPlugins`) and restart REAPER. The
+file name doesn't matter as long as it starts with `reaper_`; an installer puts the same library in the same place.
+
+| Platform | File |
+| --- | --- |
+| Windows x64 | `reaper_bandcontrol-windows-x86_64.dll` |
+| Windows on ARM (ARM64EC REAPER) | `reaper_bandcontrol-windows-arm64ec.dll` |
+| macOS | `reaper_bandcontrol-macos-universal.dylib`; downloaded with a browser it is quarantined and REAPER can't load it: run `xattr -d com.apple.quarantine reaper_bandcontrol-macos-universal.dylib` once |
+| Linux x86_64 | `reaper_bandcontrol-linux-x86_64.so` (into `~/.config/REAPER/UserPlugins`) |
+| Linux aarch64 | `reaper_bandcontrol-linux-aarch64.so` |
 
 From source: `mise run install` builds the extension and copies it into REAPER's `UserPlugins` (Linux and macOS).
 
@@ -171,40 +199,51 @@ shows the details, including why Bluetooth doesn't work if it doesn't.
 
 ## Organizing the REAPER project
 
-BandControl reads the project as it is; there is nothing to install in the project. A few conventions decide what
-the app shows:
+**BandControl finds its way around the project by a naming convention**, not by guessing from the routing. Three
+folders, named the way it expects, decide what shows up in which tab:
+
+```text
+Click, Backtrack      sources, at the top level
+INPUTS/               -> Inputs tab: one track per input (Drums, Bass, Guitar, Vocals)
+PA OUT/               -> PA tab: feeds to the venue's console, each a hardware output receiving its sources
+IEM OUT/              -> IEM tab: one mix per musician, a hardware output receiving everything they want to hear
+```
+
+Without these folders the Inputs and PA tabs are hidden and the IEM tab lists every track with a hardware output
+and receives. Nothing else needs to change and there is nothing to install in the project; the
+[example project](#example-project) has exactly this layout.
+
+The rules:
 
 1. **Songs are regions.** They must not overlap but may follow each other directly. Markers inside a region are the
    song's parts, used by previous / next. Most bands need none: regions alone are enough.
 2. **An IEM mix is a track with a hardware output and at least one receive**, one per band member, receiving every
    source they want to hear (click, backtracks, instruments, vocals). The IEM tab sets the volume and mute of those
-   receives and the mix's own volume. Put the mixes in a folder named like **IEM** or **Monitor**: then other output
-   tracks (PA feeds, spare outputs) are not listed.
-3. **Inputs** are the direct children of a top level folder named like **Inputs**. Nested tracks (effect returns
-   and the like) are not inputs.
-4. **PA outputs** are the direct children of a top level folder with **PA** in its name.
+   receives and the mix's own volume. Put the mixes in a folder with **IEM** or **Monitor** in its name: then other
+   output tracks (spare outputs) are not listed. PA outputs never are.
+3. **Inputs** are the direct children of a top level folder with the word **Input** or **Inputs** in its name (any
+   case: "INPUTS", "Band inputs"). Nested tracks (effect returns and the like) are not inputs.
+4. **PA outputs** are the direct children of a top level folder with the word **PA** in its name ("PA OUT",
+   "To PA").
 5. The **song order** and disabled songs are stored in the project (project state `BANDUI/regions`), shared with
    reaper-remote-bandui.
 
 Inputs and PA tabs are hidden when the project has no such folder; a reaper-remote-bandui `Mother Project.RPP`
 works as it is.
 
-![REAPER: the example project with its folders](docs/screenshots/reaper-project.png)
-
 ### Example project
 
-[`tests/fixtures/Band Project.RPP`](tests/fixtures/Band%20Project.RPP) is a band's live project with invented songs
-and tempos and the few markers real projects have. It opens in any REAPER (no third party plugins) and is a good
-template; every screenshot and most tests use it.
+[**Download `BandControl-Example.RPP`**](https://raw.githubusercontent.com/nikarh/reaper-bandcontrol/main/examples/BandControl-Example.RPP)
+(*right click → Save link as*): the smallest project laid out this way, to open and look at, or to start from. It
+opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are taken from it.
 
-```text
-Click                 a click plays during every song
-BACKTRACKS/           Backtrack, Vocal Backtrack
-INPUTS/               -> Inputs tab: Drums, Bass, L GTR, R GTR (at +6 dB), VOX, VOX BASS, VOX R GTR inputs
-IEM VOCALS/           the vocals processed for the in-ears, each receiving its input
-PA OUT/               -> PA tab: 8 outputs to the front of house, each receiving one source
-IEM OUT/              -> IEM tab: Drums, Left guitar, Right guitar, Bass, Vocals, each receiving 10 sources
-```
+- **Click** (a click plays during every song) and **Backtrack** at the top level.
+- **INPUTS**: Drums, Bass, Guitar and Vocals on hardware inputs 1 to 4.
+- **PA OUT**: PA Backtrack, PA Instruments and PA Vocals on hardware outputs 9 to 11, each receiving its sources.
+- **IEM OUT**: Drummer, Bassist, Guitarist and Singer on output pairs 1/2 to 7/8, each receiving all six sources.
+- Four songs, Spring, Summer, Autumn and Winter, at REAPER's default 120 BPM, one empty bar apart.
+
+![REAPER: the example project with its folders](docs/screenshots/reaper-project.png)
 
 ## How it works
 
@@ -244,8 +283,7 @@ IEM OUT/              -> IEM tab: Drums, Left guitar, Right guitar, Bass, Vocals
   band fits; a big ensemble may hit the adapter's limit.
 - **macOS.** macOS only lets an application use Bluetooth if its `Info.plist` declares it
   (`NSBluetoothAlwaysUsageDescription`). The extension checks this instead of letting macOS terminate REAPER; if
-  REAPER's bundle lacks the key, **Show status** says so and Bluetooth stays off. The extension is not notarized yet
-  (see the `xattr` step above).
+  REAPER's bundle lacks the key, **Show status** says so and Bluetooth stays off.
 - **Windows.** Needs Windows 10 1803 or newer and an adapter that supports the peripheral role. Windows can't drop a
   connection from the computer's side, so a rejected phone stays connected at the Bluetooth level until it leaves.
 - **Gain and meters.** "Gain" on the Inputs and PA tabs is the track volume (the fader in REAPER), and meters show
@@ -282,7 +320,8 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 | --- | --- | --- |
 | Rust unit and integration tests (protocol, engine, server over TCP, .RPP parser) | `mise run test` | – |
 | Lints: clippy for Linux, macOS and Windows, cargo-deny, rustfmt, taplo, shellcheck, actionlint, docs check | `mise run lint` | – |
-| Extension in a real, headless REAPER (example and Mother Project) | `mise run e2e:reaper` | REAPER, `cage` or Xvfb |
+| Extension in a real, headless REAPER (band fixture and Mother Project) | `mise run e2e:reaper` | REAPER, `cage` or Xvfb |
+| The same against REAPER releases from 5.93 to 7.82, downloaded on demand | `mise run e2e:reaper-versions [VERSION...]` | `cage` or Xvfb |
 | Kotlin protocol and state tests, Kotlin client against the Rust simulator | `mise run android:test` | – |
 | Android lint and ktlint | `mise run android:lint` | – |
 | App on a phone against the simulated example project | `mise run android:e2e [tcp\|ble]` | phone (adb) |
@@ -290,11 +329,18 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 
 Tools:
 
-- `cargo run -p bandctl -- sim --project band --ble --activity` simulates REAPER with the example project as a
-  Bluetooth peripheral, moving faders and the playhead; `--tcp 127.0.0.1:47011` serves TCP, `--project FILE.RPP`
-  simulates any project. `bandctl pair` prints a pairing code, `bandctl client` prints what a server sends.
-- `mise run reaper` starts an isolated headless REAPER with the extension and the example project; lines typed on
-  stdin go to REAPER's web API (`SET/TRACK/40/VOL/0.5`), `screenshot FILE.png` saves a screenshot.
+- `cargo run -p bandctl -- sim --project band --ble --activity` simulates REAPER as a Bluetooth peripheral, moving
+  faders and the playhead; `--tcp 127.0.0.1:47011` serves TCP. `--project band` is the test fixture
+  ([`tests/fixtures/Band Project.RPP`](tests/fixtures/Band%20Project.RPP): a real band's layout with markers, a custom
+  song order and a skipped song, which the tests need), `--project example` the example project, `--project
+  FILE.RPP` any project. `bandctl pair` prints a pairing code, `bandctl client` prints what a server sends.
+- `mise run reaper` starts an isolated headless REAPER with the extension and the band fixture (`--project FILE` for
+  another); lines typed on stdin go to REAPER's web API (`SET/TRACK/13/VOL/0.5`), `screenshot FILE.png` saves a
+  screenshot.
+- `mise run package:windows x64|arm64 [DLL]` and `mise run package:macos [DYLIB]` build the installers, signed when
+  the signing variables are set (see [`docs/RELEASING.md`](docs/RELEASING.md)). The Windows one needs `makensis`
+  (NSIS) and, without a DLL argument, Windows; the macOS one needs macOS.
+- `scripts/make-example-project.py` and `scripts/make-band-fixture.py` regenerate the two projects.
 - `mise run android:deploy [-s SERIAL] [pairing-url]` installs and starts the app; with several devices in
   `adb devices` it asks which one (or takes `-s` / `ANDROID_SERIAL`), like the other phone scripts. A pairing URL
   with `&t=127.0.0.1:PORT` makes debug builds connect over TCP through `adb reverse`. `scripts/android-emulator.sh` boots a headless
