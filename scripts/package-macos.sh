@@ -11,6 +11,8 @@
 #   MACOS_INSTALLER_IDENTITY   "Developer ID Installer: …", signs the package
 # Notarization, optional, needs both identities (so Gatekeeper opens the package without a warning):
 #   MACOS_NOTARY_APPLE_ID, MACOS_NOTARY_TEAM_ID, MACOS_NOTARY_PASSWORD (an app-specific password)
+#
+# Runs with macOS's own bash 3.2 too: no mapfile, and empty arrays only as ${array[@]+"${array[@]}"} under set -u.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -53,7 +55,7 @@ else
   echo "MACOS_INSTALLER_IDENTITY not set: the package is not signed" >&2
 fi
 productbuild --distribution "$work/distribution.xml" --resources packaging/macos --package-path "$work" \
-  "${sign[@]}" "$pkg"
+  ${sign[@]+"${sign[@]}"} "$pkg"
 
 if [[ -n ${MACOS_NOTARY_APPLE_ID:-} && ${#sign[@]} -gt 0 ]]; then
   xcrun notarytool submit "$pkg" --apple-id "$MACOS_NOTARY_APPLE_ID" --team-id "$MACOS_NOTARY_TEAM_ID" \
