@@ -158,12 +158,17 @@ private fun TransportButton(
         modifier
             .height(44.dp)
             .clip(shape)
-            .background(if (selected) selectedColor else Palette.gray700)
-            .clickable(enabled = enabled, onClick = onClick)
+            .background(
+                when {
+                    !selected -> Palette.gray700
+                    enabled -> selectedColor
+                    else -> Palette.gray600
+                },
+            ).clickable(enabled = enabled, onClick = onClick)
             .testTag("transport-$description"),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = description, tint = if (enabled) Color.White else Palette.gray500)
+        Icon(icon, contentDescription = description, tint = if (enabled) Color.White else Palette.gray400)
     }
 }
 
