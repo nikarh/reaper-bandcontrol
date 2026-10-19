@@ -43,7 +43,15 @@ BandControl removes the network entirely:
 
 <img src="docs/screenshots/playback.png" alt="Playback and setlist" width="220" align="right">
 
-Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist. The setlist can be reordered and songs disabled right on the phone; the order is stored in the REAPER project, compatible with reaper-remote-bandui.
+Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
+
+<br clear="right">
+
+### Rearrange the setlist by dragging
+
+<img src="docs/screenshots/setlist.png" alt="Rearrange the setlist by dragging" width="220" align="right">
+
+Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees it right away.
 
 <br clear="right">
 

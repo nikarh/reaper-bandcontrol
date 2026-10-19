@@ -200,6 +200,10 @@ designed to be broadcast-safe on every OS:
 - [ ] find out why parallel REAPER instances under Xvfb interfere (tests run serially for now); REAPER also
       occasionally dies at startup under Xvfb with a GDK `BadDrawable` X error (seen with and without the extension)
 
+### 10b. Setlist editor
+- [x] drag and drop (`sh.calvin.reorderable`): handle or long press, haptic ticks, auto scroll, the order sent once
+      on drop; a switch per song to skip it; Move up / Move down accessibility actions; phone e2e drags a row
+
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
 - [x] the app keeps every pairing; with one in range it connects by itself, several in range at start ask, another

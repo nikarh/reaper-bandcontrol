@@ -102,6 +102,10 @@ class ScreenshotTest {
     @Test
     fun screenshots() {
         shot("playback")
+        compose.onNodeWithTag("edit-regions").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("region-editor"), 5_000)
+        shot("setlist")
+        compose.onNodeWithTag("edit-regions").performClick()
         compose.onNodeWithTag("tab-inputs").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("CLIP +1.0"), 10_000)
         shot("inputs")
