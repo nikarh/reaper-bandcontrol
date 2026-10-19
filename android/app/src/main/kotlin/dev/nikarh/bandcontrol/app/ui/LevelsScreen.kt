@@ -57,7 +57,7 @@ fun LevelsScreen(
                 modifier = Modifier.testTag("reset-peaks"),
             ) { Text("Reset peaks", color = Palette.blue500) }
         }
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize().testTag("levels")) {
             items(tracks, key = { it.id }) { track ->
                 LevelRow(
                     track = track,

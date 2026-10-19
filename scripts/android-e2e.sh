@@ -22,7 +22,7 @@ fi
 cargo build -q -p bandctl
 (cd android && ./gradlew -q --console=plain :app:assembleDebug :app:assembleDebugAndroidTest)
 
-./target/debug/bandctl sim --name Simulator --secret "$SECRET" \
+./target/debug/bandctl sim --name Simulator --secret "$SECRET" --project band \
   "${SERVE[@]}" --control "127.0.0.1:$CONTROL_PORT" > target/android-e2e-sim.log 2>&1 &
 SIM=$!
 cleanup() {

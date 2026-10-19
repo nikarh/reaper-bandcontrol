@@ -12,6 +12,7 @@ import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ActivityScenario
@@ -82,13 +83,21 @@ class ReaperE2ETest {
         condition: () -> Boolean,
     ) = compose.waitUntil(timeoutMs) { runCatching(condition).getOrDefault(false) }
 
+    /** Lets a drag finish and the fader drop its local value, so a change in REAPER isn't overwritten by the drag. */
+    private fun settle() {
+        compose.waitForIdle()
+        Thread.sleep(1_500)
+    }
+
+    private fun stateIs(description: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, description)
+
     @Before
     fun launch() {
-        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/13/VOL/0.42;SET/TRACK/7/VOL/1")
+        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/40/VOL/0.251189;SET/TRACK/15/VOL/1")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=REAPER" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
-        compose.waitUntilAtLeastOneExists(hasTestTag("region-4"), 30_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("region-1"), 30_000)
     }
 
     @After
@@ -103,67 +112,80 @@ class ReaperE2ETest {
         compose.onNodeWithTag("transport-stop").performClick()
         eventually { playState() == 0 }
 
-        compose.onNodeWithTag("region-3").performClick()
-        awaitPosition(684.5..684.6)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Winter"), 5_000)
+        compose.onNodeWithTag("region-2").performClick()
+        awaitPosition(158.84..158.85)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(333.9..334.0)
+        awaitPosition(174.07..174.09)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(367.3..367.4)
+        awaitPosition(183.60..183.61)
         compose.onNodeWithTag("nav-previous").performClick()
-        awaitPosition(333.9..334.0)
+        awaitPosition(174.07..174.09)
 
-        // Seeking in REAPER moves the phone to the region under the cursor.
-        web("SET/POS/700")
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Winter"), 5_000)
+        // Seeking in REAPER moves the phone; the next song follows the band's order (1, 2, 6, ...).
+        web("SET/POS/260")
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Outro"), 5_000)
+        compose.onNodeWithTag("nav-next").performClick()
+        awaitPosition(572.07..572.08)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Static Bloom"), 5_000)
     }
 
     @Test
     fun regionOrderFollowsBothSides() {
         compose.onNodeWithTag("edit-regions").performClick()
-        compose.onNodeWithTag("region-toggle-4").performClick()
-        eventually { regionOrder() == "11,04,13,12" }
+        compose.onNodeWithTag("region-toggle-5").performClick()
+        eventually { regionOrder() == "11,12,16,14,05,13,17,18,19,110,011,112" }
         compose.onNodeWithTag("edit-regions").performClick()
-        compose.waitUntilDoesNotExist(hasTestTag("region-4"), 5_000)
+        compose.waitUntilDoesNotExist(hasTestTag("region-5"), 5_000)
 
         // Usually within the server's debounce, so REAPER never publishes the phone's order.
         web("SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER")
-        compose.waitUntilAtLeastOneExists(hasTestTag("region-4"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("region-5"), 5_000)
     }
 
     @Test
     fun mixFollowsBothSides() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-13").performClick()
+        compose.onNodeWithTag("output-40").performClick()
 
-        // The mute button only shows what REAPER reports back, so this round-trips through REAPER.
-        compose.onNodeWithTag("mute-2").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("mute-2") and isOn(), 5_000)
-        web("SET/TRACK/13/SEND/-1/MUTE/-1")
-        compose.waitUntilAtLeastOneExists(hasTestTag("mute-2") and isOff(), 5_000)
+        // Drums input is receive 7 of the drummer's mix. The mute button only shows what REAPER reports back, so
+        // this round-trips through REAPER.
+        compose.onNodeWithTag("receives").performScrollToNode(hasTestTag("mute-14"))
+        compose.onNodeWithTag("mute-14").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("mute-14") and isOn(), 5_000)
+        web("SET/TRACK/40/SEND/-8/MUTE/-1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("mute-14") and isOff(), 5_000)
 
         compose.onNodeWithTag("output-volume").performTouchInput { swipeLeft() }
-        eventually { trackVolume(13) < 0.3 }
+        eventually { trackVolume(40) < 0.2 }
+        settle()
 
-        web("SET/TRACK/13/VOL/0.25")
-        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.0 dB"), 5_000)
+        web("SET/TRACK/40/VOL/0.5")
+        compose.waitUntilAtLeastOneExists(hasTestTag("output-volume") and stateIs("-6.0 dB"), 5_000)
     }
 
     @Test
     fun inputGain() {
         compose.onNodeWithTag("tab-inputs").performClick()
-        compose.onNodeWithTag("gain-7").performTouchInput { swipeLeft() }
-        eventually { trackVolume(7) < 0.5 }
-        web("SET/TRACK/7/VOL/1")
-        compose.waitUntilAtLeastOneExists(
-            hasTestTag("gain-7") and SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "0.0 dB"),
-            5_000,
-        )
+        compose.onNodeWithTag("gain-15").performTouchInput { swipeLeft() }
+        eventually { trackVolume(15) < 0.5 }
+        settle()
+        web("SET/TRACK/15/VOL/1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-15") and stateIs("0.0 dB"), 5_000)
+    }
+
+    @Test
+    fun paOutputs() {
+        compose.onNodeWithTag("tab-pa").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-30") and stateIs("-5.0 dB"), 5_000)
+        web("SET/TRACK/30/VOL/1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-30") and stateIs("0.0 dB"), 5_000)
+        web("SET/TRACK/30/VOL/0.562341")
     }
 
     private companion object {
-        /** Region order stored in the Mother Project: Summer, Spring, Winter, Autumn, all enabled. */
-        const val INITIAL_ORDER = "11,14,13,12"
+        /** Song order stored in the band project: 1, 2, 6, 4, 5, 3, ..., Velvet Machine (11) disabled. */
+        const val INITIAL_ORDER = "11,12,16,14,15,13,17,18,19,110,011,112"
 
         /** Transport: Stop. */
         const val STOP = "1016"

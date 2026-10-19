@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
@@ -94,6 +96,19 @@ class SimulatorE2ETest {
         scenario.close()
     }
 
+    private fun receive(
+        output: Int,
+        index: Int,
+    ): JSONObject = track(output).getJSONArray("receives").getJSONObject(index)
+
+    /** Scrolls a lazy list so the row with [tag] is composed. */
+    private fun scrollTo(
+        list: String,
+        tag: String,
+    ) {
+        compose.onNodeWithTag(list).performScrollToNode(hasTestTag(tag))
+    }
+
     @Test
     fun transportAndNavigation() {
         compose.onNodeWithTag("transport-play").performClick()
@@ -101,24 +116,34 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("transport-stop").performClick()
         eventually { dump().getJSONObject("transport").getString("play") == "Stopped" }
 
-        compose.onNodeWithTag("region-3").performClick()
-        awaitPosition(684.5..684.6)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Winter"), 5_000)
+        compose.onNodeWithTag("region-2").performClick()
+        awaitPosition(158.84..158.85)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Intro"), 5_000)
 
-        // Winter starts on marker 6, the next region in the user's order (1, 4, 3, 2) is Autumn.
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(333.9..334.0)
+        awaitPosition(174.07..174.09)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Verse 1"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(367.3..367.4)
+        awaitPosition(183.60..183.61)
         compose.onNodeWithTag("nav-previous").performClick()
-        awaitPosition(333.9..334.0)
+        awaitPosition(174.07..174.09)
+
+        // After the last part of Paper Lions comes Static Bloom, the next song in the band's order (1, 2, 6, ...).
+        control("seek 260")
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Outro"), 5_000)
+        compose.onNodeWithTag("nav-next").performClick()
+        awaitPosition(572.07..572.08)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Static Bloom"), 5_000)
     }
 
     @Test
     fun regionEditing() {
+        // Velvet Machine is disabled in the project.
+        compose.onNodeWithTag("region-11").assertDoesNotExist()
         compose.onNodeWithTag("edit-regions").performClick()
         compose.onNodeWithTag("region-toggle-4").performClick()
-        eventually { dump().getString("region_order") == "11,04,13,12" }
+        eventually { dump().getString("region_order") == "11,12,16,04,15,13,17,18,19,110,011,112" }
         compose.onNodeWithTag("edit-regions").performClick()
         compose.waitUntilDoesNotExist(hasTestTag("region-4"), 5_000)
     }
@@ -126,92 +151,100 @@ class SimulatorE2ETest {
     @Test
     fun mixFollowsBothSides() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-13").performClick()
+        compose.onNodeWithTag("output-40").performClick()
+        compose.onNodeWithTag("mix-title").assertTextEquals("Drums")
 
-        compose.onNodeWithTag("mute-2").performClick()
-        eventually { track(13).getJSONArray("receives").getJSONObject(0).getBoolean("mute") }
+        // Drums input is receive 7 of the drummer's mix.
+        scrollTo("receives", "mute-14")
+        compose.onNodeWithTag("mute-14").performClick()
+        eventually { receive(40, 7).getBoolean("mute") }
 
-        val before = track(13).getJSONArray("receives").getJSONObject(3).getDouble("volume")
+        scrollTo("receives", "receive-7")
+        val before = receive(40, 2).getDouble("volume")
         compose.onNodeWithTag("receive-7").performTouchInput { swipeLeft() }
-        eventually { track(13).getJSONArray("receives").getJSONObject(3).getDouble("volume") < before - 0.1 }
+        eventually { receive(40, 2).getDouble("volume") < before - 0.1 }
 
         // Changes made in REAPER show up on the phone.
-        control("volume 13 0.25")
-        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.0 dB"), 5_000)
-        control("rename 2 Klick")
-        compose.waitUntilAtLeastOneExists(hasText("Klick"), 5_000)
+        control("volume 40 0.25")
+        compose.waitUntilAtLeastOneExists(hasTestTag("output-volume") and hasStateDescription("-12.0 dB"), 5_000)
+        control("rename 14 Kick and snare")
+        scrollTo("receives", "receive-14")
+        compose.waitUntilAtLeastOneExists(hasText("Kick and snare"), 5_000)
     }
-
-    private fun receiveVolume(
-        output: Int,
-        index: Int,
-    ) = track(output).getJSONArray("receives").getJSONObject(index).getDouble("volume")
 
     @Test
     fun faderIgnoresTapsAndVerticalSwipes() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-13").performClick()
-        val before = receiveVolume(13, 3)
+        compose.onNodeWithTag("output-40").performClick()
+        val before = receive(40, 2).getDouble("volume")
         compose.onNodeWithTag("receive-7").performClick()
         compose.onNodeWithTag("receive-7").performTouchInput { swipeUp() }
         compose.onNodeWithTag("receive-7").performTouchInput { swipeDown() }
         Thread.sleep(1_000)
-        assertEquals(before, receiveVolume(13, 3), 1e-6)
+        assertEquals(before, receive(40, 2).getDouble("volume"), 1e-6)
 
         // A short horizontal drag nudges the level instead of jumping to the touched position.
         compose.onNodeWithTag("receive-7").performTouchInput {
             swipe(center, center + Offset(width * 0.05f, 0f), 300)
         }
-        eventually { receiveVolume(13, 3) > before }
-        val after = receiveVolume(13, 3)
+        eventually { receive(40, 2).getDouble("volume") > before }
+        val after = receive(40, 2).getDouble("volume")
         assertTrue("$before -> $after", after < before * 1.6)
     }
 
     @Test
     fun tabsKeepTheirState() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-15").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Guitar [7+8]"), 5_000)
+        compose.onNodeWithTag("output-42").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Right guitar"), 5_000)
         compose.onNodeWithTag("tab-playback").performClick()
-        compose.onNodeWithTag("region-3").assertExists()
+        compose.onNodeWithTag("region-1").assertExists()
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("mix-title").assertTextEquals("Guitar [7+8]")
+        compose.onNodeWithTag("mix-title").assertTextEquals("Right guitar")
+    }
+
+    @Test
+    fun iemTabListsOnlyMonitorMixes() {
+        compose.onNodeWithTag("tab-iem").performClick()
+        for (id in 40..44) compose.onNodeWithTag("output-$id").assertExists()
+        // Not the PA outputs, not the debug mix.
+        compose.onNodeWithTag("output-30").assertDoesNotExist()
+        compose.onNodeWithTag("output-45").assertDoesNotExist()
     }
 
     @Test
     fun inputLevelsAndGain() {
-        control("meter 7 1.5")
-        control("meter 8 -6")
+        control("meter 16 1.5")
+        control("meter 15 -6")
         compose.onNodeWithTag("tab-inputs").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-7") and hasText("CLIP +1.5"), 5_000)
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("-6.0"), 5_000)
+        for (id in listOf(14, 15, 16, 17, 18, 21, 23)) scrollTo("levels", "level-$id")
+        // Nested tracks of the vocal folders are not inputs.
+        compose.onNodeWithTag("level-19").assertDoesNotExist()
+        scrollTo("levels", "level-14")
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-16") and hasText("CLIP +1.5"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-15") and hasText("-6.0"), 5_000)
 
         // Peaks hold until reset.
-        control("meter 7 off")
+        control("meter 16 off")
         Thread.sleep(500)
-        compose.onNodeWithTag("peak-7").assertTextEquals("CLIP +1.5")
-        compose.onNodeWithTag("peak-7").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-7") and hasText("-"), 5_000)
+        compose.onNodeWithTag("peak-16").assertTextEquals("CLIP +1.5")
+        compose.onNodeWithTag("peak-16").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-16") and hasText("-"), 5_000)
 
-        compose.onNodeWithTag("gain-8").performTouchInput { swipeLeft() }
-        eventually { track(8).getDouble("volume") < 0.5 }
-        control("meter 8 off")
+        compose.onNodeWithTag("gain-15").performTouchInput { swipeLeft() }
+        eventually { track(15).getDouble("volume") < 0.5 }
+        control("meter 15 off")
     }
 
     @Test
-    fun paOutputsOfABandProject() {
-        control("reset band")
-        compose.waitUntilAtLeastOneExists(hasTestTag("tab-pa"), 10_000)
+    fun paOutputLevels() {
         compose.onNodeWithTag("tab-pa").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("level-30"), 10_000)
+        compose.onNodeWithTag("level-30").assertExists()
         control("meter 35 -9")
+        scrollTo("levels", "level-35")
         compose.waitUntilAtLeastOneExists(hasTestTag("peak-35") and hasText("-9.0"), 5_000)
-
-        // The Mix tab only lists the monitor mixes, not the PA outputs or the debug mix.
-        compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-40").assertExists()
-        compose.onNodeWithTag("output-30").assertDoesNotExist()
-        compose.onNodeWithTag("output-45").assertDoesNotExist()
+        compose.onNodeWithTag("reset-peaks").performClick()
+        control("meter 35 off")
     }
 
     @Test
@@ -232,12 +265,17 @@ class SimulatorE2ETest {
         val uri = Uri.parse("bandcontrol://pair?s=$wrong&n=Studio" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         scenario.onActivity { it.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName)) }
-        compose.waitUntilAtLeastOneExists(
-            hasTestTag("status") and hasText("Studio doesn't accept this phone's pairing code"),
-            20_000,
-        )
-        compose.onNodeWithText("Pair again").performClick()
-        compose.onNodeWithTag("pair-code").assertExists()
+        if (tcp == null) {
+            // Over Bluetooth the pairing code also selects which computer to look for.
+            compose.waitUntilAtLeastOneExists(hasTestTag("status") and hasText("Studio not found nearby", substring = true), 30_000)
+        } else {
+            compose.waitUntilAtLeastOneExists(
+                hasTestTag("status") and hasText("Studio doesn't accept this phone's pairing code"),
+                20_000,
+            )
+            compose.onNodeWithText("Pair again").performClick()
+            compose.onNodeWithTag("pair-code").assertExists()
+        }
     }
 
     @Test

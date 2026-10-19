@@ -36,12 +36,17 @@ fun BandState.sortedRegions(): List<OrderedRegion> {
 
 fun BandState.enabledRegions(): List<Region> = sortedRegions().filterNot { it.disabled }.map { it.region }
 
-fun BandState.markersIn(region: Region): List<Marker> = markers.filter { it.pos_ms in region.start_ms..region.end_ms }
+/** Markers from the region start up to (not including) its end, where the next song may already start. */
+fun BandState.markersIn(region: Region): List<Marker> = markers.filter { it.pos_ms >= region.start_ms && it.pos_ms < region.end_ms }
 
-/** The region containing [posMs] (with whole second tolerance like the web UI). */
+/**
+ * The region containing [posMs] (with whole second tolerance like the web UI). Where songs follow each other directly
+ * the tolerance overlaps, then the song that has already started wins.
+ */
 fun BandState.currentRegion(posMs: Long): Region? {
     val t = maxOf(posMs, 0)
-    return regions.find { t >= floorSecond(it.start_ms) && t <= ceilSecond(it.end_ms) }
+    val candidates = regions.filter { t >= floorSecond(it.start_ms) && t <= ceilSecond(it.end_ms) }
+    return candidates.filter { it.start_ms <= t }.maxByOrNull { it.start_ms } ?: candidates.firstOrNull()
 }
 
 /** The last marker of the current region at or before [posMs]. */

@@ -114,44 +114,52 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
     }
 }
 
+/// Moves faders and mutes of the first output tracks (hardware output and receives), renames a track now and then
+/// and keeps playback running, whatever the project.
 fn activity(daw: &mut FakeDaw, step: u64) {
     let wave = [0.2f32, 0.5, 0.8, 1.0, 0.6, 0.3];
     let level = wave
         .get(usize::try_from(step).unwrap_or(0) % wave.len())
         .copied()
         .unwrap_or(1.0);
+    let outputs: Vec<u32> = daw
+        .tracks
+        .iter()
+        .filter(|t| t.hw_out && !t.receives.is_empty())
+        .map(|t| t.id)
+        .collect();
+    let first = outputs.first().copied().unwrap_or(0);
+    let second = outputs.get(1).copied().unwrap_or(first);
     match step % 5 {
         0 => {
-            if let Some(t) = daw.track_mut(13) {
+            if let Some(t) = daw.track_mut(first) {
                 t.volume = level;
             }
         }
         1 => {
-            if let Some(r) = daw.track_mut(15).and_then(|t| t.receives.get_mut(1)) {
+            if let Some(r) = daw.track_mut(second).and_then(|t| t.receives.get_mut(1)) {
                 r.mute = !r.mute;
             }
         }
         2 => {
-            if let Some(r) = daw.track_mut(14).and_then(|t| t.receives.get_mut(0)) {
+            if let Some(r) = daw.track_mut(first).and_then(|t| t.receives.get_mut(0)) {
                 r.volume = level;
             }
         }
         3 if step % 15 == 3 => {
-            if let Some(t) = daw.track_mut(2) {
-                t.name = if t.name == "Click" {
-                    "Click*".into()
-                } else {
-                    "Click".into()
+            if let Some(t) = daw.tracks.get_mut(1) {
+                t.name = match t.name.strip_suffix(" *") {
+                    Some(name) => name.to_owned(),
+                    None => format!("{} *", t.name),
                 };
             }
             daw.touch();
         }
         _ => {
-            if daw.transport.play != PlayState::Playing {
-                let _ = daw.apply(&Command::Goto {
-                    region: 1,
-                    marker: None,
-                });
+            if daw.transport.play != PlayState::Playing
+                && let Some(region) = daw.regions.first().map(|r| r.id)
+            {
+                let _ = daw.apply(&Command::Goto { region, marker: None });
                 let _ = daw.apply(&Command::Play);
             }
         }
