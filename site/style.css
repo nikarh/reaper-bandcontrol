@@ -24,11 +24,17 @@ code { background: var(--panel); padding: 0.1em 0.35em; border-radius: 4px; }
 pre { background: var(--panel); padding: 1em; border-radius: 8px; overflow-x: auto; }
 
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
-section { padding: 56px 0; }
-.band { background: #0b1220; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+/* Every block of the page is a section with one h2 and the same spacing; every other one has a darker background. A
+   section's subsections are h3 directly in its .wrap; cards, features and releases have their own smaller titles. */
+main > section { padding: 64px 0; }
+main > section:nth-of-type(even) { background: #0b1220; border-block: 1px solid var(--line); }
 h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15; margin: 0.2em 0; }
-h2 { font-size: 1.8rem; margin-top: 0; }
+h2 { font-size: 1.8rem; line-height: 1.25; margin: 0 0 0.7em; }
 h3 { margin: 0 0 0.3em; }
+.wrap > h3, .pairing > h3 { font-size: 1.3rem; margin: 2em 0 0.7em; }
+/* The block's padding is the space at its end too. */
+main > section > .wrap > :last-child, .pairing > :last-child { margin-bottom: 0; }
+.feature:last-of-type { padding-bottom: 0; }
 
 .hero { padding: 64px 0 24px; background: radial-gradient(ellipse at top, #1e3a8a55, transparent 60%); }
 .eyebrow { color: var(--green); font-weight: 600; letter-spacing: 0.02em; margin: 0; }
@@ -92,7 +98,7 @@ details.manual summary { cursor: pointer; color: var(--muted); }
 .shots figcaption { color: var(--muted); font-size: 0.9em; margin-top: 6px; }
 /* A single window, about as wide as the phone screenshots, beside the text it belongs to. */
 .shots.narrow { float: right; width: 260px; margin: 0 0 16px 24px; }
-#pairing::after { content: ""; display: block; clear: both; }
+.pairing::after { content: ""; display: block; clear: both; }
 
 .changes h3 { margin-top: 1.4em; }
 .changes ul { color: var(--muted); }

@@ -32,7 +32,8 @@
 </header>
 
 <main>
-  <section class="wrap why">
+  <section id="why">
+    <div class="wrap">
     <h2>Why not the web remote?</h2>
     <p>BandControl supersedes <a href="https://github.com/nikarh/reaper-remote-bandui">reaper-remote-bandui</a>, a web
       page for REAPER's web interface. The page works, until you play somewhere without a usable Wi-Fi: then one phone
@@ -46,14 +47,17 @@
       <div class="card"><h3>{{icon:sliders-horizontal}}More than a mixer</h3><p>Input and FOH meters with clip indicators, safe faders that don't
         jump when touched, and a setlist editor, in a native app that keeps the screen on.</p></div>
     </div>
+    </div>
   </section>
 
-  <section class="wrap" id="features">
+  <section id="features">
+    <div class="wrap">
     <h2>What it does</h2>
     {{features}}
+    </div>
   </section>
 
-  <section class="band" id="download">
+  <section id="download">
     <div class="wrap">
       <h2>Download <span class="version">v{{version}}</span></h2>
       <p>Two parts: the extension goes on the computer running REAPER, the app on every band member's phone. All files
@@ -84,7 +88,8 @@
     </div>
   </section>
 
-  <section class="wrap" id="setup">
+  <section id="setup">
+    <div class="wrap">
     <h2>Set up</h2>
     <ol class="steps">
       <li><strong>Install the extension</strong> on the computer running REAPER: quit REAPER, run the installer for
@@ -98,6 +103,7 @@
       <li><strong>Pair the rest of the band</strong> from the first phone: menu → <em>Share pairing with another
         phone</em>.</li>
     </ol>
+    <h3>Platform notes</h3>
     <div class="platforms">
       <details open>
         <summary>{{icon:windows}}Windows</summary>
@@ -143,10 +149,8 @@
           QR code. Google Play services are not needed; it works on de-Googled phones such as LineageOS.</p>
       </details>
     </div>
-  </section>
-
-  <section class="wrap" id="pairing">
-    <h2>Pairing, names and where they are saved</h2>
+    <div class="pairing" id="pairing">
+    <h3>Pairing, names and where they are saved</h3>
     <figure class="shots narrow"><img src="screenshots/reaper-pairing.png" alt="The pairing window in REAPER" loading="lazy"><figcaption>The pairing window in REAPER: make it bigger and the QR code grows with it.</figcaption></figure>
     <ul>
       <li><strong>On the computer</strong>, the pairing code belongs to the REAPER installation: it is saved in
@@ -161,9 +165,12 @@
         range it connects by itself; with several in range when the app opens it asks which one; when another one
         comes in range it says so and offers to switch. The menu switches between them or forgets one.</li>
     </ul>
+    </div>
+    </div>
   </section>
 
-  <section class="band" id="project">
+
+  <section id="project">
     <div class="wrap">
       <h2>Organizing the REAPER project</h2>
       <p><strong>BandControl finds its way around your project by a naming convention</strong>, not by guessing from
@@ -193,28 +200,34 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
     </div>
   </section>
 
-  <section class="wrap" id="verify">
-    <h2>{{icon:shield-check}}Verifying downloads</h2>
+  <section id="verify">
+    <div class="wrap">
+    <h2>Verifying downloads</h2>
     <p>Each release has a <code>SHA256SUMS</code> file signed with the project's key
       (<a href="{{repo}}/blob/main/docs/signing-key.asc">public key</a>):</p>
     <pre>gpg --import signing-key.asc
 gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS</pre>
+    </div>
   </section>
 
-  <section class="wrap" id="roadmap">
+  <section id="roadmap">
+    <div class="wrap">
     <h2>Roadmap</h2>
     <ul>
       <li>iOS app</li>
       <li>Google Play and F-Droid</li>
       <li>Testing the macOS and Windows Bluetooth support on more hardware</li>
     </ul>
+    </div>
   </section>
 
-  <section class="wrap" id="changes">
+  <section id="changes">
+    <div class="wrap">
     <h2>Recent changes</h2>
     {{changelog}}
     <p><a href="{{repo}}/blob/main/CHANGELOG.md">Full changelog</a></p>
+    </div>
   </section>
 </main>
 
