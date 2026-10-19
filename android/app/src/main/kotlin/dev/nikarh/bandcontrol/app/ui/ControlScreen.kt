@@ -73,6 +73,9 @@ import dev.nikarh.bandcontrol.proto.Region
 import dev.nikarh.bandcontrol.proto.RegionOrder
 import kotlinx.coroutines.delay
 
+/** Longer than the server's 1 s structure debounce plus Bluetooth latency. */
+private const val LOCAL_ORDER_TIMEOUT_MS = 3_000L
+
 private fun monotonicMs() = System.nanoTime() / 1_000_000
 
 /** The extrapolated play position, refreshed while playing. */
@@ -95,8 +98,15 @@ fun ControlScreen(
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
-    // Region order changes come back after the server's debounce: show them immediately.
+    // Region order changes come back after the server's debounce: show them immediately. The server sends nothing
+    // when the order is changed back in REAPER within the debounce, so an unconfirmed local order expires.
     var localOrder by remember(state.regionOrder) { mutableStateOf<List<RegionOrder>?>(null) }
+    LaunchedEffect(localOrder) {
+        if (localOrder != null) {
+            delay(LOCAL_ORDER_TIMEOUT_MS)
+            localOrder = null
+        }
+    }
     val view = localOrder?.let { state.copy(regionOrder = it) } ?: state
     val onOrder = { order: List<RegionOrder> -> if (send(Commands.regionOrder(order))) localOrder = order }
     val position = rememberPosition(state)
