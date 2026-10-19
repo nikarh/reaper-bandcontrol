@@ -273,6 +273,54 @@ mod tests {
     }
 
     #[test]
+    fn example_project_layout() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/BandControl-Example.RPP");
+        let daw = parse(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let names = |parent: Option<TrackId>| {
+            daw.tracks
+                .iter()
+                .filter(|t| t.parent == parent)
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names(None), ["Click", "Backtrack", "INPUTS", "PA OUT", "IEM OUT"]);
+        assert_eq!(names(Some(3)), ["Drums", "Bass", "Guitar", "Vocals"]);
+        assert_eq!(names(Some(8)), ["PA Backtrack", "PA Instruments", "PA Vocals"]);
+        assert_eq!(names(Some(12)), ["Drummer", "Bassist", "Guitarist", "Singer"]);
+        for track in daw
+            .tracks
+            .iter()
+            .filter(|t| t.parent == Some(8) || t.parent == Some(12))
+        {
+            assert!(track.hw_out && !track.receives.is_empty(), "{track:?}");
+        }
+        // Every in-ear mix hears every source.
+        assert!(
+            daw.tracks
+                .iter()
+                .filter(|t| t.parent == Some(12))
+                .all(|t| t.receives.len() == 6)
+        );
+        let ms = |s: f64| seconds_to_ms(s);
+        let songs: Vec<_> = daw
+            .regions
+            .iter()
+            .map(|r| (r.name.as_str(), ms(r.start), ms(r.end)))
+            .collect();
+        // 120 BPM in 4/4: a bar is 2 s, one empty bar between songs.
+        assert_eq!(
+            songs,
+            [
+                ("Spring", 0, 128_000),
+                ("Summer", 130_000, 274_000),
+                ("Autumn", 276_000, 388_000),
+                ("Winter", 390_000, 550_000)
+            ]
+        );
+        assert_eq!(daw.markers.len(), 0);
+    }
+
+    #[test]
     fn band_project_folders() {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/fixtures/Band Project.RPP");
         let daw = parse(&std::fs::read_to_string(path).unwrap()).unwrap();
