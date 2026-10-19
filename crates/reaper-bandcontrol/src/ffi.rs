@@ -92,6 +92,7 @@ api! {
     EnumProjects: fn(c_int, *mut c_char, c_int) -> *mut c_void;
     ShowConsoleMsg: fn(*const c_char);
     ShowMessageBox: fn(*const c_char, *const c_char, c_int) -> c_int;
+    GetUserInputs: fn(*const c_char, c_int, *const c_char, *mut c_char, c_int) -> bool;
     GetResourcePath: fn() -> *const c_char;
 }
 
@@ -372,6 +373,28 @@ impl Reaper {
         let (msg, title) = (cstring(msg), cstring(title));
         // SAFETY: NUL terminated strings.
         unsafe { (self.f.ShowMessageBox)(msg.as_ptr(), title.as_ptr(), kind) }
+    }
+
+    /// Asks for one line of text; `None` when cancelled. Commas are not allowed, they separate fields.
+    pub fn user_input(&self, title: &str, caption: &str, initial: &str) -> Option<String> {
+        const SIZE: usize = 512;
+        let (title, caption) = (cstring(title), cstring(caption));
+        let mut buf = vec![0 as c_char; SIZE];
+        for (dst, src) in buf.iter_mut().zip(initial.replace(',', " ").bytes().take(SIZE - 1)) {
+            *dst = c_char::from_ne_bytes([src]);
+        }
+        // SAFETY: NUL terminated strings, the buffer size is passed along and REAPER NUL terminates within it.
+        let ok = unsafe {
+            (self.f.GetUserInputs)(
+                title.as_ptr(),
+                1,
+                caption.as_ptr(),
+                buf.as_mut_ptr(),
+                c_int::try_from(SIZE).ok()?,
+            )
+        };
+        // SAFETY: NUL terminated within the buffer, see above.
+        ok.then(|| unsafe { CStr::from_ptr(buf.as_ptr()) }.to_string_lossy().into_owned())
     }
 
     pub fn resource_path(&self) -> String {
