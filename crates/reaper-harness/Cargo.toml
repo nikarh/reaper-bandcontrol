@@ -14,6 +14,9 @@ version.workspace      = true
 [dependencies]
 thiserror = { workspace = true }
 
+[target.'cfg(unix)'.dependencies]
+nix = { workspace = true }
+
 [dev-dependencies]
 bandcontrol-core   = { workspace = true }
 bandcontrol-proto  = { workspace = true }

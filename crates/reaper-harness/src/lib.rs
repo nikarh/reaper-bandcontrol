@@ -1,14 +1,14 @@
 //! Runs an isolated REAPER instance with the bandcontrol extension installed.
 //!
 //! Every instance gets a fresh resource directory (`-cfgfile`), so the user's REAPER configuration is never
-//! touched. On Linux REAPER runs inside a headless `cage` compositor with the dummy audio device, so playback
-//! advances without a sound card or a display. The REAPER web interface is enabled on a free port so tests can
-//! act like the sound engineer (change volumes, add markers...).
+//! touched. On Linux REAPER runs headless (a `cage` compositor, or Xvfb where cage isn't available, like CI) with
+//! the dummy audio device, so playback advances without a sound card or a display. The REAPER web interface is
+//! enabled on a free port so tests can act like the sound engineer (change volumes, add markers...).
 //!
 //! Environment:
 //! * `REAPER_BIN` — REAPER executable (default: common install locations)
-//! * `REAPER_LICENSE` — license file to copy (default: the one from the user's REAPER configuration)
-//! * `REAPER_HEADLESS=0` — show the REAPER window instead of using a headless compositor
+//! * `REAPER_LICENSE` — license file to copy (default: the one from the user's REAPER configuration, empty for none)
+//! * `REAPER_HEADLESS` — `cage`, `xvfb`, or `0` to show the REAPER window (default: cage if installed, else xvfb)
 
 use std::{
     io::{Read as _, Write as _},
@@ -32,6 +32,10 @@ pub enum Error {
     Exited(std::process::ExitStatus, PathBuf),
     #[error("unexpected web interface response: {0}")]
     Web(String),
+    #[error("screenshots need a headless REAPER")]
+    NotHeadless,
+    #[error("the screenshot tool failed with {0}")]
+    Screenshot(std::process::ExitStatus),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -73,8 +77,9 @@ pub fn reaper_binary() -> Option<PathBuf> {
 }
 
 fn license() -> Option<PathBuf> {
+    // An empty REAPER_LICENSE runs unlicensed (evaluation), like CI.
     if let Some(path) = std::env::var_os("REAPER_LICENSE") {
-        return Some(path.into());
+        return (!path.is_empty()).then(|| path.into());
     }
     let config = if cfg!(target_os = "windows") {
         std::env::var_os("APPDATA").map(|d| PathBuf::from(d).join("REAPER"))
@@ -154,6 +159,61 @@ pub struct Reaper {
     child: Child,
     dir: PathBuf,
     web: SocketAddr,
+    display: Display,
+    licensed: bool,
+}
+
+/// Where the REAPER window goes.
+#[derive(Debug)]
+enum Display {
+    Windowed,
+    /// `cage` with its own runtime directory, so screenshots can only ever capture it.
+    Cage {
+        runtime: PathBuf,
+    },
+    /// A private X server, killed with the instance.
+    Xvfb {
+        server: Child,
+        display: String,
+    },
+}
+
+fn on_path(program: &str) -> bool {
+    std::env::var_os("PATH").is_some_and(|path| std::env::split_paths(&path).any(|d| d.join(program).is_file()))
+}
+
+impl Display {
+    fn start(dir: &Path) -> Result<Self> {
+        let choice = std::env::var("REAPER_HEADLESS").unwrap_or_default();
+        if !cfg!(target_os = "linux") || choice == "0" {
+            return Ok(Self::Windowed);
+        }
+        if choice == "cage" || (choice != "xvfb" && on_path("cage")) {
+            let runtime = dir.join("runtime");
+            std::fs::create_dir_all(&runtime)?;
+            #[cfg(unix)]
+            std::fs::set_permissions(&runtime, std::os::unix::fs::PermissionsExt::from_mode(0o700))?;
+            return Ok(Self::Cage { runtime });
+        }
+        let mut server = Command::new("Xvfb")
+            .args(["-displayfd", "1", "-screen", "0", "1920x1080x24", "-nolisten", "tcp"])
+            .stdout(Stdio::piped())
+            .stderr(std::fs::File::create(dir.join("xvfb.log"))?)
+            .spawn()?;
+        let mut number = String::new();
+        if let Some(stdout) = server.stdout.take() {
+            std::io::BufRead::read_line(&mut std::io::BufReader::new(stdout), &mut number)?;
+        }
+        let number = number.trim();
+        if number.is_empty() {
+            let _ = server.kill();
+            return Err(Error::Timeout("Xvfb display".into()));
+        }
+        Ok(Self::Xvfb {
+            server,
+            display: format!(":{number}"),
+        })
+    }
 }
 
 impl Reaper {
@@ -170,7 +230,8 @@ impl Reaper {
         std::fs::create_dir_all(dir.join("UserPlugins"))?;
         let plugin_name = format!("reaper_bandcontrol{}", std::env::consts::DLL_SUFFIX);
         std::fs::copy(&options.plugin, dir.join("UserPlugins").join(plugin_name))?;
-        if let Some(license) = license() {
+        let license = license();
+        if let Some(license) = &license {
             std::fs::copy(license, dir.join("reaper-license.rk"))?;
         }
         let project = dir.join(options.project.file_name().unwrap_or("project.RPP".as_ref()));
@@ -180,19 +241,36 @@ impl Reaper {
         let ini = dir.join("reaper.ini");
         std::fs::write(&ini, reaper_ini(web_port))?;
 
-        let headless = cfg!(target_os = "linux") && std::env::var("REAPER_HEADLESS").map_or(true, |v| v != "0");
-        let mut command = if headless {
-            let mut c = Command::new("cage");
-            c.envs([
-                ("WLR_BACKENDS", "headless"),
-                ("WLR_LIBINPUT_NO_DEVICES", "1"),
-                ("WLR_RENDERER", "pixman"),
-            ])
-            .arg("--")
-            .arg(&binary);
-            c
-        } else {
-            Command::new(&binary)
+        let display = Display::start(dir)?;
+        let mut command = match &display {
+            Display::Cage { runtime } => {
+                let mut c = Command::new("cage");
+                c.envs([
+                    ("WLR_BACKENDS", "headless"),
+                    ("WLR_LIBINPUT_NO_DEVICES", "1"),
+                    ("WLR_RENDERER", "pixman"),
+                ])
+                .env("XDG_RUNTIME_DIR", runtime)
+                .env_remove("WAYLAND_DISPLAY")
+                .env_remove("DISPLAY")
+                .arg("--")
+                .arg(&binary);
+                c
+            }
+            Display::Xvfb { display, .. } => {
+                // REAPER keeps its instance pipe in the runtime directory; parallel instances must not share it.
+                let runtime = dir.join("runtime");
+                std::fs::create_dir_all(&runtime)?;
+                #[cfg(unix)]
+                std::fs::set_permissions(&runtime, std::os::unix::fs::PermissionsExt::from_mode(0o700))?;
+                let mut c = Command::new(&binary);
+                c.env("DISPLAY", display)
+                    .env("GDK_BACKEND", "x11")
+                    .env("XDG_RUNTIME_DIR", runtime)
+                    .env_remove("WAYLAND_DISPLAY");
+                c
+            }
+            Display::Windowed => Command::new(&binary),
         };
         command
             .args(["-newinst", "-nosplash", "-cfgfile"])
@@ -209,6 +287,8 @@ impl Reaper {
             child: command.spawn()?,
             dir: dir.clone(),
             web: SocketAddr::from((Ipv4Addr::LOCALHOST, web_port)),
+            display,
+            licensed: license.is_some(),
         })
     }
 
@@ -223,12 +303,38 @@ impl Reaper {
                 return Err(Error::Exited(status, self.dir.clone()));
             }
             if TcpStream::connect_timeout(&self.web, Duration::from_millis(200)).is_ok() {
+                self.close_evaluation_reminder();
                 return Ok(());
             }
             if Instant::now() > deadline {
                 return Err(Error::Timeout(format!("REAPER web interface on {}", self.web)));
             }
             std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    /// Unlicensed REAPER shows a modal "About" reminder that stops REAPER's timers (and so the extension). Under Xvfb
+    /// nothing closes it, so it is closed here; it can take a while to appear when several instances start at once.
+    fn close_evaluation_reminder(&self) {
+        let Display::Xvfb { display, .. } = &self.display else {
+            return;
+        };
+        if self.licensed {
+            return;
+        }
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while Instant::now() < deadline {
+            let closed = Command::new("xdotool")
+                .env("DISPLAY", display)
+                .args(["search", "--onlyvisible", "--name", "^About REAPER", "windowclose"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success());
+            if closed {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(200));
         }
     }
 
@@ -266,6 +372,37 @@ impl Reaper {
         Ok(body.to_owned())
     }
 
+    /// Saves a PNG of the headless REAPER window (`grim` under cage, `import` from `ImageMagick` under Xvfb).
+    ///
+    /// # Errors
+    /// When REAPER is not headless or the screenshot tool fails.
+    pub fn screenshot(&self, path: &Path) -> Result<()> {
+        let status = match &self.display {
+            Display::Cage { runtime } => {
+                let socket = std::fs::read_dir(runtime)?
+                    .flatten()
+                    .map(|e| e.file_name().to_string_lossy().into_owned())
+                    .find(|n| n.starts_with("wayland-") && Path::new(n).extension().is_none())
+                    .ok_or(Error::NotHeadless)?;
+                Command::new("grim")
+                    .env("XDG_RUNTIME_DIR", runtime)
+                    .env("WAYLAND_DISPLAY", socket)
+                    .arg(path)
+                    .status()?
+            }
+            Display::Xvfb { display, .. } => Command::new("import")
+                .args(["-display", display, "-window", "root"])
+                .arg(path)
+                .status()?,
+            Display::Windowed => return Err(Error::NotHeadless),
+        };
+        if status.success() {
+            Ok(())
+        } else {
+            Err(Error::Screenshot(status))
+        }
+    }
+
     /// Runs a REAPER action by command id.
     ///
     /// # Errors
@@ -277,16 +414,18 @@ impl Reaper {
 
 impl Drop for Reaper {
     fn drop(&mut self) {
+        // Everything started for this instance shares the process group created at launch. Not `kill -KILL -PID`:
+        // procps' kill turns that into kill(-1), which kills every process of the user.
         #[cfg(unix)]
-        {
-            // The compositor and REAPER share the process group created at launch.
-            let _ = Command::new("kill")
-                .arg("-KILL")
-                .arg(format!("-{}", self.child.id()))
-                .status();
+        if let Ok(pid) = i32::try_from(self.child.id()) {
+            let _ = nix::sys::signal::killpg(nix::unistd::Pid::from_raw(pid), nix::sys::signal::Signal::SIGKILL);
         }
         let _ = self.child.kill();
         let _ = self.child.wait();
+        if let Display::Xvfb { server, .. } = &mut self.display {
+            let _ = server.kill();
+            let _ = server.wait();
+        }
     }
 }
 
@@ -299,6 +438,10 @@ fn reaper_ini(web_port: u16) -> String {
          linux_audio_mode=2\n\
          autosaveint=0\n\
          csurf_cnt=1\n\
-         csurf_0=HTTP 0 {web_port} '' '' 0 ''\n"
+         csurf_0=HTTP 0 {web_port} '' '' 0 ''\n\
+         wnd_x=0\n\
+         wnd_y=0\n\
+         wnd_w=1920\n\
+         wnd_h=1080\n"
     )
 }
