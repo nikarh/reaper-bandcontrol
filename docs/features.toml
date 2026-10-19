@@ -9,10 +9,19 @@ screenshot = "playback"
 text = """
 Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress;
 tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song
-in the setlist. The setlist can be reordered and songs disabled right on the phone; the order is stored in the
-REAPER project, compatible with reaper-remote-bandui.
+in the setlist.
 """
 title = "Playback and setlist"
+
+[[feature]]
+id = "setlist"
+screenshot = "setlist"
+text = """
+Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off
+to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees it
+right away.
+"""
+title = "Rearrange the setlist by dragging"
 
 [[feature]]
 id = "inputs"
