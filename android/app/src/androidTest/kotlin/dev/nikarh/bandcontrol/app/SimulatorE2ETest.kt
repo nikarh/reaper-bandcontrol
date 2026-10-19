@@ -33,6 +33,7 @@ class SimulatorE2ETest {
     val compose = createEmptyComposeRule()
 
     private val args = InstrumentationRegistry.getArguments()
+
     /** Null connects over Bluetooth, the simulator must then run with `--ble`. */
     private val tcp = if (args.getString("ble") == "true") null else args.getString("simTcp") ?: "127.0.0.1:47021"
     private val controlAddress = args.getString("simControl") ?: "127.0.0.1:47022"
