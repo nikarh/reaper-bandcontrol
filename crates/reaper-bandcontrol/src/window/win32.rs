@@ -1,7 +1,7 @@
 //! The pairing window on Windows: a plain Win32 window, drawn with GDI into an off-screen bitmap.
 #![allow(unsafe_code)]
 
-use std::{ffi::c_void, sync::OnceLock};
+use std::{cell::Cell, ffi::c_void, sync::OnceLock};
 
 use windows::{
     Win32::{
@@ -28,7 +28,7 @@ use windows::{
     core::{PCWSTR, w},
 };
 
-use super::{MIN_SIZE, Op, Rgb};
+use super::{Op, Rgb};
 
 const CLASS: PCWSTR = w!("BandControlPairing");
 
@@ -76,12 +76,18 @@ fn register_class() -> bool {
     })
 }
 
+thread_local! {
+    /// The minimum size before system scaling, for WM_GETMINMAXINFO.
+    static MIN: Cell<(f32, f32)> = const { Cell::new((0.0, 0.0)) };
+}
+
 /// The open window; only used on the main thread.
 #[derive(Debug)]
 pub struct Window(HWND);
 
 impl Window {
-    pub fn create(title: &str, size: (f32, f32), parent: *mut c_void) -> Option<Self> {
+    pub fn create(title: &str, size: (f32, f32), min_size: (f32, f32), parent: *mut c_void) -> Option<Self> {
+        MIN.with(|m| m.set(min_size));
         if !register_class() {
             return None;
         }
@@ -269,7 +275,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         WM_GETMINMAXINFO => {
             // SAFETY: for WM_GETMINMAXINFO, `lparam` points to the window's MINMAXINFO.
             if let Some(info) = unsafe { (lparam.0 as *mut MINMAXINFO).as_mut() } {
-                let (w, h) = outer(scaled(MIN_SIZE, scale(hwnd)));
+                let (w, h) = outer(scaled(MIN.with(Cell::get), scale(hwnd)));
                 info.ptMinTrackSize.x = w;
                 info.ptMinTrackSize.y = h;
             }

@@ -5,6 +5,7 @@
 #![allow(unsafe_code, non_snake_case)]
 
 use std::{
+    cell::Cell,
     ffi::{CString, c_char, c_int, c_uint, c_void},
     ptr::{null, null_mut},
     sync::{
@@ -13,7 +14,7 @@ use std::{
     },
 };
 
-use super::{MIN_SIZE, Op, Rect};
+use super::{Op, Rect};
 
 type Hwnd = *mut c_void;
 type Hdc = *mut c_void;
@@ -235,12 +236,18 @@ fn color(c: super::Rgb) -> c_int {
     (c_int::from(c.0) << 16) | (c_int::from(c.1) << 8) | c_int::from(c.2)
 }
 
+thread_local! {
+    /// The minimum size before system scaling, for WM_GETMINMAXINFO.
+    static MIN: Cell<(f32, f32)> = const { Cell::new((0.0, 0.0)) };
+}
+
 /// The open window; only used on the main thread.
 #[derive(Debug)]
 pub struct Window(Hwnd);
 
 impl Window {
-    pub fn create(title: &str, size: (f32, f32), parent: *mut c_void) -> Option<Self> {
+    pub fn create(title: &str, size: (f32, f32), min_size: (f32, f32), parent: *mut c_void) -> Option<Self> {
+        MIN.with(|m| m.set(min_size));
         let api = swell()?;
         // SAFETY: an empty resizable dialog without resources, owned by REAPER's main window; `dialog_proc` matches
         // `DLGPROC`.
@@ -379,7 +386,7 @@ unsafe extern "C" fn dialog_proc(hwnd: Hwnd, msg: c_uint, _wparam: usize, lparam
         WM_GETMINMAXINFO => {
             // SAFETY: for WM_GETMINMAXINFO, `lparam` points to the window's MINMAXINFO.
             if let Some(info) = unsafe { (lparam as *mut MinMaxInfo).as_mut() } {
-                let (w, h) = scaled(MIN_SIZE, scale(s));
+                let (w, h) = scaled(MIN.with(Cell::get), scale(s));
                 info.min_track_size = Point { x: w, y: h };
             }
             true

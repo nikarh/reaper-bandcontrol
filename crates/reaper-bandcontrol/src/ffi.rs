@@ -96,8 +96,12 @@ api! {
     GetResourcePath: fn() -> *const c_char;
 }
 
+type ConfigVarStringFn = unsafe extern "C" fn(*const c_char, *mut c_char, c_int) -> bool;
+
 pub struct Reaper {
     f: Functions,
+    /// `get_config_var_string`, optional: older REAPER versions don't have it.
+    config_var_string: Option<ConfigVarStringFn>,
     register: RegisterFn,
     /// REAPER's main window (`HWND`), as an address so the bindings can be shared.
     main_window: usize,
@@ -144,9 +148,15 @@ pub unsafe fn init(info: *const PluginInfo) -> Result<&'static Reaper, String> {
     };
     // SAFETY: `get_func` comes from REAPER and the declared signatures match the SDK headers.
     let f = unsafe { Functions::load(get_func) }.map_err(|name| format!("missing REAPER API function {name}"))?;
+    // SAFETY: a NUL terminated name; a non-null result is `get_config_var_string` with the declared signature.
+    let config_var_string = unsafe {
+        let p = get_func(c"get_config_var_string".as_ptr());
+        (!p.is_null()).then(|| std::mem::transmute::<*mut c_void, ConfigVarStringFn>(p))
+    };
     let main_window = info.hwnd_main as usize;
     Ok(REAPER.get_or_init(|| Reaper {
         f,
+        config_var_string,
         register,
         main_window,
     }))
@@ -156,6 +166,23 @@ impl Reaper {
     /// The instance initialized by [`init`].
     pub fn get() -> Option<&'static Self> {
         REAPER.get()
+    }
+
+    /// A numeric preference (`reaper.ini` key), as currently set.
+    pub fn config_f64(&self, name: &CStr) -> Option<f64> {
+        let get = self.config_var_string?;
+        let mut buf = [0 as c_char; 64];
+        // SAFETY: NUL terminated name, the buffer size is passed along and REAPER NUL terminates within it.
+        let ok = unsafe { get(name.as_ptr(), buf.as_mut_ptr(), 64) };
+        ok.then(|| {
+            // SAFETY: see above.
+            unsafe { CStr::from_ptr(buf.as_ptr()) }
+                .to_string_lossy()
+                .trim()
+                .parse()
+                .ok()
+        })
+        .flatten()
     }
 
     /// REAPER's main window, the owner of the extension's windows.
