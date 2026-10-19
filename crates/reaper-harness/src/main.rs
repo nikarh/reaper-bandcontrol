@@ -36,17 +36,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let mut reaper = Reaper::launch(&Options {
-        dir,
-        project,
-        plugin: build_plugin(release)?,
-        env: std::env::vars()
-            .filter(|(k, _)| k.starts_with("BANDCONTROL_"))
-            .collect(),
-        web_port,
-        ini,
-    })?;
-    reaper.wait_ready(Duration::from_secs(60))?;
+    let reaper = Reaper::start(
+        &Options {
+            dir,
+            project,
+            plugin: build_plugin(release)?,
+            env: std::env::vars()
+                .filter(|(k, _)| k.starts_with("BANDCONTROL_"))
+                .collect(),
+            web_port,
+            ini,
+        },
+        Duration::from_secs(60),
+    )?;
     let mut out = std::io::stdout().lock();
     writeln!(out, "ready, resource dir {}", reaper.dir().display())?;
 
