@@ -19,6 +19,8 @@ const TITLE: &str = "BandControl pairing";
 /// Initial client size before scaling.
 const SIZE: (f32, f32) = (440.0, 640.0);
 const MIN_SIZE: (f32, f32) = (320.0, 460.0);
+/// Roughly how much of the window is text; the rest (the QR code) doesn't need to grow with font scaling.
+const TEXT_SHARE: f32 = 0.35;
 /// Light modules around the code, as the QR specification asks for.
 const QUIET_ZONE: usize = 4;
 /// Character advance of the monospace font relative to its size, with some room to spare.
@@ -122,6 +124,35 @@ struct Qr {
     dark: Vec<bool>,
 }
 
+/// REAPER's own scaling preferences, applied on top of the system's (Preferences → General → Advanced UI/system
+/// tweaks).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Scaling {
+    /// "Scale UI elements of track/mixer panels, transport, etc, by" (`uiscale`): the whole window.
+    pub ui: f32,
+    /// "Font size adjustment for theme/arrange/ruler" (`fontscaling`): texts, on top of `ui`.
+    pub font: f32,
+}
+
+impl Default for Scaling {
+    fn default() -> Self {
+        Self { ui: 1.0, font: 1.0 }
+    }
+}
+
+impl Scaling {
+    /// From the preference values, ignoring nonsense.
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn new(ui: Option<f64>, font: Option<f64>) -> Self {
+        let sane = |v: Option<f64>| v.filter(|v| (0.25..=8.0).contains(v)).map_or(1.0, |v| v as f32);
+        Self {
+            ui: sane(ui),
+            font: sane(font),
+        }
+    }
+}
+
 /// What the window shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct View {
@@ -155,13 +186,17 @@ pub struct Layout {
     pub qr: Option<Rect>,
 }
 
-/// Lays the window out for a client area of `width` x `height` pixels at `scale` (1.0 = 96 dpi).
+/// Lays the window out for a client area of `width` x `height` pixels at the system's `scale` (1.0 = 96 dpi) and
+/// REAPER's `scaling`.
 #[must_use]
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-pub fn layout(view: &View, width: i32, height: i32, scale: f32) -> Layout {
+pub fn layout(view: &View, width: i32, height: i32, scale: f32, scaling: Scaling) -> Layout {
+    let scale = scale * scaling.ui;
     let px = |v: f32| (v * scale).round() as i32;
+    // Texts and the rows holding them.
+    let tx = |v: f32| (v * scale * scaling.font).round() as i32;
     let font = |size: f32, bold: bool, mono: bool| Font {
-        size: px(size),
+        size: tx(size),
         bold,
         mono,
     };
@@ -181,59 +216,46 @@ pub fn layout(view: &View, width: i32, height: i32, scale: f32) -> Layout {
     let (left, right) = (pad, width - pad);
     let mut top = pad;
     let title = format!("Pair a phone with {}", view.name);
-    text(
-        Rect::new(left, top, right, top + px(26.0)),
-        &title,
-        font(18.0, true, false),
-        TEXT,
-    );
-    top += px(26.0);
+    let row = Rect::new(left, top, right, top + tx(26.0));
+    text(row, &title, font(18.0, true, false), TEXT);
+    top = row.bottom;
     let hint = "Scan with the BandControl app, or type the code in it";
-    text(
-        Rect::new(left, top, right, top + px(20.0)),
-        hint,
-        font(13.0, false, false),
-        MUTED,
-    );
-    top += px(30.0);
+    let row = Rect::new(left, top, right, top + tx(20.0));
+    text(row, hint, font(13.0, false, false), MUTED);
+    top = row.bottom + px(10.0);
 
     // From the bottom up: buttons, note, status, code; the QR code gets what is left.
-    let mut bottom = height - pad;
-    let buttons = Rect::new(left, bottom - px(32.0), right, bottom);
-    bottom = buttons.top - px(12.0);
+    let buttons = Rect::new(left, height - pad - tx(32.0), right, height - pad);
+    let mut bottom = buttons.top - px(12.0);
     let note = "Anyone with this code can control playback and mixes";
-    text(
-        Rect::new(left, bottom - px(16.0), right, bottom),
-        note,
-        font(11.0, false, false),
-        MUTED,
-    );
-    bottom -= px(24.0);
+    let row = Rect::new(left, bottom - tx(16.0), right, bottom);
+    text(row, note, font(11.0, false, false), MUTED);
+    bottom = row.top - px(8.0);
     let color = match view.status.level {
         Level::Ok => OK,
         Level::Pending => PENDING,
         Level::Error => ERROR,
     };
-    let status = Rect::new(left, bottom - px(20.0), right, bottom);
-    text(status, &view.status.text, font(13.0, false, false), color);
-    bottom -= px(24.0);
-    let code = Rect::new(left, bottom - px(32.0), right, bottom);
+    let row = Rect::new(left, bottom - tx(20.0), right, bottom);
+    text(row, &view.status.text, font(13.0, false, false), color);
+    bottom = row.top - px(4.0);
+    let code = Rect::new(left, bottom - tx(32.0), right, bottom);
     // As large as fits: monospace characters are about 0.6 of the font size wide.
     let chars = view.code.chars().count().max(1) as f32;
     let code_font = Font {
-        size: px(22.0).min((code.width() as f32 / (chars * MONO_ADVANCE)) as i32),
+        size: tx(22.0).min((code.width() as f32 / (chars * MONO_ADVANCE)) as i32),
         bold: true,
         mono: true,
     };
     text(code, &view.code, code_font, TEXT);
-    bottom -= px(42.0);
+    bottom = code.top - px(10.0);
 
     if let Some(qr) = &view.qr {
         out.qr = draw_qr(&mut out.ops, qr, Rect::new(left, top, right, bottom));
     }
 
     let gap = px(10.0);
-    let button_width = px(170.0).min((buttons.width() - gap) / 2);
+    let button_width = tx(170.0).min((buttons.width() - gap) / 2);
     let x = (width - 2 * button_width - gap) / 2;
     for (i, (button, label, color)) in [
         (Button::Rename, "Rename…", TEXT),
@@ -245,10 +267,11 @@ pub fn layout(view: &View, width: i32, height: i32, scale: f32) -> Layout {
         let offset = if i == 0 { 0 } else { button_width + gap };
         let rect = Rect::new(x + offset, buttons.top, x + offset + button_width, buttons.bottom);
         out.ops.push(Op::Fill(rect, BUTTON));
+        let font = font(13.0, false, false);
         out.ops.push(Op::Text {
             rect,
-            text: label.to_owned(),
-            font: font(13.0, false, false),
+            text: fit(label, rect.width(), font),
+            font,
             color,
             center: true,
         });
@@ -304,8 +327,8 @@ fn draw_qr(ops: &mut Vec<Op>, qr: &Qr, area: Rect) -> Option<Rect> {
     Some(rect)
 }
 
-fn hit(view: &View, width: i32, height: i32, scale: f32, x: i32, y: i32) -> Option<Button> {
-    layout(view, width, height, scale)
+fn hit(view: &View, size: (i32, i32), scale: f32, scaling: Scaling, x: i32, y: i32) -> Option<Button> {
+    layout(view, size.0, size.1, scale, scaling)
         .buttons
         .into_iter()
         .find_map(|(rect, button)| rect.contains(x, y).then_some(button))
@@ -314,6 +337,7 @@ fn hit(view: &View, width: i32, height: i32, scale: f32, x: i32, y: i32) -> Opti
 struct Open {
     window: native::Window,
     view: View,
+    scaling: Scaling,
 }
 
 thread_local! {
@@ -321,21 +345,38 @@ thread_local! {
 }
 
 /// Shows the window (or brings it to the front) with `view`. `false` when no native window can be created here.
-pub fn show(view: View, parent: *mut std::ffi::c_void) -> bool {
+pub fn show(view: View, scaling: Scaling, parent: *mut std::ffi::c_void) -> bool {
     if OPEN
         .with_borrow(|open| open.as_ref().map(|o| o.window.raise()))
         .is_some()
     {
         update(view);
+        set_scaling(scaling);
         return true;
     }
     // Messages sent while creating find no state yet and only paint the background.
-    let Some(window) = native::Window::create(TITLE, SIZE, parent) else {
+    let Some(window) = native::Window::create(TITLE, scaled(SIZE, scaling), scaled(MIN_SIZE, scaling), parent) else {
         return false;
     };
     window.invalidate();
-    OPEN.with_borrow_mut(|open| *open = Some(Open { window, view }));
+    OPEN.with_borrow_mut(|open| *open = Some(Open { window, view, scaling }));
     true
+}
+
+/// A window size before system scaling: REAPER's UI scaling for all of it, its font scaling for the texts' share.
+fn scaled((width, height): (f32, f32), scaling: Scaling) -> (f32, f32) {
+    let text = 1.0 + (scaling.font - 1.0) * TEXT_SHARE;
+    (width * scaling.ui * text, height * scaling.ui * text)
+}
+
+/// REAPER's scaling preferences changed (they apply without a restart).
+pub fn set_scaling(scaling: Scaling) {
+    OPEN.with_borrow_mut(|open| {
+        if let Some(open) = open.as_mut().filter(|o| o.scaling != scaling) {
+            open.scaling = scaling;
+            open.window.invalidate();
+        }
+    });
 }
 
 /// Replaces what an open window shows.
@@ -374,14 +415,17 @@ pub fn close() {
 
 fn paint(width: i32, height: i32, scale: f32) -> Vec<Op> {
     OPEN.try_with(|open| match open.try_borrow().ok().as_ref().and_then(|o| o.as_ref()) {
-        Some(open) => layout(&open.view, width, height, scale).ops,
+        Some(open) => layout(&open.view, width, height, scale, open.scaling).ops,
         None => vec![Op::Fill(Rect::new(0, 0, width, height), BACKGROUND)],
     })
     .unwrap_or_default()
 }
 
 fn clicked(width: i32, height: i32, scale: f32, x: i32, y: i32) {
-    let button = OPEN.with_borrow(|open| open.as_ref().and_then(|o| hit(&o.view, width, height, scale, x, y)));
+    let button = OPEN.with_borrow(|open| {
+        open.as_ref()
+            .and_then(|o| hit(&o.view, (width, height), scale, o.scaling, x, y))
+    });
     // No borrow held: the actions open modal dialogs, which paint this window meanwhile.
     if let Some(button) = button {
         crate::window_button(button);
@@ -426,7 +470,7 @@ mod tests {
     #[test]
     fn shows_name_code_and_status() {
         let view = view();
-        let layout = layout(&view, 440, 640, 1.0);
+        let layout = layout(&view, 440, 640, 1.0, Scaling::default());
         let texts = texts(&layout);
         assert!(texts.contains(&"Pair a phone with Stage PC"));
         assert!(texts.contains(&view.code.as_str()));
@@ -451,7 +495,7 @@ mod tests {
     #[allow(clippy::cast_precision_loss)]
     fn the_code_fits_narrow_windows() {
         let view = view();
-        let layout = layout(&view, 320, 460, 1.0);
+        let layout = layout(&view, 320, 460, 1.0, Scaling::default());
         let fits = layout.ops.iter().any(|op| match op {
             Op::Text { rect, text, font, .. } if *text == view.code => {
                 let width = text.chars().count() as f32 * font.size as f32 * 0.6;
@@ -468,7 +512,7 @@ mod tests {
         let modules = i32::try_from(view.qr.as_ref().map_or(0, |q| q.width) + 2 * QUIET_ZONE).unwrap_or(0);
         let mut last = 0;
         for size in [(320, 460), (440, 640), (800, 900), (1600, 1400)] {
-            let layout = layout(&view, size.0, size.1, 1.0);
+            let layout = layout(&view, size.0, size.1, 1.0, Scaling::default());
             let qr = layout.qr.unwrap_or_default();
             assert_eq!(qr.width(), qr.height());
             assert_eq!(qr.width() % modules, 0, "whole pixels per module at {size:?}");
@@ -490,7 +534,7 @@ mod tests {
             .as_ref()
             .map(|q| (q.width, q.dark.iter().filter(|d| **d).count()))
             .unwrap_or_default();
-        let layout = layout(&view, 440, 640, 1.0);
+        let layout = layout(&view, 440, 640, 1.0, Scaling::default());
         let module = layout.qr.map_or(0, |r| r.width()) / i32::try_from(width + 2 * QUIET_ZONE).unwrap_or(1);
         let area: i32 = layout
             .ops
@@ -503,21 +547,54 @@ mod tests {
         assert_eq!(area, i32::try_from(qr).unwrap_or(0) * module * module);
     }
 
+    fn text_size(layout: &Layout, text: &str) -> i32 {
+        layout
+            .ops
+            .iter()
+            .find_map(|op| match op {
+                Op::Text { text: t, font, .. } if t == text => Some(font.size),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn follows_reaper_scaling() {
+        let view = view();
+        let plain = layout(&view, 440, 640, 1.0, Scaling::default());
+        let fonts = layout(&view, 440, 640, 1.0, Scaling::new(None, Some(1.5)));
+        let ui = layout(&view, 880, 1280, 1.0, Scaling::new(Some(2.0), None));
+        let title = "Pair a phone with Stage PC";
+        assert_eq!(text_size(&plain, title), 18);
+        assert_eq!(text_size(&fonts, title), 27);
+        assert_eq!(text_size(&ui, title), 36);
+        // Bigger texts take room from the QR code, not from each other.
+        let qr = |l: &Layout| l.qr.map_or(0, |r| r.width());
+        assert!(qr(&fonts) < qr(&plain));
+        for (rect, _) in &fonts.buttons {
+            assert!(rect.top >= fonts.qr.unwrap_or_default().bottom);
+        }
+        // The window opens bigger as well.
+        assert_eq!(scaled(SIZE, Scaling::new(Some(2.0), None)), (880.0, 1280.0));
+        assert!(scaled(SIZE, Scaling::new(None, Some(2.0))).1 > SIZE.1);
+        assert_eq!(Scaling::new(Some(0.0), Some(f64::NAN)), Scaling::default());
+    }
+
     #[test]
     fn tiny_windows_drop_the_code_instead_of_overlapping() {
-        let layout = layout(&view(), 200, 250, 1.0);
+        let layout = layout(&view(), 200, 250, 1.0, Scaling::default());
         assert_eq!(layout.qr, None);
     }
 
     #[test]
     fn buttons_are_hit() {
         let view = view();
-        let layout = layout(&view, 440, 640, 2.0);
+        let layout = layout(&view, 440, 640, 2.0, Scaling::default());
         for (rect, button) in &layout.buttons {
             let (x, y) = (rect.left.midpoint(rect.right), rect.top.midpoint(rect.bottom));
-            assert_eq!(hit(&view, 440, 640, 2.0, x, y), Some(*button));
+            assert_eq!(hit(&view, (440, 640), 2.0, Scaling::default(), x, y), Some(*button));
         }
-        assert_eq!(hit(&view, 440, 640, 2.0, 5, 5), None);
+        assert_eq!(hit(&view, (440, 640), 2.0, Scaling::default(), 5, 5), None);
         assert_eq!(layout.buttons.len(), 2);
     }
 }

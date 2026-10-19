@@ -142,6 +142,7 @@ impl Plugin {
         if window::is_open() && self.window_checked.elapsed() > WINDOW_STATUS_INTERVAL {
             self.window_checked = Instant::now();
             window::set_status(self.window_status());
+            window::set_scaling(self.window_scaling());
         }
         let Some(server) = &mut self.server else { return };
         let inputs = server.poll_inputs();
@@ -161,6 +162,13 @@ impl Plugin {
 
     fn window_view(&self) -> window::View {
         window::View::new(&self.pairing_info(), self.window_status())
+    }
+
+    fn window_scaling(&self) -> window::Scaling {
+        window::Scaling::new(
+            self.reaper.config_f64(c"uiscale"),
+            self.reaper.config_f64(c"fontscaling"),
+        )
     }
 
     fn window_status(&self) -> window::Status {
@@ -256,12 +264,17 @@ fn run_action(action: Action) {
     let Some(reaper) = Reaper::get() else { return };
     match action {
         Action::ShowPairing => {
-            let Some((view, info, resource)) =
-                with_plugin(|p| (p.window_view(), p.pairing_info(), p.reaper.resource_path()))
-            else {
+            let Some((view, scaling, info, resource)) = with_plugin(|p| {
+                (
+                    p.window_view(),
+                    p.window_scaling(),
+                    p.pairing_info(),
+                    p.reaper.resource_path(),
+                )
+            }) else {
                 return;
             };
-            if window::show(view, reaper.main_window()) {
+            if window::show(view, scaling, reaper.main_window()) {
                 return;
             }
             // No native window (no SWELL): a page in the browser instead.
