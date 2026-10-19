@@ -1,7 +1,8 @@
 //! Runs an isolated REAPER with the extension until stdin is closed or `q` is entered.
 //!
-//! `screenshot FILE.png` saves a screenshot (headless only), `sleep MS` waits, other lines except `q` are sent to the
-//! REAPER web interface and the response is printed, e.g. `SET/TRACK/13/VOL/0.5;TRACK/13`.
+//! `screenshot FILE.png` saves a screenshot (headless only), `screenshot-window FILE.png TITLE` one of a window (Xvfb
+//! only, `TITLE` is a regular expression), `sleep MS` waits, other lines except `q` are sent to the REAPER web
+//! interface and the response is printed, e.g. `SET/TRACK/13/VOL/0.5;TRACK/13` or `_BANDCONTROL_SHOW_PAIRING`.
 //!
 //! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT] [--dir DIR]` (default project: the band
 //! fixture, default directory: `target/reaper-harness`, wiped on start);
@@ -53,6 +54,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             command if command.starts_with("sleep ") => {
                 let ms = command.trim_start_matches("sleep ").trim().parse().unwrap_or(0);
                 std::thread::sleep(Duration::from_millis(ms));
+            }
+            command if command.starts_with("screenshot-window ") => {
+                let rest = command.trim_start_matches("screenshot-window ").trim();
+                let (path, title) = rest.split_once(' ').unwrap_or((rest, ""));
+                match reaper.screenshot_window(title, path.as_ref()) {
+                    Ok(()) => writeln!(out, "saved {path}")?,
+                    Err(e) => writeln!(out, "error: {e}")?,
+                }
             }
             command if command.starts_with("screenshot ") => {
                 let path = PathBuf::from(command.trim_start_matches("screenshot ").trim());

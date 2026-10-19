@@ -22,6 +22,7 @@ bandcontrol-core   = { workspace = true }
 bandcontrol-proto  = { workspace = true }
 bandcontrol-server = { workspace = true }
 pretty_assertions  = { workspace = true }
+rqrr               = { workspace = true }
 tokio              = { workspace = true }
 
 [lints]
