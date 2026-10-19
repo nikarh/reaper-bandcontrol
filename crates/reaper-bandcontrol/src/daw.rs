@@ -26,6 +26,21 @@ const ACTION_STOP: i32 = 40667;
 const ACTION_RECORD: i32 = 1013;
 const ACTION_TOGGLE_REPEAT: i32 = 1068;
 
+/// Custom track/marker color as `0xRRGGBB`.
+fn color(native: i32) -> Option<u32> {
+    if native & CUSTOM_COLOR == 0 {
+        return None;
+    }
+    let native = u32::try_from(native & 0x00ff_ffff).unwrap_or(0);
+    Some(if cfg!(target_os = "windows") {
+        // COLORREF is 0x00BBGGRR.
+        ((native & 0xff) << 16) | (native & 0xff00) | (native >> 16)
+    } else {
+        // SWELL's RGB() is 0x00RRGGBB.
+        native
+    })
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn to_f32(v: f64) -> f32 {
     v as f32
@@ -71,10 +86,6 @@ impl ReaperDaw {
     fn find(&mut self, id: TrackId) -> Option<Track> {
         self.scan().into_iter().find(|(i, _)| *i == id).map(|(_, t)| t)
     }
-
-    fn color(&self, native: i32) -> Option<u32> {
-        (native & CUSTOM_COLOR != 0).then(|| self.reaper.color_from_native(native & 0x00ff_ffff))
-    }
 }
 
 impl Daw for ReaperDaw {
@@ -99,7 +110,7 @@ impl Daw for ReaperDaw {
                     id,
                     number,
                     name: r.track_name(track),
-                    color: self.color(to_i32(r.track_info(track, c"I_CUSTOMCOLOR"))),
+                    color: color(to_i32(r.track_info(track, c"I_CUSTOMCOLOR"))),
                     output: r.send_count(track, HW_OUTPUTS) > 0 && receive_count > 0,
                     receives,
                 }
@@ -116,14 +127,14 @@ impl Daw for ReaperDaw {
                     name: m.name,
                     start: m.pos,
                     end: m.end,
-                    color: self.color(m.color),
+                    color: color(m.color),
                 });
             } else {
                 markers.push(Marker {
                     id,
                     name: m.name,
                     pos: m.pos,
-                    color: self.color(m.color),
+                    color: color(m.color),
                 });
             }
         }
@@ -247,5 +258,30 @@ impl Daw for ReaperDaw {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn colors_without_custom_flag_are_default() {
+        assert_eq!(color(0), None);
+        assert_eq!(color(0x8b_8727), None);
+    }
+
+    #[test]
+    #[cfg(not(target_os = "windows"))]
+    fn swell_colors_are_rgb() {
+        assert_eq!(color(25_921_319), Some(0x8b_8727));
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn windows_colors_are_bgr() {
+        assert_eq!(color(0x0127_878b), Some(0x8b_8727));
     }
 }

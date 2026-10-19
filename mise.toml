@@ -35,3 +35,11 @@ run = [
 [tasks.test]
 description = "Rust unit and integration tests (no Bluetooth, no REAPER)"
 run         = "cargo test --workspace"
+
+[tasks."e2e:reaper"]
+description = "End-to-end tests against a real, isolated, headless REAPER (needs REAPER and cage)"
+run         = "cargo test -p reaper-harness -- --ignored"
+
+[tasks.reaper]
+description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"
+run         = "cargo run -q -p reaper-harness --"

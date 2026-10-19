@@ -1247,6 +1247,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "reaper-harness"
+version = "0.1.0"
+dependencies = [
+ "bandcontrol-core",
+ "bandcontrol-proto",
+ "bandcontrol-server",
+ "pretty_assertions",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
