@@ -25,8 +25,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
@@ -36,6 +34,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -178,21 +179,25 @@ private fun TransportButton(
     modifier: Modifier = Modifier,
     selectedColor: Color = Palette.gray500,
 ) {
-    Box(
-        modifier
-            .height(44.dp)
-            .clip(shape)
-            .background(
-                when {
-                    !selected -> Palette.gray700
-                    enabled -> selectedColor
-                    else -> Palette.gray600
-                },
-            ).clickable(enabled = enabled, onClick = onClick)
-            .testTag("transport-$description"),
-        contentAlignment = Alignment.Center,
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = shape,
+        color =
+            when {
+                !selected -> Palette.gray700
+                enabled -> selectedColor
+                else -> Palette.gray600
+            },
+        modifier =
+            modifier
+                .height(44.dp)
+                .semantics { this.selected = selected }
+                .testTag("transport-$description"),
     ) {
-        Icon(icon, contentDescription = description, tint = if (enabled) Color.White else Palette.gray400)
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = description, tint = if (enabled) Color.White else Palette.gray400)
+        }
     }
 }
 
@@ -203,8 +208,8 @@ private fun TransportRow(
     send: (ClientMessage) -> Boolean,
 ) {
     val t = state.transport
-    val round = RoundedCornerShape(6.dp)
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+    val round = RoundedCornerShape(8.dp)
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         TransportButton(
             Icons.Default.FiberManualRecord,
             "record",
@@ -215,14 +220,14 @@ private fun TransportRow(
             Modifier.width(56.dp),
             selectedColor = Palette.red500,
         )
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             TransportButton(
                 Icons.Default.PlayArrow,
                 "play",
                 t.state == PlayState.PLAY_STATE_PLAYING,
                 enabled,
                 { send(Commands.play) },
-                RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp),
+                RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp),
                 Modifier.weight(1f),
             )
             TransportButton(
@@ -240,7 +245,7 @@ private fun TransportRow(
                 t.state == PlayState.PLAY_STATE_STOPPED,
                 enabled,
                 { send(Commands.stop) },
-                RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp),
+                RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp),
                 Modifier.weight(1f),
             )
         }
@@ -270,15 +275,16 @@ private fun NavigationRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(6.dp)),
+            .height(52.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        NavButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "previous", previous, enabled, send)
+        NavButton(Icons.Default.SkipPrevious, "previous", previous, enabled, send)
         Column(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Palette.gray700)
+                .background(Palette.gray900)
                 .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
@@ -321,7 +327,7 @@ private fun NavigationRow(
                 }
             }
         }
-        NavButton(Icons.AutoMirrored.Filled.KeyboardArrowRight, "next", next, enabled, send)
+        NavButton(Icons.Default.SkipNext, "next", next, enabled, send)
     }
 }
 
@@ -334,16 +340,24 @@ private fun NavButton(
     send: (ClientMessage) -> Boolean,
 ) {
     val active = enabled && target != null
-    Box(
-        Modifier
-            .width(64.dp)
-            .fillMaxHeight()
-            .background(if (active) Palette.gray700 else Palette.gray800)
-            .clickable(enabled = active) { target?.let { send(Commands.goto(it)) } }
-            .testTag("nav-$description"),
-        contentAlignment = Alignment.Center,
+    Surface(
+        onClick = { target?.let { send(Commands.goto(it)) } },
+        enabled = active,
+        color = if (active) Palette.gray700 else Palette.gray700.copy(alpha = 0.4f),
+        modifier =
+            Modifier
+                .width(56.dp)
+                .fillMaxHeight()
+                .testTag("nav-$description"),
     ) {
-        Icon(icon, contentDescription = description, tint = if (active) Color.White else Palette.gray600)
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                icon,
+                contentDescription = description,
+                tint = if (active) Color.White else Palette.gray500,
+                modifier = Modifier.size(26.dp),
+            )
+        }
     }
 }
 
