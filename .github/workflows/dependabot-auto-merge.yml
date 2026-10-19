@@ -33,12 +33,16 @@ jobs:
           REQUIRED_CHECKS: |
             Lint
             Test
-            REAPER e2e
+            REAPER e2e (5.93)
+            REAPER e2e (7.82)
             Android
             Build / Extension (linux-x86_64)
             Build / Extension (linux-aarch64)
             Build / Extension (macos-universal)
             Build / Extension (windows-x86_64)
+            Build / Extension (windows-arm64ec)
+            Build / Windows installers (unsigned)
+            Build / macOS installer (unsigned)
             Build / Android app
         run: |
           set -euo pipefail
