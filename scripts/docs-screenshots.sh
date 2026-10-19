@@ -18,11 +18,8 @@ reaper() {
   cargo build -q -p reaper-harness -p reaper-bandcontrol
   local tmp
   tmp=$(mktemp -d)
-  # Whole project in view, small tracks, no mixer; then scrolled down to the output folders.
-  printf '%s\n' \
-    "40295;40110;40078" "sleep 2000" "screenshot $tmp/reaper-inputs.png" \
-    "40297;SET/TRACK/44/SEL/1;40913;40297" "sleep 1500" "screenshot $tmp/reaper-outputs.png" \
-    q | BANDCONTROL_BLE=0 ./target/debug/reaper-harness > target/docs-reaper.log 2>&1
+  # Whole project in view, small tracks, no mixer.
+  printf '%s\n' "40295;40110;40078" "sleep 2000" "screenshot $tmp/reaper-project.png" q | BANDCONTROL_BLE=0 ./target/debug/reaper-harness --dir target/reaper-harness-docs > target/docs-reaper.log 2>&1
   for f in "$tmp"/*.png; do
     "$IM" "$f" -strip "$OUT/$(basename "$f")"
   done

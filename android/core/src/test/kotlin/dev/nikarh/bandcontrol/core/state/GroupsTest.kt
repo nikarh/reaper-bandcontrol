@@ -46,6 +46,7 @@ class GroupsTest {
                 track(14, "Left guitar", parent = 12, output = true),
                 track(15, "Spare mix", output = true),
             )
+        // Nested tracks are not inputs or outputs, outputs outside the IEM folder are not mixes.
         assertEquals(listOf(3, 4), g.inputs.ids())
         assertEquals(listOf(9, 10), g.paOutputs.ids())
         assertEquals(listOf(13, 14), g.iemOutputs.ids())

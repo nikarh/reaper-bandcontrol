@@ -152,51 +152,51 @@ class SimulatorE2ETest {
     @Test
     fun mixFollowsBothSides() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-40").performClick()
+        compose.onNodeWithTag("output-27").performClick()
         compose.onNodeWithTag("mix-title").assertTextEquals("Drums")
 
-        // Drums input is receive 7 of the drums mix.
-        scrollTo("receives", "mute-14")
-        compose.onNodeWithTag("mute-14").performClick()
-        eventually { receive(40, 7).getBoolean("mute") }
+        // Drums input is receive 3 of the drums mix.
+        scrollTo("receives", "mute-6")
+        compose.onNodeWithTag("mute-6").performClick()
+        eventually { receive(27, 3).getBoolean("mute") }
 
-        scrollTo("receives", "receive-7")
-        val before = receive(40, 2).getDouble("volume")
-        compose.onNodeWithTag("receive-7").performTouchInput { swipeLeft() }
-        eventually { receive(40, 2).getDouble("volume") < before - 0.1 }
+        scrollTo("receives", "receive-3")
+        val before = receive(27, 1).getDouble("volume")
+        compose.onNodeWithTag("receive-3").performTouchInput { swipeLeft() }
+        eventually { receive(27, 1).getDouble("volume") < before - 0.1 }
 
         // Changes made in REAPER show up on the phone.
-        control("volume 40 0.25")
+        control("volume 27 0.25")
         compose.waitUntilAtLeastOneExists(hasTestTag("output-volume") and hasStateDescription("-12.0 dB"), 5_000)
-        control("rename 14 Kick and snare")
-        scrollTo("receives", "receive-14")
+        control("rename 6 Kick and snare")
+        scrollTo("receives", "receive-6")
         compose.waitUntilAtLeastOneExists(hasText("Kick and snare"), 5_000)
     }
 
     @Test
     fun faderIgnoresTapsAndVerticalSwipes() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-40").performClick()
-        val before = receive(40, 2).getDouble("volume")
-        compose.onNodeWithTag("receive-7").performClick()
-        compose.onNodeWithTag("receive-7").performTouchInput { swipeUp() }
-        compose.onNodeWithTag("receive-7").performTouchInput { swipeDown() }
+        compose.onNodeWithTag("output-27").performClick()
+        val before = receive(27, 1).getDouble("volume")
+        compose.onNodeWithTag("receive-3").performClick()
+        compose.onNodeWithTag("receive-3").performTouchInput { swipeUp() }
+        compose.onNodeWithTag("receive-3").performTouchInput { swipeDown() }
         Thread.sleep(1_000)
-        assertEquals(before, receive(40, 2).getDouble("volume"), 1e-6)
+        assertEquals(before, receive(27, 1).getDouble("volume"), 1e-6)
 
         // A short horizontal drag nudges the level instead of jumping to the touched position.
-        compose.onNodeWithTag("receive-7").performTouchInput {
+        compose.onNodeWithTag("receive-3").performTouchInput {
             swipe(center, center + Offset(width * 0.05f, 0f), 300)
         }
-        eventually { receive(40, 2).getDouble("volume") > before }
-        val after = receive(40, 2).getDouble("volume")
+        eventually { receive(27, 1).getDouble("volume") > before }
+        val after = receive(27, 1).getDouble("volume")
         assertTrue("$before -> $after", after < before * 1.6)
     }
 
     @Test
     fun tabsKeepTheirState() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-42").performScrollTo().performClick()
+        compose.onNodeWithTag("output-29").performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Right guitar"), 5_000)
         compose.onNodeWithTag("tab-playback").performClick()
         compose.onNodeWithTag("region-1").assertExists()
@@ -207,45 +207,44 @@ class SimulatorE2ETest {
     @Test
     fun iemTabListsOnlyMonitorMixes() {
         compose.onNodeWithTag("tab-iem").performClick()
-        for (id in 40..44) compose.onNodeWithTag("output-$id").assertExists()
-        // Not the PA outputs, not the debug mix.
-        compose.onNodeWithTag("output-30").assertDoesNotExist()
-        compose.onNodeWithTag("output-45").assertDoesNotExist()
+        for (id in 27..31) compose.onNodeWithTag("output-$id").performScrollTo().assertExists()
+        // Not the PA outputs.
+        compose.onNodeWithTag("output-18").assertDoesNotExist()
     }
 
     @Test
     fun inputLevelsAndGain() {
-        control("meter 16 1.5")
-        control("meter 15 -6")
+        control("meter 8 1.5")
+        control("meter 7 -6")
         compose.onNodeWithTag("tab-inputs").performClick()
-        for (id in listOf(14, 15, 16, 17, 18, 21, 23)) scrollTo("levels", "level-$id")
-        // Nested tracks of the vocal folders are not inputs.
-        compose.onNodeWithTag("level-19").assertDoesNotExist()
-        scrollTo("levels", "level-14")
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-16") and hasText("CLIP +1.5"), 5_000)
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-15") and hasText("-6.0"), 5_000)
+        for (id in 6..12) scrollTo("levels", "level-$id")
+        // Folders are not inputs.
+        compose.onNodeWithTag("level-5").assertDoesNotExist()
+        scrollTo("levels", "level-6")
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("CLIP +1.5"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-7") and hasText("-6.0"), 5_000)
 
         // Peaks hold until reset.
-        control("meter 16 off")
+        control("meter 8 off")
         Thread.sleep(500)
-        compose.onNodeWithTag("peak-16").assertTextEquals("CLIP +1.5")
-        compose.onNodeWithTag("peak-16").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-16") and hasText("-"), 5_000)
+        compose.onNodeWithTag("peak-8").assertTextEquals("CLIP +1.5")
+        compose.onNodeWithTag("peak-8").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("-"), 5_000)
 
-        compose.onNodeWithTag("gain-15").performTouchInput { swipeLeft() }
-        eventually { track(15).getDouble("volume") < 0.5 }
-        control("meter 15 off")
+        compose.onNodeWithTag("gain-7").performTouchInput { swipeLeft() }
+        eventually { track(7).getDouble("volume") < 0.5 }
+        control("meter 7 off")
     }
 
     @Test
     fun paOutputLevels() {
         compose.onNodeWithTag("tab-pa").performClick()
-        compose.onNodeWithTag("level-30").assertExists()
-        control("meter 35 -9")
-        scrollTo("levels", "level-35")
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-35") and hasText("-9.0"), 5_000)
+        compose.onNodeWithTag("level-18").assertExists()
+        control("meter 23 -9")
+        scrollTo("levels", "level-23")
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-23") and hasText("-9.0"), 5_000)
         compose.onNodeWithTag("reset-peaks").performClick()
-        control("meter 35 off")
+        control("meter 23 off")
     }
 
     @Test

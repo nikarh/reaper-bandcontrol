@@ -26,7 +26,7 @@ cargo build -q -p reaper-harness -p reaper-bandcontrol
 
 # The harness kills REAPER when its stdin closes.
 exec 3> >(BANDCONTROL_SECRET=$SECRET BANDCONTROL_NAME="REAPER e2e" \
-  ./target/debug/reaper-harness --web-port "$WEB_PORT" >| "$LOG" 2>&1)
+  ./target/debug/reaper-harness --dir target/reaper-harness-phone-e2e --web-port "$WEB_PORT" >| "$LOG" 2>&1)
 HARNESS=$!
 cleanup() {
   exec 3>&-

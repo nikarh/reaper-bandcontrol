@@ -63,7 +63,7 @@ title = "No Wi-Fi, no IP addresses"
 
 [[feature]]
 id = "project"
-screenshot = "reaper-inputs"
+screenshot = "reaper-project"
 text = """
 No special plugins or routing: songs are regions, an IEM mix is a track with a hardware output and receives, and
 folders named "Inputs", "PA" and "IEM" decide what shows up in which tab. Existing reaper-remote-bandui projects
