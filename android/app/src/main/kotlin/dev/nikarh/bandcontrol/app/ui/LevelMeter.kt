@@ -61,7 +61,8 @@ fun LevelMeter(
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(Palette.gray800),
+            // Lighter than whatever it sits on: the IEM mix header and the level rows have different backgrounds.
+            .background(Color.White.copy(alpha = 0.1f)),
     ) {
         val x = size.width * meterPosition(shown)
         val yellowX = size.width * meterPosition(YELLOW_DB)
