@@ -38,6 +38,9 @@ main > section > .wrap > :last-child, .pairing > :last-child { margin-bottom: 0;
 
 .hero { padding: 64px 0 24px; background: radial-gradient(ellipse at top, #1e3a8a55, transparent 60%); }
 .eyebrow { color: var(--green); font-weight: 600; letter-spacing: 0.02em; margin: 0; }
+/* The app's launcher icon next to the name, like an app store header. */
+.brand { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.app-icon { width: 56px; height: 56px; border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 8px 24px #0006; }
 .lead { font-size: 1.25rem; color: var(--muted); max-width: 720px; }
 .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 40px; }
 .button {
@@ -134,6 +137,8 @@ footer .icon { margin-right: 0.25em; color: #fbbf24; }
   .phones img:nth-child(2) { margin-top: 0; }
   .shots.narrow { float: none; margin: 0 auto 16px; }
   .buttons { flex-direction: column; }
+  .app-icon { width: 64px; height: 64px; border-radius: 16px; }
+  .brand .eyebrow { font-size: 1.1rem; }
   .buttons .button { text-align: center; }
   /* One phone at a time, the next one peeking in; swipe, or tap the dots. */
   .phones {

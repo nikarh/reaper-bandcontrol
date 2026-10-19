@@ -4,6 +4,7 @@
     build-docs.py readme      rewrite the README section between the `features` markers
     build-docs.py check       fail if the README is outdated or a referenced screenshot is missing
     build-docs.py site DIR    build the website (site/ + docs/screenshots + changelog) into DIR
+    build-docs.py icon        regenerate the website's icons from the app's launcher icon (needs ImageMagick)
 """
 
 import html
@@ -141,6 +142,43 @@ def features_html() -> str:
     return "\n".join(out)
 
 
+ANDROID_RES = ROOT / "android" / "app" / "src" / "main" / "res"
+APP_ICON = ROOT / "site" / "app-icon.svg"
+
+
+def app_icon_svg(rounded: bool = True) -> str:
+    """The app's adaptive launcher icon (foreground drawable on the launcher background color) as SVG, cropped to
+    the 72 dp a launcher shows. `rounded` gives it corners; iOS rounds home screen icons itself."""
+    colors = (ANDROID_RES / "values" / "colors.xml").read_text()
+    background = "#" + re.search(r'name="launcher_background">#FF(\w{6})<', colors).group(1)
+    vector = (ANDROID_RES / "drawable" / "ic_launcher_foreground.xml").read_text()
+    paths = [
+        f'<path fill="#{color}" d="{data}"/>'
+        for color, data in re.findall(r'android:fillColor="#FF(\w{6})"\s+android:pathData="([^"]+)"', vector)
+    ]
+    corners = ' rx="16"' if rounded else ""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72">'
+        f'<rect x="18" y="18" width="72" height="72"{corners} fill="{background}"/>' + "".join(paths) + "</svg>\n"
+    )
+
+
+def build_icons() -> None:
+    """site/app-icon.svg and its PNGs: apple-touch-icon.png (square, 180 px) and favicon-32.png."""
+    import subprocess
+    import tempfile
+
+    APP_ICON.write_text(app_icon_svg())
+    magick = shutil.which("magick") or shutil.which("convert")
+    with tempfile.TemporaryDirectory() as tmp:
+        square = Path(tmp) / "square.svg"
+        square.write_text(app_icon_svg(rounded=False))
+        for src, size, name in [(square, 180, "apple-touch-icon.png"), (APP_ICON, 32, "favicon-32.png")]:
+            subprocess.run([magick, "-background", "none", "-density", "600", str(src), "-resize", f"{size}x{size}",
+                            "-strip", str(ROOT / "site" / name)], check=True)
+    print("icons written to site/")
+
+
 ICONS = ROOT / "site" / "icons"
 ICON = re.compile(r"\{\{icon:([\w-]+)\}\}")
 
@@ -187,12 +225,16 @@ def main() -> int:
         problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
         site = (ROOT / "site" / "index.html").read_text()
         problems += readme_reaper_versions()
+        if not APP_ICON.exists() or APP_ICON.read_text() != app_icon_svg():
+            problems.append("site/app-icon.svg differs from the app's launcher icon, run `python3 scripts/build-docs.py icon`")
         problems += [f"missing icon site/icons/{n}.svg" for n in sorted(set(ICON.findall(site))) if not (ICONS / f"{n}.svg").exists()]
         if README.read_text() != render_readme():
             problems.append("README.md feature section is outdated, run `mise run docs`")
         for p in problems:
             print(p, file=sys.stderr)
         return 1 if problems else 0
+    elif command == "icon":
+        build_icons()
     elif command == "site" and len(sys.argv) == 3:
         build_site(Path(sys.argv[2]))
     else:
