@@ -3,6 +3,7 @@ package dev.nikarh.bandcontrol.core
 import dev.nikarh.bandcontrol.core.link.TcpConnector
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.groups
 import dev.nikarh.bandcontrol.proto.PlayState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -111,6 +112,39 @@ class SimulatorTest {
 
         assertTrue(c.send(Commands.goto(3, 6)))
         c.state.await { it.transport.pos_ms in 684_522..690_000 }
+    }
+
+    @Test
+    fun bandProjectGroupsAndMeters() {
+        assertEquals("ok", control("reset band"))
+        val c = connection()
+        val state = c.state.await { s -> s.tracks.any { it.name == "INPUTS" } }
+        val groups = state.groups()
+        assertEquals(
+            listOf("Drums input", "Bass input", "L GTR input", "R GTR input", "VOX input", "VOX BASS input", "VOX R GTR input"),
+            groups.inputs.map { it.name },
+        )
+        assertEquals(
+            listOf("Drums", "Left guitar", "Right guitar", "Bass", "Vocals"),
+            groups.iemOutputs.map { it.name },
+        )
+        assertEquals(8, groups.paOutputs.size)
+        assertEquals("PA Backtrack", groups.paOutputs.first().name)
+
+        val drums = groups.inputs.first().id
+        val bass = groups.inputs[1].id
+        assertEquals("ok", control("meter $drums -3"))
+        c.meter(listOf(drums, bass))
+        assertEquals(mapOf(drums to -3f, bass to null), c.meters.await { it[drums] == -3f })
+        assertEquals("ok", control("meter $drums 1.5"))
+        c.meters.await { it[drums] == 1.5f }
+
+        // Gain of an input track.
+        assertTrue(c.send(Commands.trackVolume(drums, 2f)))
+        c.state.await { it.track(drums)?.volume == 2f }
+
+        c.meter(emptyList())
+        assertEquals(emptyMap<Int, Float?>(), c.meters.value)
     }
 
     @Test

@@ -7,6 +7,7 @@ import dev.nikarh.bandcontrol.proto.RegionOrder
 import dev.nikarh.bandcontrol.proto.SetReceive
 import dev.nikarh.bandcontrol.proto.SetRegionOrder
 import dev.nikarh.bandcontrol.proto.SetTrackVolume
+import dev.nikarh.bandcontrol.proto.SubscribeMeters
 import dev.nikarh.bandcontrol.proto.TransportAction
 
 object Commands {
@@ -45,4 +46,9 @@ object Commands {
     ) = ClientMessage(set_receive = SetReceive(track = track, index = index, src = src, mute = mute))
 
     fun regionOrder(order: List<RegionOrder>) = ClientMessage(set_region_order = SetRegionOrder(order = order))
+
+    fun subscribeMeters(
+        subscription: Int,
+        tracks: List<Int>,
+    ) = ClientMessage(subscribe_meters = SubscribeMeters(subscription = subscription, tracks = tracks))
 }
