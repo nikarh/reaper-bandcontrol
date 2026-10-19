@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/nikarh/reaper-bandcontrol)](https://github.com/nikarh/reaper-bandcontrol/releases/latest)
 [![License](https://img.shields.io/github/license/nikarh/reaper-bandcontrol)](LICENSE)
 
-Control REAPER from the band's phones over Bluetooth: playback and setlist, input and PA levels, and a personal
+Control REAPER from the band's phones over Bluetooth: playback and setlist, input and front of house levels, and a personal
 in-ear mix for every band member. No Wi-Fi, no tethering, no IP addresses.
 
 BandControl is two parts: a **REAPER extension** (Windows, macOS, Linux) that turns the computer into a Bluetooth
@@ -32,7 +32,7 @@ BandControl removes the network entirely:
 - **Secure by default.** Only paired phones can find the computer, and every session is encrypted. A stranger in
   the audience can't change your monitor mix.
 - **Built for the stage.** Faders that don't jump when touched or scrolled over, meters with clip indicators for
-  inputs and PA outputs, a setlist editor, plain-language connection status, and the screen stays on while
+  inputs and front of house (FOH) outputs, a setlist editor, plain-language connection status, and the screen stays on while
   connected.
 - **Compatible.** The same project conventions as reaper-remote-bandui; the song order it stores is shared.
 
@@ -65,11 +65,11 @@ A live meter for every input with its peak level, and a clip indicator that stay
 
 <br clear="right">
 
-### PA outputs
+### FOH outputs
 
-<img src="docs/screenshots/pa.png" alt="PA outputs" width="220" align="right">
+<img src="docs/screenshots/foh.png" alt="FOH outputs" width="220" align="right">
 
-The same meters and faders for the outputs that go to the front of house, so whoever runs the PA can check and adjust levels from the stage.
+The same meters and faders for the front of house: the outputs that go to the house desk or straight to the PA. Whoever looks after the sound for the audience can check and adjust them from the stage, next to the in-ear mixes.
 
 <br clear="right">
 
@@ -95,7 +95,7 @@ Phones talk to the computer over Bluetooth Low Energy, wherever you play: no rou
 
 ### A project layout that explains itself
 
-BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "PA" folder the PA tab, and the in-ear mixes (hardware outputs with receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
+BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
 
 <img src="docs/screenshots/reaper-project.png" alt="A project layout that explains itself">
 
@@ -205,11 +205,12 @@ folders, named the way it expects, decide what shows up in which tab:
 ```text
 Click, Backtrack      sources, at the top level
 INPUTS/               -> Inputs tab: one track per input (Drums, Bass, Guitar, Vocals)
-PA OUT/               -> PA tab: feeds to the venue's console, each a hardware output receiving its sources
+FOH OUT/              -> FOH tab: front of house, the feeds to the house desk or the PA, each a hardware output
+                         receiving its sources
 IEM OUT/              -> IEM tab: one mix per musician, a hardware output receiving everything they want to hear
 ```
 
-Without these folders the Inputs and PA tabs are hidden and the IEM tab lists every track with a hardware output
+Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware output
 and receives. Nothing else needs to change and there is nothing to install in the project; the
 [example project](#example-project) has exactly this layout.
 
@@ -220,15 +221,16 @@ The rules:
 2. **An IEM mix is a track with a hardware output and at least one receive**, one per band member, receiving every
    source they want to hear (click, backtracks, instruments, vocals). The IEM tab sets the volume and mute of those
    receives and the mix's own volume. Put the mixes in a folder with **IEM** or **Monitor** in its name: then other
-   output tracks (spare outputs) are not listed. PA outputs never are.
+   output tracks (spare outputs) are not listed. FOH outputs never are.
 3. **Inputs** are the direct children of a top level folder with the word **Input** or **Inputs** in its name (any
    case: "INPUTS", "Band inputs"). Nested tracks (effect returns and the like) are not inputs.
-4. **PA outputs** are the direct children of a top level folder with the word **PA** in its name ("PA OUT",
-   "To PA").
+4. **FOH outputs** (front of house: what the audience hears, through the house desk or straight to the PA) are the
+   direct children of a top level folder with the word **FOH** or **PA** in its name ("FOH OUT", "To FOH",
+   "PA OUT").
 5. The **song order** and disabled songs are stored in the project (project state `BANDUI/regions`), shared with
    reaper-remote-bandui.
 
-Inputs and PA tabs are hidden when the project has no such folder; a reaper-remote-bandui `Mother Project.RPP`
+Inputs and FOH tabs are hidden when the project has no such folder; a reaper-remote-bandui `Mother Project.RPP`
 works as it is.
 
 ### Example project
@@ -239,7 +241,7 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
 
 - **Click** (a click plays during every song) and **Backtrack** at the top level.
 - **INPUTS**: Drums, Bass, Guitar and Vocals on hardware inputs 1 to 4.
-- **PA OUT**: PA Backtrack, PA Instruments and PA Vocals on hardware outputs 9 to 11, each receiving its sources.
+- **FOH OUT**: FOH Backtrack, FOH Instruments and FOH Vocals on hardware outputs 9 to 11, each receiving its sources.
 - **IEM OUT**: Drummer, Bassist, Guitarist and Singer on output pairs 1/2 to 7/8, each receiving all six sources.
 - Four songs, Spring, Summer, Autumn and Winter, at REAPER's default 120 BPM, one empty bar apart.
 
@@ -286,7 +288,7 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
   REAPER's bundle lacks the key, **Show status** says so and Bluetooth stays off.
 - **Windows.** Needs Windows 10 1803 or newer and an adapter that supports the peripheral role. Windows can't drop a
   connection from the computer's side, so a rejected phone stays connected at the Bluetooth level until it leaves.
-- **Gain and meters.** "Gain" on the Inputs and PA tabs is the track volume (the fader in REAPER), and meters show
+- **Gain and meters.** "Gain" on the Inputs and FOH tabs is the track volume (the fader in REAPER), and meters show
   the level after it. Clip indicators light at 0 dBFS and stay lit until tapped.
 - **Faders.** Faders move only with horizontal drags and relative to their position: a tap or a vertical scroll
   never changes a level. The range is -∞ to +12 dB with a detent at 0 dB.

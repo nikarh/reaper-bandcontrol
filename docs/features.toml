@@ -34,13 +34,13 @@ to +12 dB.
 title = "Input levels and gain"
 
 [[feature]]
-id = "pa"
-screenshot = "pa"
+id = "foh"
+screenshot = "foh"
 text = """
-The same meters and faders for the outputs that go to the front of house, so whoever runs the PA can check and
-adjust levels from the stage.
+The same meters and faders for the front of house: the outputs that go to the house desk or straight to the PA.
+Whoever looks after the sound for the audience can check and adjust them from the stage, next to the in-ear mixes.
 """
-title = "PA outputs"
+title = "FOH outputs"
 
 [[feature]]
 id = "iem"
@@ -76,7 +76,7 @@ id = "project"
 screenshot = "reaper-project"
 text = """
 BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder
-named "Inputs" fill the Inputs tab, those in a "PA" folder the PA tab, and the in-ear mixes (hardware outputs with
+named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with
 receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename
 three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
 """
