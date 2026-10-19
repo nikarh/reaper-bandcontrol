@@ -34,8 +34,8 @@ id = "setlist"
 screenshot = "setlist"
 text = """
 Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off
-to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees it
-right away.
+to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees
+the change.
 """
 title = "Rearrange the setlist by dragging"
 
@@ -73,17 +73,17 @@ id = "pairing"
 screenshot = "share"
 text = """
 REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows
-the same QR code to the next one, so the whole band is set up in a minute without touching the computer again.
+the same QR code to the next one, so the rest of the band pairs without touching the computer.
 Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
 """
-title = "Pair once, share by QR code"
+title = "Pairing by QR code"
 
 [[feature]]
 id = "bluetooth"
 text = """
 Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones
-can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while
-connected.
+can find the computer and every session is encrypted, so a stranger in the audience can't change your monitor mix.
+The app reconnects by itself and keeps the screen on while connected.
 """
 title = "Connectivity"
 
@@ -91,9 +91,9 @@ title = "Connectivity"
 id = "project"
 screenshot = "reaper-project"
 text = """
-BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder
-named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with
-receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename
-three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
+BandControl reads the project by its folder names: songs are regions, the tracks in a folder named "Inputs" fill
+the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with receives)
+are in an "IEM" folder. The project needs no plugins: start from the example project, or rename three folders in
+yours. reaper-remote-bandui projects keep working, with the IEM tab only.
 """
-title = "A project layout that explains itself"
+title = "Project layout"

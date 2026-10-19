@@ -27,7 +27,7 @@
     <p class="supports">For REAPER {{reaper_min}} and newer on Windows, macOS and Linux · Android app</p>
     <div class="buttons">
       <a class="button primary" href="#download">{{icon:download}}Download</a>
-      <a class="button" href="#setup">{{icon:wrench}}Set up in 5 minutes</a>
+      <a class="button" href="#setup">{{icon:wrench}}Set it up</a>
       <a class="button ghost star" href="{{repo}}" data-repo="{{repo_path}}">{{icon:github}}Star on GitHub<span class="stars" hidden>{{icon:star}}<span class="count"></span></span></a>
     </div>
     <div class="phones" id="phones">
@@ -48,11 +48,11 @@
       has to share its hotspot, the computer joins it, and every musician types the computer's IP address and port into
       a browser, again after every reconnect.</p>
     <div class="grid three">
-      <div class="card"><h3>{{icon:wifi-off}}No network setup</h3><p>The computer becomes a Bluetooth device the phones connect to
-        directly. It works in a basement, a field or a venue with a captive portal.</p></div>
+      <div class="card"><h3>{{icon:wifi-off}}Direct Bluetooth</h3><p>The computer becomes a Bluetooth device the phones connect to
+        directly, wherever they are in range of it.</p></div>
       <div class="card"><h3>{{icon:qr-code}}Pair once</h3><p>Scan a QR code from REAPER (or from a bandmate's phone) once. After that
-        the app finds the computer by itself, every time.</p></div>
-      <div class="card"><h3>{{icon:sliders-horizontal}}More than a mixer</h3><p>Input and FOH meters with clip indicators, safe faders that don't
+        the app finds the computer by itself.</p></div>
+      <div class="card"><h3>{{icon:sliders-horizontal}}Made for the stage</h3><p>Input and FOH meters with clip indicators, safe faders that don't
         jump when touched, and a setlist editor, in a native app that keeps the screen on.</p></div>
     </div>
     </div>
@@ -115,8 +115,8 @@
     <div class="platforms">
       <details open>
         <summary>{{icon:windows}}Windows</summary>
-        <p>Windows 10 (1803) or newer with a Bluetooth adapter that supports the peripheral role (most built-in
-          adapters do). The installer works without administrator rights and installs into
+        <p>Windows 10 (1803) or newer with a Bluetooth adapter that supports the peripheral role
+          (<em>BandControl: Show status</em> says when it doesn't). The installer works without administrator rights and installs into
           <code>%APPDATA%\REAPER</code>; for a portable REAPER choose its folder. Use the ARM installer only with
           REAPER's ARM64EC build; an x64 REAPER running on an ARM PC needs the x64 one. Uninstall from Settings →
           Apps.</p>
@@ -140,7 +140,7 @@
       <details>
         <summary>{{icon:linux}}Linux</summary>
         <p>x86_64 or aarch64 with glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and newer) and BlueZ
-          (<code>bluetoothd</code>), which every desktop distribution ships. Copy the <code>.so</code> for your
+          (<code>bluetoothd</code>), the standard Linux Bluetooth stack. Copy the <code>.so</code> for your
           architecture into <code>~/.config/REAPER/UserPlugins</code> and restart REAPER. The adapter is powered on
           automatically.</p>
       </details>
@@ -181,14 +181,14 @@
   <section id="project">
     <div class="wrap">
       <h2>Organizing the REAPER project</h2>
-      <p><strong>BandControl finds its way around your project by a naming convention</strong>, not by guessing from
-        the routing. Three folders, named the way it expects, decide what shows up in which tab:</p>
+      <p><strong>BandControl reads your project by its folder names.</strong> Three folders decide what shows up in
+        which tab:</p>
       <pre class="tree">INPUTS/             → Inputs tab: one track per input
 FOH OUT/            → FOH tab: front of house, feeds to the house desk or the PA
 IEM OUT/            → IEM tab: one mix per musician, a hardware output receiving what they want to hear</pre>
       <ul>
         <li><strong>Songs are regions</strong> that don't overlap. Markers inside a region are the song's parts for
-          previous / next. Most bands need none.</li>
+          previous / next. Markers are optional.</li>
         <li><strong>Inputs</strong>: the tracks in a top level folder with the word <em>Input</em> or
           <em>Inputs</em> in its name, in any case.</li>
         <li><strong>FOH</strong> (front of house: what the audience hears, through the house desk or straight to the
@@ -197,8 +197,7 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
           or <em>Monitor</em> in its name. The IEM tab sets the mix's volume and the volume and mute of every
           receive.</li>
       </ul>
-      <p>Everything else is up to you: the click, backtracks, buses and any other tracks can live anywhere, organized
-        however you like, as long as they don't land in these folders: a direct child of the Inputs or FOH folder shows
+      <p>The click, backtracks, buses and any other tracks can be anywhere else, organized however you like, as long as they don't land in these folders: a direct child of the Inputs or FOH folder shows
         up in that tab, and a track with a hardware output and receives inside the IEM folder is listed as a mix.
         Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware
         output and receives. There is nothing to install in the project.</p>
@@ -254,7 +253,7 @@ sha256sum --ignore-missing -c SHA256SUMS</pre>
 
 <footer>
   <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a> ·
-    Useful to your band? <a href="{{repo}}/stargazers">{{icon:star}}Star it on GitHub</a></div>
+    <a href="{{repo}}/stargazers">{{icon:star}}Star it on GitHub</a></div>
 </footer>
 <dialog id="zoom" aria-label="Screenshot">
   <figure>
