@@ -28,7 +28,12 @@ how. One logical change per commit.
 4. `mise run docs` renders the README section and the website; `mise run docs:screenshots` regenerates the
    screenshots locally (a phone or `scripts/android-emulator.sh`). On GitHub the Docs workflow does the same and
    opens a pull request.
-5. `mise run lint` checks that the README matches `features.toml` and that every referenced screenshot exists.
+5. `mise run lint` checks that the README matches `features.toml` and that every referenced screenshot and icon
+   exists.
+
+Icons on the website: `{{icon:NAME}}` in `site/index.html` inlines `site/icons/NAME.svg`, so it takes the text color.
+Platform logos come from [Simple Icons](https://simpleicons.org) (CC0), everything else from
+[Lucide](https://lucide.dev) (ISC); keep their markup, minus titles, comments and fixed sizes.
 
 ## Checks before pushing
 

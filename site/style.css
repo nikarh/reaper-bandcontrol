@@ -38,6 +38,10 @@ h3 { margin: 0 0 0.3em; }
   display: inline-block; padding: 12px 20px; border-radius: 8px; text-decoration: none;
   color: var(--text); background: var(--panel); border: 1px solid var(--line); font-weight: 600;
 }
+/* Inline SVG icons (site/icons), sized and colored like the text around them. */
+.icon { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex-shrink: 0; }
+.button .icon, summary .icon, h2 .icon, h3 .icon { margin-right: 0.45em; }
+.card h3 .icon { color: var(--green); }
 .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .button.ghost { background: transparent; }
 
@@ -60,11 +64,15 @@ h3 { margin: 0 0 0.3em; }
 .feature .text p { color: var(--muted); }
 .feature img.wide { width: 100%; max-width: 560px; border-radius: 8px; border-width: 1px; border-color: var(--line); }
 
-.downloads { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 24px 0; }
+.downloads { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 24px 0; }
 .download {
-  display: flex; flex-direction: column; padding: 18px; border-radius: 12px; text-decoration: none;
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-content: center; padding: 18px;
+  border-radius: 12px; text-decoration: none; background: var(--panel); border: 1px solid var(--line);
+  color: var(--text);
 }
+.download strong, .download span:not(.logo) { grid-column: 2; }
+.download .logo { grid-row: 1 / span 2; align-self: center; display: flex; gap: 6px; color: var(--text); }
+.download .logo .icon { width: 30px; height: 30px; }
 .download:hover { border-color: var(--accent); }
 .download span { color: var(--muted); font-size: 0.9em; }
 .download.soon { opacity: 0.6; border-style: dashed; }

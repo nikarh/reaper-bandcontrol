@@ -117,6 +117,16 @@ def features_html() -> str:
     return "\n".join(out)
 
 
+ICONS = ROOT / "site" / "icons"
+ICON = re.compile(r"\{\{icon:([\w-]+)\}\}")
+
+
+def icon(name: str) -> str:
+    """An icon from site/icons, inlined so it takes the text color; decorative, the text next to it says it all."""
+    svg = (ICONS / f"{name}.svg").read_text().strip()
+    return svg.replace("<svg ", '<svg class="icon" aria-hidden="true" focusable="false" ', 1)
+
+
 def build_site(out: Path) -> None:
     if out.exists():
         shutil.rmtree(out)
@@ -131,6 +141,7 @@ def build_site(out: Path) -> None:
         "repo": REPO,
     }.items():
         page = page.replace("{{" + key + "}}", value)
+    page = ICON.sub(lambda m: icon(m.group(1)), page)
     (out / "index.html").write_text(page)
     print(f"site built in {out}")
 
@@ -147,6 +158,8 @@ def main() -> int:
         README.write_text(render_readme())
     elif command == "check":
         problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
+        site = (ROOT / "site" / "index.html").read_text()
+        problems += [f"missing icon site/icons/{n}.svg" for n in sorted(set(ICON.findall(site))) if not (ICONS / f"{n}.svg").exists()]
         if README.read_text() != render_readme():
             problems.append("README.md feature section is outdated, run `mise run docs`")
         for p in problems:

@@ -19,9 +19,9 @@
       Bluetooth. No Wi-Fi, no tethering, no IP addresses.</p>
     <p class="supports">For REAPER 5.93 and newer on Windows, macOS and Linux · Android app</p>
     <div class="buttons">
-      <a class="button primary" href="#download">Download</a>
-      <a class="button" href="#setup">Set up in 5 minutes</a>
-      <a class="button ghost" href="{{repo}}">Source on GitHub</a>
+      <a class="button primary" href="#download">{{icon:download}}Download</a>
+      <a class="button" href="#setup">{{icon:wrench}}Set up in 5 minutes</a>
+      <a class="button ghost" href="{{repo}}">{{icon:github}}Source on GitHub</a>
     </div>
     <div class="phones">
       <img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy">
@@ -39,11 +39,11 @@
       has to share its hotspot, the computer joins it, and every musician types the computer's IP address and port into
       a browser, again after every reconnect.</p>
     <div class="grid three">
-      <div class="card"><h3>No network setup</h3><p>The computer becomes a Bluetooth device the phones connect to
+      <div class="card"><h3>{{icon:wifi-off}}No network setup</h3><p>The computer becomes a Bluetooth device the phones connect to
         directly. It works in a basement, a field or a venue with a captive portal.</p></div>
-      <div class="card"><h3>Pair once</h3><p>Scan a QR code from REAPER (or from a bandmate's phone) once. After that
+      <div class="card"><h3>{{icon:qr-code}}Pair once</h3><p>Scan a QR code from REAPER (or from a bandmate's phone) once. After that
         the app finds the computer by itself, every time.</p></div>
-      <div class="card"><h3>More than a mixer</h3><p>Input and PA meters with clip indicators, safe faders that don't
+      <div class="card"><h3>{{icon:sliders-horizontal}}More than a mixer</h3><p>Input and PA meters with clip indicators, safe faders that don't
         jump when touched, and a setlist editor, in a native app that keeps the screen on.</p></div>
     </div>
   </section>
@@ -61,14 +61,14 @@
         see <a href="#verify">verifying downloads</a>.</p>
       <h3>REAPER extension <span class="version">REAPER 5.93 or newer</span></h3>
       <div class="grid downloads">
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-x64-setup.exe"><strong>Windows</strong><span>x64, most PCs · installer</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-arm64-setup.exe"><strong>Windows on ARM</strong><span>REAPER's ARM64EC build · installer</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-macos.pkg"><strong>macOS</strong><span>Apple silicon and Intel · installer</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><strong>Linux x86_64</strong><span>BlueZ · library</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><strong>Linux ARM</strong><span>aarch64, e.g. Raspberry Pi 5 · library</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-x64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows</strong><span>x64 · installer</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-arm64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows on ARM</strong><span>ARM64EC · installer</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-macos.pkg"><span class="logo">{{icon:apple}}</span><strong>macOS</strong><span>Apple silicon, Intel · installer</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><span class="logo">{{icon:linux}}</span><strong>Linux x86_64</strong><span>BlueZ · library</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><span class="logo">{{icon:linux}}</span><strong>Linux ARM</strong><span>aarch64 · library</span></a>
       </div>
       <details class="manual">
-        <summary>Plain libraries for a manual or portable install</summary>
+        <summary>{{icon:file-down}}Plain libraries for a manual or portable install</summary>
         <p>The installers put exactly one file into REAPER's <code>UserPlugins</code> folder. To do it yourself, pick
           the library for your platform and see <a href="#setup">manual install</a> below:
           <a href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-x86_64.dll">Windows x64 DLL</a>,
@@ -77,9 +77,9 @@
       </details>
       <h3>Phone app</h3>
       <div class="grid downloads">
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol.apk"><strong>Android</strong><span>Android 9 or newer · APK</span></a>
-        <div class="download soon"><strong>iPhone</strong><span>Planned, not available yet</span></div>
-        <div class="download soon"><strong>Google Play, F-Droid</strong><span>Planned; until then install the APK</span></div>
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol.apk"><span class="logo">{{icon:android}}</span><strong>Android</strong><span>Android 9 or newer · APK</span></a>
+        <div class="download soon"><span class="logo">{{icon:apple}}</span><strong>iPhone</strong><span>Planned, not available yet</span></div>
+        <div class="download soon"><span class="logo">{{icon:googleplay}}{{icon:fdroid}}</span><strong>Google Play, F-Droid</strong><span>Planned; until then install the APK</span></div>
       </div>
     </div>
   </section>
@@ -100,7 +100,7 @@
     </ol>
     <div class="platforms">
       <details open>
-        <summary>Windows</summary>
+        <summary>{{icon:windows}}Windows</summary>
         <p>Windows 10 (1803) or newer with a Bluetooth adapter that supports the peripheral role (most built-in
           adapters do). The installer works without administrator rights and installs into
           <code>%APPDATA%\REAPER</code>; for a portable REAPER choose its folder. Use the ARM installer only with
@@ -112,7 +112,7 @@
           REAPER.</p>
       </details>
       <details>
-        <summary>macOS</summary>
+        <summary>{{icon:apple}}macOS</summary>
         <p>macOS 10.12 or newer (11 on Apple silicon). Open <code>bandcontrol-macos.pkg</code>; it installs into
           <code>~/Library/Application Support/REAPER</code> without an administrator password. Until releases are
           notarized, open it with <em>right click → Open</em>.</p>
@@ -124,20 +124,20 @@
           REAPER lacks the Bluetooth usage description, Bluetooth can't be used from REAPER on that Mac yet.</p>
       </details>
       <details>
-        <summary>Linux</summary>
+        <summary>{{icon:linux}}Linux</summary>
         <p>x86_64 or aarch64 with glibc 2.35 or newer (Ubuntu 22.04, Debian 12, Fedora 36 and newer) and BlueZ
           (<code>bluetoothd</code>), which every desktop distribution ships. Copy the <code>.so</code> for your
           architecture into <code>~/.config/REAPER/UserPlugins</code> and restart REAPER. The adapter is powered on
           automatically.</p>
       </details>
       <details>
-        <summary>REAPER versions</summary>
+        <summary>{{icon:book-open}}REAPER versions</summary>
         <p>REAPER 5.93 or newer. Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes
           the end-to-end tests, and every change is tested against the oldest and the newest. The extension only uses
           REAPER functions that are older than that; Windows and macOS use the same ones.</p>
       </details>
       <details>
-        <summary>Android</summary>
+        <summary>{{icon:android}}Android</summary>
         <p>Android 9 or newer with Bluetooth LE. The app asks for the <em>Nearby devices</em> permission (on Android 11
           and older: location, which Android requires for Bluetooth scanning) and for the camera only when you scan a
           QR code. Google Play services are not needed; it works on de-Googled phones such as LineageOS.</p>
@@ -184,7 +184,7 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
       </ul>
       <p>Without these folders the Inputs and PA tabs are hidden and the IEM tab lists every track with a hardware
         output and receives. There is nothing to install in the project.</p>
-      <p><a class="button primary" href="examples/BandControl-Example.RPP" download>Download the example project</a>
+      <p><a class="button primary" href="examples/BandControl-Example.RPP" download>{{icon:file-down}}Download the example project</a>
         &nbsp;The smallest project with this layout: Click and Backtrack, four inputs, three PA feeds and an in-ear mix
         for each of four musicians, and four songs (Spring, Summer, Autumn, Winter) at REAPER's default 120 BPM. Opens
         in any REAPER from 5.93 on, no plugins needed.</p>
@@ -193,7 +193,7 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
   </section>
 
   <section class="wrap" id="verify">
-    <h2>Verifying downloads</h2>
+    <h2>{{icon:shield-check}}Verifying downloads</h2>
     <p>Each release has a <code>SHA256SUMS</code> file signed with the project's key
       (<a href="{{repo}}/blob/main/docs/signing-key.asc">public key</a>):</p>
     <pre>gpg --import signing-key.asc
