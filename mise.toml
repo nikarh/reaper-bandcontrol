@@ -57,7 +57,8 @@ run         = "cargo run -q -p reaper-harness --"
 [tasks."android:test"]
 description = "Android JVM tests: protocol vs Rust vectors, state, Kotlin client vs Rust simulator"
 dir         = "android"
-run         = ["./gradlew --console=plain :core:test", "cargo build -q -p bandctl"]
+# One command: taplo sorts arrays, and the simulator must be built first.
+run = "cargo build -q -p bandctl && ./gradlew --console=plain :core:test"
 
 [tasks."android:lint"]
 description = "ktlint (spotless) and Android lint"
@@ -101,7 +102,8 @@ run         = ["python3 scripts/build-docs.py readme", "python3 scripts/build-do
 
 [tasks."docs:serve"]
 description = "Build the website and serve it on http://localhost:8000"
-run         = ["python3 -m http.server -b 127.0.0.1 -d target/site 8000", "python3 scripts/build-docs.py site target/site"]
+# One command: taplo sorts arrays, which would serve before building.
+run = "python3 scripts/build-docs.py site target/site && python3 -m http.server -b 127.0.0.1 -d target/site 8000"
 
 [tasks."docs:screenshots"]
 description = "Regenerate docs/screenshots (headless REAPER and the app on a phone or emulator)"
