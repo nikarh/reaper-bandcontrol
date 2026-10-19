@@ -30,6 +30,7 @@ futures = "0.3.34"
 getrandom = "0.4.3"
 hkdf = "0.13.0"
 hmac = "0.13.0"
+nix = { version = "0.29.0", default-features = false, features = ["signal"] }
 objc2 = "0.6.5"
 objc2-core-bluetooth = { version = "0.3.2", default-features = false, features = [
   "CBATTRequest",

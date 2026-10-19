@@ -1316,6 +1316,7 @@ dependencies = [
  "bandcontrol-core",
  "bandcontrol-proto",
  "bandcontrol-server",
+ "nix",
  "pretty_assertions",
  "thiserror",
  "tokio",
