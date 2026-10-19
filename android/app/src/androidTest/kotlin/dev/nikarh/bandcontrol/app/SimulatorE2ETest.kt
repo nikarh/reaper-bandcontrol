@@ -24,7 +24,7 @@ import java.net.Socket
 
 /**
  * Drives the app against `bandctl sim` running on the development machine, reached through `adb reverse`.
- * Run by `mise run android:e2e`, which starts the simulator and passes its addresses as instrumentation arguments.
+ * Run by `mise run android:e2e [ble]`, which starts the simulator and passes its addresses as instrumentation arguments.
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -33,7 +33,8 @@ class SimulatorE2ETest {
     val compose = createEmptyComposeRule()
 
     private val args = InstrumentationRegistry.getArguments()
-    private val tcp = args.getString("simTcp") ?: "127.0.0.1:47021"
+    /** Null connects over Bluetooth, the simulator must then run with `--ble`. */
+    private val tcp = if (args.getString("ble") == "true") null else args.getString("simTcp") ?: "127.0.0.1:47021"
     private val controlAddress = args.getString("simControl") ?: "127.0.0.1:47022"
     private val secret = args.getString("secret") ?: "AAAAAAAAAAAAAAAAAAAAAAAAAA"
     private lateinit var scenario: ActivityScenario<MainActivity>
@@ -68,7 +69,7 @@ class SimulatorE2ETest {
     @Before
     fun launch() {
         control("reset")
-        val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Simulator&t=$tcp")
+        val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Simulator" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
         compose.waitUntilAtLeastOneExists(hasTestTag("region-1"), 20_000)
