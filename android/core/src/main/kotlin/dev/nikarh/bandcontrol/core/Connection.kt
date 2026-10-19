@@ -6,8 +6,10 @@ import dev.nikarh.bandcontrol.core.protocol.ClientEvent
 import dev.nikarh.bandcontrol.core.protocol.ClientException
 import dev.nikarh.bandcontrol.core.protocol.ClientSession
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
+import dev.nikarh.bandcontrol.core.protocol.Peaks
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.proto.ClientMessage
+import dev.nikarh.bandcontrol.proto.Meters
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -44,7 +46,10 @@ sealed interface ConnectionStatus {
     ) : ConnectionStatus
 }
 
-/** Keeps a session to the server alive: connects, authenticates, reconnects, and folds messages into [state]. */
+/**
+ * Keeps a session to the server alive: connects, authenticates, reconnects, and folds messages into [state].
+ * Meters of the tracks passed to [meter] arrive in [meters], also across reconnects.
+ */
 class Connection(
     private val scope: CoroutineScope,
     private val connector: Connector,
@@ -60,6 +65,15 @@ class Connection(
 
     private val mutableState = MutableStateFlow(BandState())
     val state: StateFlow<BandState> = mutableState.asStateFlow()
+
+    private val mutableMeters = MutableStateFlow<Map<Int, Float?>>(emptyMap())
+
+    /** Latest peak per metered track in dBFS, null for silence. */
+    val meters: StateFlow<Map<Int, Float?>> = mutableMeters.asStateFlow()
+
+    @Volatile private var meterTracks: List<Int> = emptyList()
+
+    @Volatile private var meterSubscription = 0
 
     private val outgoing = Channel<ClientMessage>(OUTGOING_CAPACITY, BufferOverflow.DROP_OLDEST)
     private var job: Job? = null
@@ -79,6 +93,22 @@ class Connection(
     fun send(message: ClientMessage): Boolean {
         if (status.value !is ConnectionStatus.Connected) return false
         return outgoing.trySend(message).isSuccess
+    }
+
+    /** Replaces the metered tracks, empty stops metering. */
+    fun meter(tracks: List<Int>) {
+        if (tracks == meterTracks) return
+        meterTracks = tracks
+        meterSubscription++
+        mutableMeters.value = emptyMap()
+        send(Commands.subscribeMeters(meterSubscription, tracks))
+    }
+
+    private fun onMeters(m: Meters) {
+        val tracks = meterTracks
+        if (m.subscription != meterSubscription) return
+        val peaks = m.peaks.toByteArray()
+        mutableMeters.value = tracks.withIndex().associate { (i, t) -> t to peaks.getOrNull(i)?.let { Peaks.decode(it.toInt()) } }
     }
 
     private suspend fun run() {
@@ -143,10 +173,16 @@ class Connection(
                         handshakeTimer.cancel()
                         onAuthenticated()
                         mutableStatus.value = ConnectionStatus.Connected(event.serverName, event.session)
+                        if (meterTracks.isNotEmpty()) send(Commands.subscribeMeters(meterSubscription, meterTracks))
                     }
 
                     is ClientEvent.Message -> {
-                        mutableState.update { it.apply(event.message, clock()) }
+                        val meters = event.message.meters
+                        if (meters != null) {
+                            onMeters(meters)
+                        } else {
+                            mutableState.update { it.apply(event.message, clock()) }
+                        }
                     }
                 }
             }
