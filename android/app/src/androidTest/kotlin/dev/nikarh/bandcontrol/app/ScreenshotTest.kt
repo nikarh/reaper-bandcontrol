@@ -28,6 +28,9 @@ import java.io.File
 import java.net.InetSocketAddress
 import java.net.Socket
 
+/** Width of the screenshots in docs/screenshots. */
+private const val WIDTH = 540
+
 /**
  * Saves the app screenshots of the README and the website, from a fixed state of the simulated example project.
  * Run by `scripts/docs-screenshots.sh app`; the names match `docs/features.toml`.
@@ -69,7 +72,9 @@ class ScreenshotTest {
             top = insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
             bottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
         }
-        val bitmap = Bitmap.createBitmap(full, 0, top, full.width, full.height - top - bottom)
+        val cropped = Bitmap.createBitmap(full, 0, top, full.width, full.height - top - bottom)
+        // Scaled here rather than on the computer, so the result doesn't depend on its image tools.
+        val bitmap = Bitmap.createScaledBitmap(cropped, WIDTH, (cropped.height * WIDTH + cropped.width / 2) / cropped.width, true)
         File(out, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 

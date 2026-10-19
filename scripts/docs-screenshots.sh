@@ -10,9 +10,25 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 OUT=docs/screenshots
-WIDTH=540
 mkdir -p "$OUT"
 IM=$(command -v magick || command -v convert)
+COMPARE=$(command -v magick > /dev/null && echo "magick compare" || echo compare)
+
+# Installs a screenshot without metadata, but keeps the existing file when the pixels are the same: PNG encoders
+# (ImageMagick versions, zlib) write the same image differently, which would show up as a change otherwise.
+install_png() {
+  local src=$1 dst differ
+  dst=$OUT/$(basename "$1")
+  if [[ -f $dst ]]; then
+    differ=$($COMPARE -metric AE "$src" "$dst" null: 2>&1 | cut -d' ' -f1 || true)
+    if [[ $differ == 0 ]]; then
+      echo "unchanged: $dst"
+      return
+    fi
+  fi
+  "$IM" "$src" -strip "$dst"
+  echo "updated: $dst"
+}
 
 reaper() {
   cargo build -q -p reaper-harness -p reaper-bandcontrol
@@ -36,7 +52,7 @@ reaper() {
     fi
   done
   for f in "$tmp"/*.png; do
-    "$IM" "$f" -strip "$OUT/$(basename "$f")"
+    install_png "$f"
   done
   rm -rf "$tmp"
 }
@@ -67,7 +83,7 @@ app() {
   tmp=$(mktemp -d)
   adb pull "$files/." "$tmp" > /dev/null
   for f in "$tmp"/*.png; do
-    "$IM" "$f" -strip -resize "${WIDTH}x" "$OUT/$(basename "$f")"
+    install_png "$f"
   done
   rm -rf "$tmp"
 }
