@@ -1,0 +1,31 @@
+[package]
+categories             = ["multimedia::audio"]
+description            = "REAPER extension: control playback and IEM mixes from phones over Bluetooth LE"
+edition.workspace      = true
+keywords               = ["ble", "reaper", "remote"]
+license.workspace      = true
+name                   = "reaper-bandcontrol"
+publish.workspace      = true
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name       = "reaper_bandcontrol"
+
+[dependencies]
+bandcontrol-core   = { workspace = true }
+bandcontrol-proto  = { workspace = true }
+bandcontrol-server = { workspace = true }
+parking_lot        = { workspace = true }
+qrcode             = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true
