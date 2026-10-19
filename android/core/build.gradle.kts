@@ -3,6 +3,14 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.wire)
+    alias(libs.plugins.android.lint)
+}
+
+lint {
+    warningsAsErrors = true
+    abortOnError = true
+    // TrulyRandom only concerns Android 4.3 and older, the app's minSdk is 28.
+    disable += setOf("GradleDependency", "NewerVersionAvailable", "TrulyRandom")
 }
 
 java {

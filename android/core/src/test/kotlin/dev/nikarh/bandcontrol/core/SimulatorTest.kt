@@ -95,7 +95,13 @@ class SimulatorTest {
         c.state.await { it.track(13)?.volume == 0.25f }
 
         assertTrue(c.send(Commands.receiveMute(13, 0, 2, true)))
-        c.state.await { it.track(13)?.receives?.get(0)?.mute == true }
+        c.state.await {
+            it
+                .track(13)
+                ?.receives
+                ?.get(0)
+                ?.mute == true
+        }
 
         // Changes on the "REAPER" side.
         assertEquals("ok", control("volume 14 0.5"))

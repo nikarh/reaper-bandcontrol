@@ -9,12 +9,13 @@ taplo                             = "0.10.0"
 [env]
 ANDROID_HOME     = "{{config_root}}/.android-sdk"
 ANDROID_SDK_ROOT = "{{config_root}}/.android-sdk"
+_.path           = ["{{config_root}}/.android-sdk/platform-tools"]
 
 [tasks."android:sdk"]
 description = "Install pinned Android SDK packages into .android-sdk"
 run = """
 yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses > /dev/null
-sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
 """
 
 [tasks.fmt]
@@ -43,3 +44,31 @@ run         = "cargo test -p reaper-harness -- --ignored"
 [tasks.reaper]
 description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"
 run         = "cargo run -q -p reaper-harness --"
+
+[tasks."android:test"]
+description = "Android JVM tests: protocol vs Rust vectors, state, Kotlin client vs Rust simulator"
+dir         = "android"
+run         = ["./gradlew --console=plain :core:test", "cargo build -q -p bandctl"]
+
+[tasks."android:lint"]
+description = "ktlint (spotless) and Android lint"
+dir         = "android"
+run         = "./gradlew --console=plain spotlessCheck :core:lint :app:lintDebug"
+
+[tasks."android:fmt"]
+description = "Format Kotlin sources"
+dir         = "android"
+run         = "./gradlew --console=plain spotlessApply"
+
+[tasks."android:build"]
+description = "Build debug and release APKs"
+dir         = "android"
+run         = "./gradlew --console=plain :app:assembleDebug :app:assembleRelease"
+
+[tasks."android:deploy"]
+description = "Install and start the app on the connected phone (optional arg: pairing URL)"
+run         = "scripts/android-deploy.sh"
+
+[tasks."android:e2e"]
+description = "Instrumented end-to-end tests on the connected phone against bandctl sim"
+run         = "scripts/android-e2e.sh"

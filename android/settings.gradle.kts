@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "bandcontrol"
 
-include(":core")
+include(":core", ":app")

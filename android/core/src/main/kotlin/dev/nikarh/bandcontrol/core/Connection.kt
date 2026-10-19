@@ -111,42 +111,47 @@ class Connection(
     private suspend fun session(
         link: PacketLink,
         onAuthenticated: () -> Unit,
-    ) =
-        coroutineScope {
-            val session = ClientSession(secret, clientName, link.maxPacket)
-            val lock = Mutex()
-            while (outgoing.tryReceive().isSuccess) {
-                // Drop commands queued for a previous session.
-            }
-            for (p in session.hello()) link.send(p)
-            mutableStatus.value = ConnectionStatus.Authenticating
+    ) = coroutineScope {
+        val session = ClientSession(secret, clientName, link.maxPacket)
+        val lock = Mutex()
+        while (outgoing.tryReceive().isSuccess) {
+            // Drop commands queued for a previous session.
+        }
+        for (p in session.hello()) link.send(p)
+        mutableStatus.value = ConnectionStatus.Authenticating
 
-            val handshakeTimer =
-                launch {
-                    delay(handshakeTimeoutMs)
-                    throw IOException("handshake timed out")
-                }
+        val handshakeTimer =
             launch {
-                for (message in outgoing) {
-                    val packets = lock.withLock { if (session.isReady) session.send(message) else emptyList() }
-                    for (p in packets) link.send(p)
-                }
+                delay(handshakeTimeoutMs)
+                throw IOException("handshake timed out")
             }
-            while (true) {
-                val packet = link.receive()
-                for (event in lock.withLock { session.receive(packet) }) {
-                    when (event) {
-                        is ClientEvent.Send -> event.packets.forEach { link.send(it) }
-                        is ClientEvent.Authenticated -> {
-                            handshakeTimer.cancel()
-                            onAuthenticated()
-                            mutableStatus.value = ConnectionStatus.Connected(event.serverName, event.session)
-                        }
-                        is ClientEvent.Message -> mutableState.update { it.apply(event.message, clock()) }
+        launch {
+            for (message in outgoing) {
+                val packets = lock.withLock { if (session.isReady) session.send(message) else emptyList() }
+                for (p in packets) link.send(p)
+            }
+        }
+        while (true) {
+            val packet = link.receive()
+            for (event in lock.withLock { session.receive(packet) }) {
+                when (event) {
+                    is ClientEvent.Send -> {
+                        event.packets.forEach { link.send(it) }
+                    }
+
+                    is ClientEvent.Authenticated -> {
+                        handshakeTimer.cancel()
+                        onAuthenticated()
+                        mutableStatus.value = ConnectionStatus.Connected(event.serverName, event.session)
+                    }
+
+                    is ClientEvent.Message -> {
+                        mutableState.update { it.apply(event.message, clock()) }
                     }
                 }
             }
         }
+    }
 
     private companion object {
         const val OUTGOING_CAPACITY = 64

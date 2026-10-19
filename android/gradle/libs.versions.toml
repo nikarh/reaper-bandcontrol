@@ -6,6 +6,7 @@ androidx-test-rules = "1.7.0"
 androidx-test-runner = "1.7.0"
 compose-bom = "2026.09.00"
 coroutines = "1.11.0"
+core-ktx = "1.19.1"
 icons = "1.7.8"
 json = "20260814"
 junit = "4.13.2"
@@ -29,6 +30,7 @@ compose-ui-test = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
@@ -41,6 +43,7 @@ wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-lint = { id = "com.android.lint", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
