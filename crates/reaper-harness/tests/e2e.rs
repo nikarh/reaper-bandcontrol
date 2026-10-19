@@ -5,11 +5,13 @@
 
 use std::{net::SocketAddr, time::Duration};
 
-use bandcontrol_core::{convert, daw::Daw as _, fake::FakeDaw};
+use bandcontrol_core::{convert, daw::Daw as _, fake::FakeDaw, rpp};
 use bandcontrol_proto::{pairing::PairingSecret, pb};
 use bandcontrol_server::client::{Mirror, TcpClient, TcpClientError};
 use pretty_assertions::assert_eq;
-use reaper_harness::{Options, Reaper, build_plugin, free_port, mother_project, wait_for_port, workspace_root};
+use reaper_harness::{
+    Options, Reaper, band_project, build_plugin, free_port, mother_project, wait_for_port, workspace_root,
+};
 
 const TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -23,10 +25,14 @@ struct Env {
 }
 
 fn start(name: &str) -> Env {
+    start_project(name, mother_project())
+}
+
+fn start_project(name: &str, project: std::path::PathBuf) -> Env {
     let tcp = SocketAddr::from(([127, 0, 0, 1], free_port().unwrap()));
     let mut reaper = Reaper::launch(&Options {
         dir: workspace_root().join("target/reaper-e2e").join(name),
-        project: mother_project(),
+        project,
         plugin: build_plugin(false).unwrap(),
         env: vec![
             ("BANDCONTROL_TCP".into(), tcp.to_string()),
@@ -267,4 +273,87 @@ async fn engineer_changes_reach_phones() {
         matches!(result, Err(TcpClientError::Session(_) | TcpClientError::Io(_))),
         "{result:?}"
     );
+}
+
+/// Colors read from project files are rounded slightly differently from what REAPER reports.
+fn without_colors(mut state: pb::State) -> (pb::State, Vec<Option<u32>>) {
+    let mut colors = vec![];
+    for t in &mut state.tracks {
+        colors.push(t.color.take());
+    }
+    for r in &mut state.regions {
+        colors.push(r.color.take());
+    }
+    for m in &mut state.markers {
+        colors.push(m.color.take());
+    }
+    (state, colors)
+}
+
+fn close_colors(a: &[Option<u32>], b: &[Option<u32>]) -> bool {
+    a.len() == b.len()
+        && a.iter().zip(b).all(|(a, b)| match (a, b) {
+            (Some(a), Some(b)) => (0..3).all(|i| ((a >> (i * 8)) & 0xff).abs_diff((b >> (i * 8)) & 0xff) <= 1),
+            (a, b) => a == b,
+        })
+}
+
+#[tokio::test]
+#[ignore = "needs REAPER and cage, run with `mise run e2e:reaper`"]
+async fn band_project_in_reaper() {
+    use pb::client_message::Msg;
+
+    let env = start_project("band", band_project());
+    let (mut client, mut mirror) = connect(&env).await;
+
+    // Everything the extension reads from REAPER matches what the project file says.
+    let mut parsed = rpp::parse(&std::fs::read_to_string(band_project()).unwrap()).unwrap();
+    let structure = parsed.structure().relevant();
+    let mix = parsed.mix(&structure);
+    let (expected, expected_colors) = without_colors(convert::state(&structure, &mix));
+    let (actual, actual_colors) = without_colors(mirror.state.clone().unwrap());
+    assert_eq!(actual, expected);
+    assert!(
+        close_colors(&actual_colors, &expected_colors),
+        "{actual_colors:?}\n{expected_colors:?}"
+    );
+
+    // While playing, the click track and the drummer's IEM mix (which receives it) have levels, inputs are silent.
+    client
+        .send(Msg::Goto(pb::Goto {
+            region: 2,
+            marker: None,
+        }))
+        .await
+        .unwrap();
+    client
+        .send(Msg::Transport(pb::TransportAction::Play.into()))
+        .await
+        .unwrap();
+    client
+        .send(Msg::SubscribeMeters(pb::SubscribeMeters {
+            subscription: 1,
+            tracks: vec![1, 40, 14],
+        }))
+        .await
+        .unwrap();
+    client
+        .wait_for(&mut mirror, TIMEOUT, |m| {
+            m.meters
+                .as_ref()
+                .is_some_and(|f| f.peaks[0] > 0 && f.peaks[1] > 0 && f.peaks[2] == 0)
+        })
+        .await
+        .unwrap();
+
+    // Input gain from the phone.
+    client
+        .send(Msg::SetTrackVolume(pb::SetTrackVolume { track: 14, volume: 0.5 }))
+        .await
+        .unwrap();
+    client
+        .wait_for(&mut mirror, TIMEOUT, |m| track(m, 14).volume == 0.5)
+        .await
+        .unwrap();
+    assert!(env.reaper.web("TRACK/14").unwrap().contains("\t0.500000\t"));
 }

@@ -159,6 +159,11 @@ pub fn parse(text: &str) -> Result<FakeDaw, RppError> {
                 && blocks.len() == 1
                 && let Some(TrackBuilder { track, folder }) = current.take()
             {
+                let mut track = track;
+                if track.name.is_empty() {
+                    // REAPER shows unnamed tracks by number.
+                    track.name = format!("Track {}", track.id);
+                }
                 if folder.0 == 1 {
                     folders.push(track.id);
                 }
@@ -287,7 +292,18 @@ mod tests {
         assert_eq!(track(40).parent, Some(39));
         assert_eq!(track(40).receives.len(), 14);
         assert_eq!(track(45).parent, None);
-        assert_eq!(daw.regions.len(), 6);
-        assert_eq!(daw.region_order[3], crate::model::RegionOrder { id: 4, disabled: true });
+        assert_eq!(track(41).name, "Left guitar");
+        assert_eq!(track(4).name, "Track 4");
+        assert_eq!(daw.regions.len(), 12);
+        assert_eq!(daw.regions[1].name, "Paper Lions");
+        assert_eq!(daw.markers.len(), 87);
+        assert_eq!(
+            daw.region_order[2],
+            crate::model::RegionOrder { id: 6, disabled: false }
+        );
+        assert_eq!(
+            daw.region_order[10],
+            crate::model::RegionOrder { id: 11, disabled: true }
+        );
     }
 }

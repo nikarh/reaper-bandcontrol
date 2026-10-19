@@ -49,6 +49,12 @@ pub fn mother_project() -> PathBuf {
     workspace_root().join("tests/fixtures/Mother Project.RPP")
 }
 
+/// A real band's layout (inputs, IEM mixes, PA outputs) with invented songs, see `scripts/make-band-fixture.py`.
+#[must_use]
+pub fn band_project() -> PathBuf {
+    workspace_root().join("tests/fixtures/Band Project.RPP")
+}
+
 #[must_use]
 pub fn reaper_binary() -> Option<PathBuf> {
     if let Some(bin) = std::env::var_os("REAPER_BIN") {
