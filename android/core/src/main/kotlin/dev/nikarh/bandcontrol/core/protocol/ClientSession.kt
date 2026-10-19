@@ -197,8 +197,14 @@ class ClientSession(
                 phase = Phase.Ready(p.session, p.sealer, p.opener, BroadcastOpener(groupKey.toByteArray()))
                 listOf(ClientEvent.Authenticated(p.session, p.serverName))
             }
-            is Phase.Ready -> messageEvent(msg)
-            else -> emptyList()
+
+            is Phase.Ready -> {
+                messageEvent(msg)
+            }
+
+            else -> {
+                emptyList()
+            }
         }
     }
 

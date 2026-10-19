@@ -146,18 +146,18 @@ designed to be broadcast-safe on every OS:
 - [x] e2e (`mise run e2e:reaper`): real REAPER + TCP client: initial state equals `FakeDaw::mother_project()`, commands applied, REAPER-side changes (via web API) propagate
 
 ### 6. Android app
-- [ ] Gradle project (wrapper, version catalog), Kotlin, Compose, Wire protobuf, ktlint/detekt
-- [ ] protocol: framing, session (JCA HMAC/HKDF/ChaCha20-Poly1305), tests against Rust vectors
-- [ ] transport: TCP (debug), BLE (scan by service UUID, MTU 517, high priority, notify, write queue)
-- [ ] client state store + reducer + selectors (prev/next marker etc., ported from html)
-- [ ] pairing: deep link + manual entry, persisted secret
-- [ ] UI: Control tab (transport, prev/next marker, region list w/ markers & progress, region editor)
-- [ ] UI: Mix tab (output selector, output volume, receive sliders + mute)
-- [ ] connection status / auto-reconnect, keep screen on
+- [x] Gradle project (wrapper, version catalog), Kotlin, Compose, Wire protobuf, ktlint (spotless), Android lint as errors; `:core` is pure Kotlin/JVM
+- [x] protocol: framing, session (JCA HMAC/HKDF/ChaCha20-Poly1305), tests against Rust vectors (byte exact, incl. recorded session)
+- [x] transport: TCP (debug), BLE (scan by service UUID, MTU 517, high priority, notify, write queue)
+- [x] client state store + reducer + selectors (prev/next marker etc., ported from html)
+- [x] pairing: deep link + manual entry, persisted secret (`t=host:port` deep link param for TCP in debug builds)
+- [x] UI: Control tab (transport, prev/next marker, region list w/ markers & progress, region editor)
+- [x] UI: Mix tab (output selector, output volume, receive sliders + mute)
+- [x] connection status / auto-reconnect, keep screen on
 
 ### 7. Device automation & e2e
-- [ ] scripts: deploy, grant permissions, enable BT, stay awake, screenshot
-- [ ] instrumented e2e over TCP (adb reverse) against `bandctl sim`
+- [x] scripts: deploy (`mise run android:deploy [url]`), grant permissions (`install -g`), stay awake, screenshot
+- [x] instrumented e2e over TCP (adb reverse) against `bandctl sim` (`mise run android:e2e`); JVM e2e Kotlin client vs sim (`mise run android:test`)
 - [ ] instrumented e2e over BLE against `bandctl sim --ble`
 - [ ] full e2e: phone ↔ BLE ↔ real REAPER
 
@@ -184,3 +184,6 @@ designed to be broadcast-safe on every OS:
   `0x00BBGGRR`; decoded directly in `daw.rs`.
 - The extension only ticks the engine while phones are connected; the engine re-snapshots on the first join.
 - Harness kills the whole process group (cage + REAPER) on drop; it never touches the user's REAPER config.
+- Android: compileSdk 37 is required by current Compose; `connectGatt(settings, ...)` is API 37 only so the old
+  overload is used. API 33+ GATT write calls return `BluetoothStatusCodes`, not GATT status (lint caught it).
+- Faders use relative drags (no jump on tap) and keep a local value while dragging + 800 ms after release.

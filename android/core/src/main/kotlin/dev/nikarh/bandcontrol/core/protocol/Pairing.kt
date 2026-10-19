@@ -50,7 +50,11 @@ data class PairingInfo(
 ) {
     fun toUrl(): String =
         buildString {
-            append(PREFIX).append("s=").append(secret.toCode()).append("&n=").append(percentEncode(name))
+            append(PREFIX)
+                .append("s=")
+                .append(secret.toCode())
+                .append("&n=")
+                .append(percentEncode(name))
             if (tcp != null) append("&t=").append(percentEncode(tcp))
         }
 
@@ -97,8 +101,14 @@ data class PairingInfo(
                         out.write(hex.toIntOrNull(16) ?: return null)
                         i += 2
                     }
-                    '+' -> out.write(' '.code)
-                    else -> out.write(c.toString().toByteArray())
+
+                    '+' -> {
+                        out.write(' '.code)
+                    }
+
+                    else -> {
+                        out.write(c.toString().toByteArray())
+                    }
                 }
                 i++
             }
