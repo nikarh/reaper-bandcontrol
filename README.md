@@ -329,7 +329,7 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 | Layer | Command | Needs |
 | --- | --- | --- |
 | Rust unit and integration tests (protocol, engine, server over TCP, .RPP parser) | `mise run test` | – |
-| Lints: clippy for Linux, macOS and Windows, cargo-deny, rustfmt, taplo, shellcheck, actionlint, docs check | `mise run lint` | – |
+| Lints: clippy for Linux, macOS and Windows, cargo-deny, rustfmt, taplo, shellcheck, actionlint, actions pinned to commit SHAs and allowed, docs check | `mise run lint` | – |
 | Extension in a real, headless REAPER (band fixture and Mother Project) | `mise run e2e:reaper` | REAPER, `cage` or Xvfb |
 | The same against REAPER releases from 5.93 to 7.82, downloaded on demand | `mise run e2e:reaper-versions [VERSION...]` | `cage` or Xvfb |
 | Kotlin protocol and state tests, Kotlin client against the Rust simulator | `mise run android:test` | – |

@@ -71,6 +71,15 @@ MACOS_SIGN_IDENTITY="Developer ID Application: ..." MACOS_INSTALLER_IDENTITY="De
 
 Both write to `dist/`. `WINDOWS_SIGN_TIMESTAMP` overrides the timestamp server (empty: no timestamp).
 
+### Actions policy
+
+The repository allows only GitHub's own actions, actions by verified creators and the third party actions in
+[`.github/allowed-actions.txt`](../.github/allowed-actions.txt), and requires every action to be pinned to a full
+commit SHA. Every workflow refers to actions as `owner/action@<40 hex SHA> # vX.Y.Z`; Dependabot updates the SHA and
+the version comment together. `mise run lint` (`scripts/check-actions.sh`) fails when a workflow uses an action that
+isn't pinned or isn't allowed. Adding a third party action: add it to `allowed-actions.txt`, pin it, and add it to
+the repository's allowed actions as well (Settings → Actions → General, or the `gh api` call in the setup notes).
+
 ### Android release key
 
 Keep the keystore safe: every future update of the app has to be signed with the same key, otherwise Android
