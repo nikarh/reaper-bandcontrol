@@ -4,8 +4,9 @@
 //! only, `TITLE` is a regular expression), `sleep MS` waits, other lines except `q` are sent to the REAPER web
 //! interface and the response is printed, e.g. `SET/TRACK/13/VOL/0.5;TRACK/13` or `_BANDCONTROL_SHOW_PAIRING`.
 //!
-//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT] [--dir DIR]` (default project: the band
-//! fixture, default directory: `target/reaper-harness`, wiped on start);
+//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT] [--dir DIR] [--ini KEY=VALUE]...` (default
+//! project: the band fixture, default directory: `target/reaper-harness`, wiped on start; `--ini` adds REAPER
+//! preferences, e.g. `fontscaling=1.5`);
 //! `BANDCONTROL_*` variables are passed to REAPER.
 
 use std::{
@@ -20,12 +21,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut release = false;
     let mut project = band_project();
     let mut web_port = None;
+    let mut ini = Vec::new();
     let mut dir = workspace_root().join("target/reaper-harness");
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--release" => release = true,
             "--project" => project = PathBuf::from(args.next().ok_or("--project needs a value")?),
+            "--ini" => ini.push(args.next().ok_or("--ini needs a value")?),
             "--web-port" => web_port = Some(args.next().ok_or("--web-port needs a value")?.parse()?),
             // Absolute: it ends up in REAPER's -cfgfile and the compositor's runtime directory.
             "--dir" => dir = std::env::current_dir()?.join(args.next().ok_or("--dir needs a value")?),
@@ -41,6 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .filter(|(k, _)| k.starts_with("BANDCONTROL_"))
             .collect(),
         web_port,
+        ini,
     })?;
     reaper.wait_ready(Duration::from_secs(60))?;
     let mut out = std::io::stdout().lock();

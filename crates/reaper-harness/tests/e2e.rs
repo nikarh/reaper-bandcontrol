@@ -42,6 +42,7 @@ fn start_project(name: &str, project: std::path::PathBuf) -> Env {
             ("BANDCONTROL_LOG".into(), "debug".into()),
         ],
         web_port: None,
+        ini: Vec::new(),
     })
     .unwrap();
     reaper.wait_ready(Duration::from_secs(60)).unwrap();

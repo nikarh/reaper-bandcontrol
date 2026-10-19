@@ -205,6 +205,8 @@ pub struct Options {
     pub env: Vec<(String, String)>,
     /// Web interface port, a free one when `None`.
     pub web_port: Option<u16>,
+    /// Extra `reaper.ini` preferences (`key=value` lines of the `[REAPER]` section), e.g. `fontscaling=1.5`.
+    pub ini: Vec<String>,
 }
 
 /// A running REAPER instance, killed on drop.
@@ -293,7 +295,12 @@ impl Reaper {
 
         let web_port = options.web_port.map_or_else(free_port, Ok)?;
         let ini = dir.join("reaper.ini");
-        std::fs::write(&ini, reaper_ini(web_port))?;
+        let preferences = options.ini.iter().fold(reaper_ini(web_port), |mut all, line| {
+            all.push_str(line);
+            all.push('\n');
+            all
+        });
+        std::fs::write(&ini, preferences)?;
 
         let display = Display::start(dir)?;
         let mut command = match &display {
