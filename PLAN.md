@@ -164,8 +164,10 @@ designed to be broadcast-safe on every OS:
 
 ### 8. Polish
 - [ ] GitHub Actions: Rust lint/test (linux), extension builds (linux/macos/windows), APK build
-- [ ] README (install, pairing, project layout requirements, testing)
+- [x] README (install, pairing, project layout requirements, testing); `mise run install` for the extension
+- [x] in-app QR scanning (Google Play services code scanner, no camera permission)
 - [ ] meters (optional subscription for visible tracks)
+- [ ] release-build smoke test on the phone (R8 broke ML Kit once; only debug builds are instrumented)
 
 ---
 
@@ -197,3 +199,5 @@ designed to be broadcast-safe on every OS:
   CoreBluetooth backend checks the main bundle first and reports a clear error instead. Unknown whether REAPER.app has
   the key; `bandctl` embeds its own Info.plist (`crates/bandctl/build.rs`). Neither macOS nor Windows can drop a
   central from the peripheral side: `Disconnect` forgets it, unsubscribing from TX counts as a disconnect.
+- R8 full mode (AGP 9 default) breaks ML Kit's reflective component wiring (NPE in `GmsBarcodeScanning.getClient`);
+  keep rules in `proguard-rules.pro`. Debug builds were fine, so only a manual release check caught it.

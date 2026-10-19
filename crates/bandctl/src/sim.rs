@@ -27,7 +27,7 @@ pub struct SimArgs {
     /// Server name shown on phones.
     #[arg(long, default_value = "Simulator")]
     name: String,
-    /// Serve over BLE (Linux only for now).
+    /// Serve over BLE.
     #[arg(long)]
     ble: bool,
     /// Serve over TCP on this address.
