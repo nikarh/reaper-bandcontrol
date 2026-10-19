@@ -22,6 +22,7 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -164,6 +165,28 @@ class SimulatorE2ETest {
         eventually { dump().getString("region_order") == "11,12,16,04,15,13,17,18,19,110,111,112,113,114,115,016,117" }
         compose.onNodeWithTag("edit-regions").performClick()
         compose.waitUntilDoesNotExist(hasTestTag("region-4"), 5_000)
+    }
+
+    @Test
+    fun regionsReorderByDragging() {
+        compose.onNodeWithTag("edit-regions").performClick()
+        // Region 6 is third in the band's order (1, 2, 6, 4, ...); dragged by its handle to the top.
+        compose.onNodeWithTag("drag-6").performTouchInput {
+            down(center)
+            // Past the touch slop first, then up by more than two rows, in steps like a finger.
+            repeat(30) { moveBy(Offset(0f, -12.dp.toPx())) }
+            up()
+        }
+        eventually { dump().getString("region_order").startsWith("16,11,12,14,") }
+        compose.onNodeWithTag("edit-regions").performClick()
+        val tops =
+            listOf(6, 1, 2).map {
+                compose
+                    .onNodeWithTag("region-$it")
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
+        assertEquals(tops.sorted(), tops)
     }
 
     @Test

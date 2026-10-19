@@ -1,5 +1,6 @@
 package dev.nikarh.bandcontrol.app.ui
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -20,11 +22,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -33,9 +38,11 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,7 +56,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import dev.nikarh.bandcontrol.core.Commands
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.NavTarget
+import dev.nikarh.bandcontrol.core.state.OrderedRegion
 import dev.nikarh.bandcontrol.core.state.currentMarker
 import dev.nikarh.bandcontrol.core.state.currentRegion
 import dev.nikarh.bandcontrol.core.state.enabledRegions
@@ -66,6 +79,7 @@ import dev.nikarh.bandcontrol.core.state.moveRegion
 import dev.nikarh.bandcontrol.core.state.nextTarget
 import dev.nikarh.bandcontrol.core.state.previousTarget
 import dev.nikarh.bandcontrol.core.state.sortedRegions
+import dev.nikarh.bandcontrol.core.state.toOrder
 import dev.nikarh.bandcontrol.core.state.toggleRegion
 import dev.nikarh.bandcontrol.proto.ClientMessage
 import dev.nikarh.bandcontrol.proto.Marker
@@ -73,6 +87,9 @@ import dev.nikarh.bandcontrol.proto.PlayState
 import dev.nikarh.bandcontrol.proto.Region
 import dev.nikarh.bandcontrol.proto.RegionOrder
 import kotlinx.coroutines.delay
+import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /** Longer than the server's 1 s structure debounce plus Bluetooth latency. */
 private const val LOCAL_ORDER_TIMEOUT_MS = 3_000L
@@ -125,18 +142,25 @@ fun ControlScreen(
         }
         Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (editing) "Regions" else "Move to Region",
+                if (editing) "Edit setlist" else "Move to Region",
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.weight(1f),
             )
-            Text("Edit", color = Palette.gray400, fontSize = 14.sp)
-            Spacer(Modifier.width(8.dp))
-            Switch(
-                checked = editing,
-                onCheckedChange = { editing = it },
-                colors = SwitchDefaults.colors(checkedTrackColor = Palette.blue500),
-                modifier = Modifier.testTag("edit-regions"),
+            TextButton(onClick = { editing = !editing }, modifier = Modifier.testTag("edit-regions")) {
+                if (!editing) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = Palette.blue500, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(if (editing) "Done" else "Edit", color = Palette.blue500, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        if (editing) {
+            Text(
+                "Drag to reorder, switch off to skip a song",
+                color = Palette.gray400,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp),
             )
         }
         if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, position, enabled, send)
@@ -457,32 +481,55 @@ private fun RegionEditor(
     onOrder: (List<RegionOrder>) -> Unit,
 ) {
     val sorted = state.sortedRegions()
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
-        itemsIndexed(sorted, key = { _, r -> r.region.id }) { index, item ->
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                RoundButton(Icons.Default.KeyboardArrowUp, "up", enabled && index > 0) {
-                    onOrder(moveRegion(sorted, index, -1))
+    // The list as dragged; sent as a whole when the finger lifts, not on every step.
+    var items by remember(sorted) { mutableStateOf(sorted) }
+    val haptics = LocalHapticFeedback.current
+    val listState = rememberLazyListState()
+    val reorder =
+        rememberReorderableLazyListState(listState) { from, to ->
+            items = items.toMutableList().apply { add(to.index, removeAt(from.index)) }
+            haptics.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+        }
+    val drop = { if (items != sorted) onOrder(items.toOrder()) }
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().testTag("region-editor"),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        itemsIndexed(items, key = { _, r -> r.region.id }) { index, item ->
+            ReorderableItem(reorder, key = item.region.id) { dragging ->
+                val elevation by animateDpAsState(if (dragging) 8.dp else 0.dp, label = "elevation")
+                val move = { delta: Int ->
+                    onOrder(moveRegion(items, index, delta))
+                    true
                 }
-                RoundButton(Icons.Default.KeyboardArrowDown, "down", enabled && index < sorted.lastIndex) {
-                    onOrder(moveRegion(sorted, index, 1))
-                }
-                Row(
-                    Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (item.disabled) Palette.gray800 else Palette.gray600)
-                        .clickable(enabled = enabled) { onOrder(toggleRegion(sorted, index)) }
-                        .padding(horizontal = 12.dp)
-                        .testTag("region-toggle-${item.region.id}"),
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (dragging) Palette.gray700 else Palette.gray800,
+                    shadowElevation = elevation,
+                    modifier =
+                        Modifier
+                            .padding(vertical = 3.dp)
+                            .fillMaxWidth()
+                            .longPressDraggableHandle(
+                                enabled = enabled,
+                                onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate) },
+                                onDragStopped = { drop() },
+                            ).semantics {
+                                customActions =
+                                    listOfNotNull(
+                                        CustomAccessibilityAction("Move up") { move(-1) }.takeIf { index > 0 },
+                                        CustomAccessibilityAction("Move down") { move(1) }.takeIf { index < items.lastIndex },
+                                    )
+                            }.testTag("region-item-${item.region.id}"),
                 ) {
-                    Text(
-                        "${item.region.id}. ${item.region.name}",
-                        color = if (item.disabled) Palette.gray500 else Color.White,
-                        modifier = Modifier.weight(1f),
+                    EditorRow(
+                        item = item,
+                        enabled = enabled,
+                        onToggle = { onOrder(toggleRegion(items, index)) },
+                        onDragStarted = { haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate) },
+                        onDragStopped = { drop() },
                     )
-                    if (!item.disabled) Icon(Icons.Default.Check, contentDescription = "enabled", tint = Palette.gray300)
                 }
             }
         }
@@ -490,21 +537,61 @@ private fun RegionEditor(
 }
 
 @Composable
-private fun RoundButton(
-    icon: ImageVector,
-    description: String,
+private fun ReorderableCollectionItemScope.EditorRow(
+    item: OrderedRegion,
     enabled: Boolean,
-    onClick: () -> Unit,
+    onToggle: () -> Unit,
+    onDragStarted: () -> Unit,
+    onDragStopped: () -> Unit,
 ) {
-    Box(
-        Modifier
-            .padding(end = 4.dp)
-            .size(36.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (enabled) Palette.gray800 else Palette.gray900)
-            .clickable(enabled = enabled, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = description, tint = if (enabled) Palette.gray400 else Palette.gray600)
+    val region = item.region
+    val dim = item.disabled
+    Row(Modifier.height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .draggableHandle(enabled = enabled, onDragStarted = { onDragStarted() }, onDragStopped = onDragStopped)
+                .fillMaxHeight()
+                .width(48.dp)
+                .testTag("drag-${region.id}"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Default.DragHandle, contentDescription = "Drag to reorder", tint = Palette.gray400)
+        }
+        Box(
+            Modifier
+                .width(4.dp)
+                .height(32.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background((rgb(region.color) ?: Palette.gray500).copy(alpha = if (dim) 0.35f else 1f)),
+        )
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(
+                "${region.id}. ${region.name}",
+                color = if (dim) Palette.gray500 else Color.White,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val length = formatTime((region.end_ms - region.start_ms).toLong())
+            Text(
+                if (dim) "$length · skipped" else length,
+                color = Palette.gray500,
+                fontSize = 12.sp,
+            )
+        }
+        Switch(
+            checked = !item.disabled,
+            onCheckedChange = { onToggle() },
+            enabled = enabled,
+            colors =
+                SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Palette.blue500,
+                    uncheckedThumbColor = Palette.gray400,
+                    uncheckedTrackColor = Palette.gray700,
+                    uncheckedBorderColor = Palette.gray600,
+                ),
+            modifier = Modifier.padding(end = 12.dp).testTag("region-toggle-${region.id}"),
+        )
     }
 }
