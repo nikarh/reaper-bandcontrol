@@ -9,6 +9,7 @@
 mod daw;
 mod ffi;
 mod pairing;
+mod window;
 
 use std::{
     cell::RefCell,
@@ -18,7 +19,7 @@ use std::{
     panic::{AssertUnwindSafe, catch_unwind},
     path::PathBuf,
     sync::Arc,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use bandcontrol_core::engine::{Engine, EngineConfig};
@@ -54,6 +55,7 @@ struct Plugin {
     ble: bool,
     tcp: Option<SocketAddr>,
     actions: Vec<(i32, Action)>,
+    window_checked: Instant,
 }
 
 thread_local! {
@@ -111,6 +113,7 @@ impl Plugin {
             ble: env("BANDCONTROL_BLE").is_none_or(|v| v != "0"),
             tcp: env("BANDCONTROL_TCP").and_then(|a| a.parse().ok()),
             actions,
+            window_checked: Instant::now(),
         };
         plugin.start_server();
         plugin
@@ -136,6 +139,10 @@ impl Plugin {
     }
 
     fn tick(&mut self) {
+        if window::is_open() && self.window_checked.elapsed() > WINDOW_STATUS_INTERVAL {
+            self.window_checked = Instant::now();
+            window::set_status(self.window_status());
+        }
         let Some(server) = &mut self.server else { return };
         let inputs = server.poll_inputs();
         if inputs.is_empty() && self.engine.sessions() == 0 {
@@ -149,6 +156,37 @@ impl Plugin {
         PairingInfo {
             secret: self.secret.clone(),
             name: self.name.clone(),
+        }
+    }
+
+    fn window_view(&self) -> window::View {
+        window::View::new(&self.pairing_info(), self.window_status())
+    }
+
+    fn window_status(&self) -> window::Status {
+        let status = |level, text: String| window::Status { text, level };
+        let Some(server) = &self.server else {
+            return status(window::Level::Error, "Not running, see bandcontrol.log".into());
+        };
+        let s = server.status();
+        let phones = match s.sessions {
+            0 => "no phones connected".to_owned(),
+            1 => "1 phone connected".to_owned(),
+            n => format!("{n} phones connected"),
+        };
+        match (&s.ble, &s.tcp) {
+            (TransportStatus::Running(_), _) => status(window::Level::Ok, format!("Bluetooth on · {phones}")),
+            (TransportStatus::Starting, _) => status(window::Level::Pending, "Bluetooth is starting…".into()),
+            // The details are in the status action and the log.
+            (TransportStatus::Failed(_), _) => status(
+                window::Level::Error,
+                "Bluetooth isn't working, see BandControl: Show status".into(),
+            ),
+            // TCP is only used by tests and screenshots.
+            (TransportStatus::Disabled, TransportStatus::Running(_)) => {
+                status(window::Level::Ok, format!("Ready · {phones}"))
+            }
+            (TransportStatus::Disabled, _) => status(window::Level::Error, "Bluetooth is disabled".into()),
         }
     }
 
@@ -196,6 +234,16 @@ impl Plugin {
     }
 }
 
+const WINDOW_STATUS_INTERVAL: Duration = Duration::from_millis(500);
+
+/// A button in the pairing window was clicked.
+fn window_button(button: window::Button) {
+    match button {
+        window::Button::Rename => run_action(Action::Rename),
+        window::Button::Reset => run_action(Action::ResetKey),
+    }
+}
+
 fn with_plugin<T>(f: impl FnOnce(&mut Plugin) -> T) -> Option<T> {
     PLUGIN.with(|p| {
         // Modal dialogs run nested event loops which may re-enter callbacks: skip instead of panicking.
@@ -208,9 +256,15 @@ fn run_action(action: Action) {
     let Some(reaper) = Reaper::get() else { return };
     match action {
         Action::ShowPairing => {
-            let Some((info, resource)) = with_plugin(|p| (p.pairing_info(), p.reaper.resource_path())) else {
+            let Some((view, info, resource)) =
+                with_plugin(|p| (p.window_view(), p.pairing_info(), p.reaper.resource_path()))
+            else {
                 return;
             };
+            if window::show(view, reaper.main_window()) {
+                return;
+            }
+            // No native window (no SWELL): a page in the browser instead.
             let path = PathBuf::from(resource).join("bandcontrol-pairing.html");
             let opened = std::fs::write(&path, pairing::page(&info)).and_then(|()| pairing::open(&path));
             let mut msg = format!(
@@ -238,8 +292,13 @@ fn run_action(action: Action) {
                 return;
             };
             let caption = "Name shown on phones:,extrawidth=150";
-            if let Some(name) = reaper.user_input("BandControl", caption, &current) {
-                with_plugin(|p| p.rename(&name));
+            if let Some(name) = reaper.user_input("BandControl", caption, &current)
+                && let Some(view) = with_plugin(|p| {
+                    p.rename(&name);
+                    p.window_view()
+                })
+            {
+                window::update(view);
             }
         }
         Action::Status => {
@@ -313,6 +372,7 @@ fn unload() {
         reaper.register_fn("-timer", timer as *const c_void);
         reaper.register_fn("-hookcommand2", hook_command as *const c_void);
     }
+    window::close();
     let plugin = PLUGIN.with(|p| p.borrow_mut().take());
     drop(plugin);
     tracing::info!("unloaded");

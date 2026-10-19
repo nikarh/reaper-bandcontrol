@@ -1302,11 +1302,13 @@ dependencies = [
  "bandcontrol-core",
  "bandcontrol-proto",
  "bandcontrol-server",
+ "objc2",
  "parking_lot",
  "pretty_assertions",
  "qrcode",
  "tracing",
  "tracing-subscriber",
+ "windows",
 ]
 
 [[package]]
