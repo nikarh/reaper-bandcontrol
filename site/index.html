@@ -13,7 +13,7 @@
 <body>
 <header class="hero">
   <div class="wrap">
-    <p class="eyebrow">REAPER extension + Android app · v{{version}}</p>
+    <p class="eyebrow">BandControl for REAPER</p>
     <h1>Your band's REAPER, on everyone's phone.</h1>
     <p class="lead">Playback, setlist, input and PA levels and a personal in-ear mix for every band member, over
       Bluetooth. No Wi-Fi, no tethering, no IP addresses.</p>
@@ -54,18 +54,23 @@
 
   <section class="band" id="download">
     <div class="wrap">
-      <h2>Download</h2>
-      <p>Everything is on the <a href="{{repo}}/releases/latest">latest release</a>. Every file is signed; see
+      <h2>Download <span class="version">v{{version}}</span></h2>
+      <p>Two parts: the extension goes on the computer running REAPER, the app on every band member's phone. All files
+        are on the <a href="{{repo}}/releases/latest">latest release</a> and signed; see
         <a href="#verify">verifying downloads</a>.</p>
+      <h3>REAPER extension</h3>
       <div class="grid downloads">
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol.apk"><strong>Android app</strong><span>Android 9 or newer · APK</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-x86_64.dll"><strong>REAPER extension for Windows</strong><span>x64 · DLL</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-macos-universal.dylib"><strong>REAPER extension for macOS</strong><span>Apple Silicon and Intel · dylib</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><strong>REAPER extension for Linux</strong><span>x86_64 · so</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><strong>REAPER extension for Linux ARM</strong><span>aarch64 · so</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-x86_64.dll"><strong>Windows</strong><span>Windows 10 1803 or newer, x64 · DLL</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-macos-universal.dylib"><strong>macOS</strong><span>Apple Silicon and Intel · dylib</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><strong>Linux x86_64</strong><span>BlueZ · so</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><strong>Linux ARM</strong><span>aarch64, e.g. Raspberry Pi 5 · so</span></a>
       </div>
-      <p class="note">iPhone: not yet, an iOS app is planned. Google Play and F-Droid listings are planned as well;
-        until then install the APK directly.</p>
+      <h3>Phone app</h3>
+      <div class="grid downloads">
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol.apk"><strong>Android</strong><span>Android 9 or newer · APK</span></a>
+        <div class="download soon"><strong>iPhone</strong><span>Planned, not available yet</span></div>
+        <div class="download soon"><strong>Google Play, F-Droid</strong><span>Planned; until then install the APK</span></div>
+      </div>
     </div>
   </section>
 
@@ -110,6 +115,23 @@
           QR code. Google Play services are not needed; it works on de-Googled phones such as LineageOS.</p>
       </details>
     </div>
+  </section>
+
+  <section class="wrap" id="pairing">
+    <h2>Pairing, names and where they are saved</h2>
+    <ul>
+      <li><strong>On the computer</strong>, the pairing code belongs to the REAPER installation: it is saved in
+        REAPER's settings (its resource folder), so it is the same for every project and survives restarts.
+        <em>BandControl: Reset pairing key</em> replaces it and unpairs every phone.</li>
+      <li><strong>The name</strong> phones show is the computer's name unless you set one with <em>BandControl: Set
+        the name shown on phones</em>, saved in the same place. Give each computer a name the band recognizes, like
+        "Rehearsal laptop" or "Stage PC"; the app shows it at the top while connected and picks up renames
+        automatically.</li>
+      <li><strong>On the phone</strong>, the app remembers one computer: the last one it was paired with. Pairing
+        another computer replaces it; scan the first one's QR code again to switch back. Each REAPER installation has
+        its own code, so the phone only ever connects to the computer it was paired with, even when several are in
+        range.</li>
+    </ul>
   </section>
 
   <section class="band" id="project">

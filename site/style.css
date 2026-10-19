@@ -67,6 +67,8 @@ h3 { margin: 0 0 0.3em; }
 }
 .download:hover { border-color: var(--accent); }
 .download span { color: var(--muted); font-size: 0.9em; }
+.download.soon { opacity: 0.6; border-style: dashed; }
+h2 .version { font-size: 0.55em; color: var(--green); vertical-align: middle; margin-left: 0.4em; }
 .note { color: var(--muted); }
 
 .steps li { margin-bottom: 0.6em; }

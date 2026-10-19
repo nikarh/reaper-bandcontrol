@@ -126,7 +126,21 @@ Google Play services are not needed; it runs on de-Googled phones like LineageOS
 3. Pair the other phones from the first one: menu (⋮) → **Share pairing with another phone** shows the same QR code.
 
 All phones share one pairing code. **BandControl: Reset pairing key** creates a new one and unpairs every phone.
-**BandControl: Show status** shows whether Bluetooth is up and how many phones are connected.
+**BandControl: Show status** shows the name, whether Bluetooth is up and how many phones are connected.
+
+### Where pairings are saved, and which computer is which
+
+- **On the computer** the pairing code belongs to the REAPER installation: it is saved in REAPER's settings
+  (`reaper-extstate.ini` in the resource folder), so it is the same for every project and survives restarts. A
+  second computer, or a second REAPER installation with its own resource folder, has its own code.
+- **The name** phones show comes from **BandControl: Set the name shown on phones**, saved in the same place; until
+  it is set it's the computer's hostname (`BANDCONTROL_NAME` in the environment overrides both). Give every computer
+  a name the band recognizes, like "Rehearsal laptop" or "Stage PC". The app shows it at the top while connected and
+  picks up renames by itself.
+- **On the phone** the app remembers one computer: the last one it was paired with. Pairing another computer
+  (menu → **Pair with another computer**) replaces it; scan the first one's QR code again to switch back. Because
+  every installation has its own code, a phone only ever connects to the computer it was paired with, even when
+  several are in range.
 
 ## Organizing the REAPER project
 
