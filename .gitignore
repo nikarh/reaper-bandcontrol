@@ -12,3 +12,10 @@ local.properties
 # Never commit a REAPER license (the harness copies the user's into target/ at runtime).
 *.rk
 reaper-license*
+# Signing material never belongs in the repository (see docs/RELEASING.md).
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*secret*.asc
