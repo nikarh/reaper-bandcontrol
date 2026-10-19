@@ -217,6 +217,8 @@ designed to be broadcast-safe on every OS:
       (double buffered); centered on REAPER's window; the browser page stays as fallback without SWELL
 - [x] REAPER e2e: the QR code on screen decodes to the pairing URL, grows when the window is resized (Xvfb)
 - [x] docs screenshot `reaper-pairing.png` (Xvfb only: needs window capture)
+- [x] follows REAPER's "Scale UI elements" (`uiscale`, everything) and "Font size adjustment" (`fontscaling`,
+      texts and their rows) via `get_config_var_string`, rechecked every 500 ms while open
 - [ ] macOS and Windows windows only checked by clippy so far; dockable window
 
 ## Log / notes
