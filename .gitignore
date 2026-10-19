@@ -19,3 +19,6 @@ reaper-license*
 *.pfx
 *.pem
 *secret*.asc
+
+# Python bytecode
+__pycache__/
