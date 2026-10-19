@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nikarh.bandcontrol.core.Commands
+import dev.nikarh.bandcontrol.core.FaderLaw
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.ReceiveRow
 import dev.nikarh.bandcontrol.core.state.receivesOf
@@ -67,6 +68,7 @@ fun MixScreen(
         return
     }
 
+    val levels by meters.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxWidth().background(Palette.gray800)) {
             Row(
@@ -93,11 +95,11 @@ fun MixScreen(
                     )
                 }
             }
-            MainMix(selected, meters, enabled, send)
+            MainMix(selected, levels[selected.id], enabled, send)
         }
         LazyColumn(Modifier.fillMaxSize().testTag("receives")) {
             items(state.receivesOf(selected), key = { "${selected.id}-${it.index}-${it.source.id}" }) { row ->
-                ReceiveRow(selected, row, enabled, send)
+                ReceiveRow(selected, row, levels[row.source.id], enabled, send)
                 HorizontalDivider(color = Palette.gray800)
             }
         }
@@ -107,11 +109,10 @@ fun MixScreen(
 @Composable
 private fun MainMix(
     output: Track,
-    meters: StateFlow<Map<Int, Float?>>,
+    level: Float?,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
-    val levels by meters.collectAsStateWithLifecycle()
     Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
         Text("Mix level", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
@@ -124,61 +125,88 @@ private fun MainMix(
             modifier = Modifier.testTag("output-volume"),
         )
         Spacer(Modifier.height(4.dp))
-        LevelMeter(levels[output.id])
+        LevelMeter(level)
+    }
+}
+
+/** [sourceLevel]: the source track's level; its meter shows it through this receive (fader and mute). */
+@Composable
+private fun ReceiveRow(
+    output: Track,
+    row: ReceiveRow,
+    sourceLevel: Float?,
+    enabled: Boolean,
+    send: (ClientMessage) -> Boolean,
+) {
+    val level = sourceLevel?.takeUnless { row.mute }?.plus(FaderLaw.gainToDb(row.volume))?.takeIf { it.isFinite() }
+    Row(
+        Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            ReceiveFader(output, row, enabled, send)
+            Spacer(Modifier.height(4.dp))
+            LevelMeter(level, Modifier.testTag("receive-level-${row.source.id}"))
+        }
+        Spacer(Modifier.width(10.dp))
+        MuteButton(output, row, enabled, send)
     }
 }
 
 @Composable
-private fun ReceiveRow(
+private fun ReceiveFader(
     output: Track,
     row: ReceiveRow,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
-    Row(
-        Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Fader(
-            gain = row.volume,
-            color = rgb(row.source.color),
-            enabled = enabled,
-            onChange = { send(Commands.receiveVolume(output.id, row.index, row.source.id, it)) },
-            modifier = Modifier.weight(1f).testTag("receive-${row.source.id}"),
-            label = {
-                Text(
-                    row.source.name,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0x99171717))
-                            .padding(horizontal = 4.dp, vertical = 1.dp),
-                )
-            },
-        )
-        Spacer(Modifier.width(10.dp))
-        Box(
-            Modifier
-                .size(width = 48.dp, height = 40.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(if (row.mute) Palette.red600 else Palette.gray800)
-                .border(1.dp, if (row.mute) Palette.red600 else Palette.gray600, RoundedCornerShape(6.dp))
-                .toggleable(value = row.mute, enabled = enabled, role = Role.Switch) {
-                    send(Commands.receiveMute(output.id, row.index, row.source.id, it))
-                }.semantics { contentDescription = "Mute ${row.source.name}" }
-                .testTag("mute-${row.source.id}"),
-            contentAlignment = Alignment.Center,
-        ) {
+    Fader(
+        gain = row.volume,
+        color = rgb(row.source.color),
+        enabled = enabled,
+        onChange = { send(Commands.receiveVolume(output.id, row.index, row.source.id, it)) },
+        modifier = Modifier.testTag("receive-${row.source.id}"),
+        label = {
             Text(
-                "M",
-                color = if (row.mute) Color.White else Palette.gray400,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                row.source.name,
+                color = Color.White,
+                fontSize = 14.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0x99171717))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
             )
-        }
+        },
+    )
+}
+
+@Composable
+private fun MuteButton(
+    output: Track,
+    row: ReceiveRow,
+    enabled: Boolean,
+    send: (ClientMessage) -> Boolean,
+) {
+    Box(
+        Modifier
+            .size(width = 48.dp, height = 40.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (row.mute) Palette.red600 else Palette.gray800)
+            .border(1.dp, if (row.mute) Palette.red600 else Palette.gray600, RoundedCornerShape(6.dp))
+            .toggleable(value = row.mute, enabled = enabled, role = Role.Switch) {
+                send(Commands.receiveMute(output.id, row.index, row.source.id, it))
+            }.semantics { contentDescription = "Mute ${row.source.name}" }
+            .testTag("mute-${row.source.id}"),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "M",
+            color = if (row.mute) Color.White else Palette.gray400,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }

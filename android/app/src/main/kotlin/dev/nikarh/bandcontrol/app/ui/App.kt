@@ -55,6 +55,7 @@ import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.state.groups
+import dev.nikarh.bandcontrol.core.state.receivesOf
 
 enum class Tab(
     val label: String,
@@ -104,7 +105,7 @@ fun BandControlApp(
     val metered =
         when (shown) {
             Tab.Playback -> emptyList()
-            Tab.Iem -> listOfNotNull(output?.id)
+            Tab.Iem -> output?.let { listOf(it.id) + state.receivesOf(it).map { r -> r.source.id } }?.distinct().orEmpty()
             Tab.Inputs -> groups.inputs.map { it.id }
             Tab.Foh -> groups.fohOutputs.map { it.id }
         }
