@@ -48,8 +48,22 @@ class GroupsTest {
             )
         // Nested tracks are not inputs or outputs, outputs outside the IEM folder are not mixes.
         assertEquals(listOf(3, 4), g.inputs.ids())
-        assertEquals(listOf(9, 10), g.paOutputs.ids())
+        assertEquals(listOf(9, 10), g.fohOutputs.ids())
         assertEquals(listOf(13, 14), g.iemOutputs.ids())
+    }
+
+    @Test
+    fun fohFoldersByEitherName() {
+        for (name in listOf("FOH OUT", "To FOH", "foh", "PA OUT", "To PA")) {
+            val g = groups(track(1, name), track(2, "Feed", parent = 1, output = true))
+            assertEquals(name, listOf(2), g.fohOutputs.ids())
+            assertEquals(name, emptyList<Int>(), g.iemOutputs.ids())
+        }
+        // Whole words only.
+        for (name in listOf("PAD", "Spare", "Paths")) {
+            val g = groups(track(1, name), track(2, "Feed", parent = 1, output = true))
+            assertEquals(name, emptyList<Int>(), g.fohOutputs.ids())
+        }
     }
 
     @Test
@@ -65,7 +79,7 @@ class GroupsTest {
                 track(13, "Drums [3+4]", parent = 11, output = true),
             )
         assertEquals(listOf(7, 8), g.inputs.ids())
-        assertEquals(emptyList<Int>(), g.paOutputs.ids())
+        assertEquals(emptyList<Int>(), g.fohOutputs.ids())
         assertEquals(listOf(12, 13), g.iemOutputs.ids())
     }
 

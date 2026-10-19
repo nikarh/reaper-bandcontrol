@@ -248,7 +248,7 @@ class SimulatorE2ETest {
     fun iemTabListsOnlyMonitorMixes() {
         compose.onNodeWithTag("tab-iem").performClick()
         for (id in 27..31) compose.onNodeWithTag("output-$id").performScrollTo().assertExists()
-        // Not the PA outputs.
+        // Not the FOH outputs.
         compose.onNodeWithTag("output-18").assertDoesNotExist()
     }
 
@@ -277,8 +277,8 @@ class SimulatorE2ETest {
     }
 
     @Test
-    fun paOutputLevels() {
-        compose.onNodeWithTag("tab-pa").performClick()
+    fun fohOutputLevels() {
+        compose.onNodeWithTag("tab-foh").performClick()
         compose.onNodeWithTag("level-18").assertExists()
         control("meter 23 -9")
         scrollTo("levels", "level-23")

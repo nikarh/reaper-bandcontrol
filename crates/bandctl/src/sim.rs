@@ -50,7 +50,7 @@ pub struct SimArgs {
     project: Option<PathBuf>,
 }
 
-/// A project shaped like a real band's: input, IEM output and PA output folders.
+/// A project shaped like a real band's: input, IEM output and PA (front of house) output folders.
 const BAND_PROJECT: &str = include_str!("../../../tests/fixtures/Band Project.RPP");
 /// The smallest project laid out the way the app expects, offered for download.
 const EXAMPLE_PROJECT: &str = include_str!("../../../examples/BandControl-Example.RPP");
