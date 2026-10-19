@@ -65,7 +65,9 @@ jobs:
           api-level: 35
           target: default
           arch: x86_64
-          profile: pixel_6
+          # The same screen as scripts/android-emulator.sh (1080x2400, 420 dpi, no camera cutout), so screenshots taken
+          # here and locally are alike.
+          profile: medium_phone
           disable-animations: true
           script: scripts/docs-screenshots.sh app
       - run: python3 scripts/build-docs.py readme

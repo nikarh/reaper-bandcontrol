@@ -61,16 +61,13 @@ class ScreenshotTest {
         compose.waitForIdle()
         val full = compose.onRoot().captureToImage().asAndroidBitmap()
         // The status and navigation bars are drawn by the system, so the app's capture would show empty bands there,
-        // of a height that depends on the device: cut them off.
+        // of a height that depends on the device: cut them off, exactly as far as the app pads its content.
         var top = 0
         var bottom = 0
         scenario.onActivity { activity ->
-            val insets =
-                ViewCompat
-                    .getRootWindowInsets(activity.window.decorView)
-                    ?.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            top = insets?.top ?: 0
-            bottom = insets?.bottom ?: 0
+            val insets = ViewCompat.getRootWindowInsets(activity.window.decorView)
+            top = insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+            bottom = insets?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
         }
         val bitmap = Bitmap.createBitmap(full, 0, top, full.width, full.height - top - bottom)
         File(out, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
