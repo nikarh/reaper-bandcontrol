@@ -7,6 +7,9 @@
 # The simulator's control port is always reached through `adb reverse`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/android-device.sh
+source scripts/android-device.sh
+pick_android_device
 
 TCP_PORT=47021
 CONTROL_PORT=47022

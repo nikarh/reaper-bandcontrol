@@ -7,6 +7,9 @@
 # The tests observe and drive REAPER through its web interface, reached through `adb reverse`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/android-device.sh
+source scripts/android-device.sh
+pick_android_device
 
 WEB_PORT=47031
 TCP_PORT=47033

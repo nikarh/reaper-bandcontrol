@@ -295,8 +295,9 @@ Tools:
   simulates any project. `bandctl pair` prints a pairing code, `bandctl client` prints what a server sends.
 - `mise run reaper` starts an isolated headless REAPER with the extension and the example project; lines typed on
   stdin go to REAPER's web API (`SET/TRACK/40/VOL/0.5`), `screenshot FILE.png` saves a screenshot.
-- `mise run android:deploy [pairing-url]` installs and starts the app; a pairing URL with `&t=127.0.0.1:PORT`
-  makes debug builds connect over TCP through `adb reverse`. `scripts/android-emulator.sh` boots a headless
+- `mise run android:deploy [-s SERIAL] [pairing-url]` installs and starts the app; with several devices in
+  `adb devices` it asks which one (or takes `-s` / `ANDROID_SERIAL`), like the other phone scripts. A pairing URL
+  with `&t=127.0.0.1:PORT` makes debug builds connect over TCP through `adb reverse`. `scripts/android-emulator.sh` boots a headless
   emulator (after `mise run android:emulator-sdk`) when there's no phone.
 
 Extension environment variables: `BANDCONTROL_SECRET` (pairing code), `BANDCONTROL_TCP` (also listen on TCP),

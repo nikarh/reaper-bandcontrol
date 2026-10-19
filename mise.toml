@@ -76,7 +76,7 @@ dir         = "android"
 run         = "./gradlew --console=plain :app:assembleDebug :app:assembleRelease"
 
 [tasks."android:deploy"]
-description = "Install and start the app on the connected phone (optional arg: pairing URL)"
+description = "Install and start the app (args: [-s SERIAL] [pairing URL]; asks which device when several are connected)"
 run         = "scripts/android-deploy.sh"
 
 [tasks."android:e2e"]
