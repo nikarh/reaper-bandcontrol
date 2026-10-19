@@ -42,11 +42,11 @@ does. The first run downloads the container image (about 1.6 GB).
 
 ## Submitting
 
-1. Wait for the first release (step 11 of the setup), so the tag `v0.1.0` and `bandcontrol.apk` exist.
+1. Wait for the first release (step 11 of the setup), so its tag and `bandcontrol.apk` exist.
 2. Get the release key's certificate fingerprint: `apksigner verify --print-certs bandcontrol.apk` (the SHA-256
    line, without colons, lower case) and put it into `AllowedAPKSigningKeys` in
    [`packaging/fdroid/dev.nikarh.bandcontrol.yml`](../packaging/fdroid/dev.nikarh.bandcontrol.yml); check the
-   `Builds` entry matches the release (versionName, versionCode, `commit: v0.1.0`).
+   `Builds` entry names that release (versionName, versionCode and `commit: vX.Y.Z`; release PRs update them).
 3. Run `mise run android:fdroid-check` once more.
 4. Fork [fdroiddata](https://gitlab.com/fdroid/fdroiddata), copy the recipe to `metadata/dev.nikarh.bandcontrol.yml`,
    commit it as `New App: dev.nikarh.bandcontrol` and open a merge request; its CI builds the app again.

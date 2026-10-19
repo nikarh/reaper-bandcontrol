@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bumps the version everything uses (the workspace version in Cargo.toml; the Android app reads it from there) and
-# the Android versionCode next to it, and prints the new version.
+# the Android versionCode next to it, points the draft F-Droid recipe at the new release, and prints the new version.
 #
 #   scripts/bump-version.sh patch|minor|major|X.Y.Z
 set -euo pipefail
@@ -18,6 +18,10 @@ esac
 
 sed -i "/^\[workspace.package\]/,/^\[/s/^version\( *\)= *\"$current\"/version\1= \"$next\"/" Cargo.toml
 IFS=. read -r major minor patch <<< "$next"
-sed -i "s/^version-code\( *\)= *[0-9]*/version-code\1= $((major * 10000 + minor * 100 + patch))/" Cargo.toml
+code=$((major * 10000 + minor * 100 + patch))
+sed -i "s/^version-code\( *\)= *[0-9]*/version-code\1= $code/" Cargo.toml
+sed -i -e "s/^  - versionName: .*/  - versionName: $next/" -e "s/^    versionCode: .*/    versionCode: $code/" \
+  -e "s/^    commit: .*/    commit: v$next/" -e "s/^CurrentVersion: .*/CurrentVersion: $next/" \
+  -e "s/^CurrentVersionCode: .*/CurrentVersionCode: $code/" packaging/fdroid/dev.nikarh.bandcontrol.yml
 cargo update -q --workspace --offline 2> /dev/null || cargo update -q --workspace
 echo "$next"

@@ -1,6 +1,7 @@
 # Draft of the F-Droid build recipe (metadata/dev.nikarh.bandcontrol.yml in https://gitlab.com/fdroid/fdroiddata),
-# kept here so it can be tested before submitting; see docs/FDROID.md. Before submitting: set the commit of the
-# first release tag, and AllowedAPKSigningKeys to the SHA-256 of the release key's certificate.
+# kept here so it can be tested before submitting; see docs/FDROID.md. scripts/bump-version.sh keeps the build and
+# the current version at the latest release. Before submitting: set AllowedAPKSigningKeys to the SHA-256 of the
+# release key's certificate.
 Categories:
   - Multimedia
   - Remote Controller
