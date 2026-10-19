@@ -2,6 +2,10 @@
 
 #[cfg(target_os = "linux")]
 mod bluez;
+#[cfg(target_os = "macos")]
+mod corebluetooth;
+#[cfg(target_os = "windows")]
+mod winrt;
 
 use uuid::Uuid;
 
@@ -28,7 +32,17 @@ pub async fn start(config: BleConfig, events: EventSender, commands: CommandRece
     bluez::start(config, events, commands).await
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
+pub async fn start(config: BleConfig, events: EventSender, commands: CommandReceiver) -> Result<(), BleError> {
+    corebluetooth::start(config, events, commands).await
+}
+
+#[cfg(target_os = "windows")]
+pub async fn start(config: BleConfig, events: EventSender, commands: CommandReceiver) -> Result<(), BleError> {
+    winrt::start(config, events, commands).await
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
 #[allow(clippy::unused_async)]
 pub async fn start(_config: BleConfig, _events: EventSender, _commands: CommandReceiver) -> Result<(), BleError> {
     Err(BleError::Unsupported)
