@@ -112,29 +112,29 @@ class ReaperE2ETest {
         compose.onNodeWithTag("transport-stop").performClick()
         eventually { playState() == 0 }
 
-        compose.onNodeWithTag("region-2").performClick()
-        awaitPosition(158.84..158.85)
+        compose.onNodeWithTag("region-3").performClick()
+        awaitPosition(176.74..176.75)
         compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(174.07..174.09)
+        awaitPosition(191.74..191.75)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(183.60..183.61)
+        awaitPosition(221.74..221.75)
         compose.onNodeWithTag("nav-previous").performClick()
-        awaitPosition(174.07..174.09)
+        awaitPosition(191.74..191.75)
 
-        // Seeking in REAPER moves the phone; the next song follows the band's order (1, 2, 6, ...).
-        web("SET/POS/260")
+        // Seeking in REAPER moves the phone; the next song follows the band's order (1, 2, 6, 4, 5, 3, 7, ...).
+        web("SET/POS/300")
         compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Outro"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(572.07..572.08)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Static Bloom"), 5_000)
+        awaitPosition(728.92..728.93)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Interlude B"), 5_000)
     }
 
     @Test
     fun regionOrderFollowsBothSides() {
         compose.onNodeWithTag("edit-regions").performClick()
         compose.onNodeWithTag("region-toggle-5").performClick()
-        eventually { regionOrder() == "11,12,16,14,05,13,17,18,19,110,011,112" }
+        eventually { regionOrder() == "11,12,16,14,05,13,17,18,19,110,111,112,113,114,115,016,117" }
         compose.onNodeWithTag("edit-regions").performClick()
         compose.waitUntilDoesNotExist(hasTestTag("region-5"), 5_000)
 
@@ -148,7 +148,7 @@ class ReaperE2ETest {
         compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-40").performClick()
 
-        // Drums input is receive 7 of the drummer's mix. The mute button only shows what REAPER reports back, so
+        // Drums input is receive 7 of the drums mix. The mute button only shows what REAPER reports back, so
         // this round-trips through REAPER.
         compose.onNodeWithTag("receives").performScrollToNode(hasTestTag("mute-14"))
         compose.onNodeWithTag("mute-14").performClick()
@@ -184,8 +184,8 @@ class ReaperE2ETest {
     }
 
     private companion object {
-        /** Song order stored in the band project: 1, 2, 6, 4, 5, 3, ..., Velvet Machine (11) disabled. */
-        const val INITIAL_ORDER = "11,12,16,14,15,13,17,18,19,110,011,112"
+        /** Song order stored in the band project: 1, 2, 6, 4, 5, 3, ..., Northbound (16) disabled. */
+        const val INITIAL_ORDER = "11,12,16,14,15,13,17,18,19,110,111,112,113,114,115,016,117"
 
         /** Transport: Stop. */
         const val STOP = "1016"
