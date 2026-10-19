@@ -208,6 +208,18 @@ designed to be broadcast-safe on every OS:
 - [x] menu → About & share the app: QR code for `releases/latest/download/bandcontrol.apk`, Share link, GitHub
       link, version; the repository comes from `[workspace.package]` in Cargo.toml (`BuildConfig.REPOSITORY`)
 
+### 10d. Versions, installers, example project
+- [x] REAPER 5.93 (oldest REAPER for Linux still downloadable) to 7.82 pass the e2e tests
+      (`scripts/reaper-versions.sh`); CI tests 5.93 and 7.82
+- [x] installers: NSIS for Windows x64 and ARM64EC (per user, `%APPDATA%\REAPER` or a portable folder, uninstaller),
+      one universal `.pkg` for macOS (user home domain, no admin); unsigned in Check, signed in Publish when the
+      certificates exist (`osslsigncode`, Developer ID + notarization); `mise run package:windows|macos` locally
+- [x] Windows installers tested in a container: build, signature with a test certificate, install / uninstall under
+      Wine; the macOS package and the ARM64EC link only run on CI runners (not verified yet)
+- [x] `examples/BandControl-Example.RPP` (`scripts/make-example-project.py`): Click, Backtrack, INPUTS, PA OUT,
+      IEM OUT, four songs at 120 BPM; the screenshots use it, the tests keep the band fixture
+- [x] README and landing: requirements, installers first and plain libraries second, the naming convention
+
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
 - [x] the app keeps every pairing; with one in range it connects by itself, several in range at start ask, another

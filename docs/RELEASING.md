@@ -6,8 +6,9 @@
    workspace version in `Cargo.toml` (the Android app reads it from there), regenerates `CHANGELOG.md` with
    git-cliff and opens a pull request titled `Release vX.Y.Z` with the release notes as its body.
 2. Review and merge it. The **Release** workflow tags the merge commit and creates the GitHub release with the notes.
-3. The **Publish** workflow builds every artifact, signs the APK with the release key, writes `SHA256SUMS` and its
-   GPG signature, and uploads everything to the release. The **Site** workflow redeploys the website.
+3. The **Publish** workflow builds every artifact, builds the installers and signs them and the libraries inside
+   (when the certificates below are set up), signs the APK with the release key, writes `SHA256SUMS` and its GPG
+   signature, and uploads everything to the release. The **Site** workflow redeploys the website.
 
 Asset names never change, so `https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/<name>` always
 points at the newest file:
@@ -17,7 +18,9 @@ points at the newest file:
 | `bandcontrol.apk` | Android app, signed with the release key |
 | `reaper_bandcontrol-linux-x86_64.so`, `reaper_bandcontrol-linux-aarch64.so` | REAPER extension for Linux (built on Ubuntu 22.04) |
 | `reaper_bandcontrol-macos-universal.dylib` | REAPER extension for macOS, Apple Silicon and Intel |
-| `reaper_bandcontrol-windows-x86_64.dll` | REAPER extension for Windows |
+| `reaper_bandcontrol-windows-x86_64.dll`, `reaper_bandcontrol-windows-arm64ec.dll` | REAPER extension for Windows, x64 and ARM (REAPER's ARM64EC build) |
+| `bandcontrol-windows-x64-setup.exe`, `bandcontrol-windows-arm64-setup.exe` | Windows installers (NSIS), per user |
+| `bandcontrol-macos.pkg` | macOS installer, Apple Silicon and Intel, into the user's REAPER folder |
 | `SHA256SUMS`, `SHA256SUMS.asc` | Checksums of all of the above and their detached GPG signature |
 
 ## One-time setup
@@ -38,6 +41,35 @@ The release workflows act as a GitHub App, like the other nikarh repositories: c
 | `ANDROID_KEY_PASSWORD` | The key password |
 | `GPG_PRIVATE_KEY` | ASCII armored private key that signs `SHA256SUMS` |
 | `GPG_PASSPHRASE` | Its passphrase |
+
+Optional, for signed installers (without them the installers are published unsigned, and Windows SmartScreen and
+macOS Gatekeeper warn before opening them):
+
+| Secret | Value |
+| --- | --- |
+| `WINDOWS_SIGN_PFX_BASE64` | An Authenticode code signing certificate with its key (`.pfx`), base64 encoded |
+| `WINDOWS_SIGN_PASSWORD` | Its password |
+| `MACOS_CERTIFICATES_P12_BASE64` | *Developer ID Application* and *Developer ID Installer* certificates with their keys, exported together from Keychain Access as one `.p12`, base64 encoded |
+| `MACOS_CERTIFICATES_PASSWORD` | Its password |
+| `MACOS_SIGN_IDENTITY` | `Developer ID Application: Name (TEAMID)` |
+| `MACOS_INSTALLER_IDENTITY` | `Developer ID Installer: Name (TEAMID)` |
+| `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, `MACOS_NOTARY_PASSWORD` | Apple ID, team ID and an [app-specific password](https://support.apple.com/102654) for notarization |
+
+### Installers and signing, locally
+
+The same scripts run locally, through mise; every signing variable is optional and the result is unsigned without
+it:
+
+```sh
+# Windows: needs makensis (NSIS 3.08+) and, for signing, osslsigncode. Without a DLL argument it builds the
+# library, which needs Windows; elsewhere pass one built there or downloaded from CI.
+WINDOWS_SIGN_PFX=cert.pfx WINDOWS_SIGN_PASSWORD=... mise run package:windows x64 reaper_bandcontrol.dll
+# macOS: the certificates in the login keychain.
+MACOS_SIGN_IDENTITY="Developer ID Application: ..." MACOS_INSTALLER_IDENTITY="Developer ID Installer: ..." \
+  MACOS_NOTARY_APPLE_ID=... MACOS_NOTARY_TEAM_ID=... MACOS_NOTARY_PASSWORD=... mise run package:macos
+```
+
+Both write to `dist/`. `WINDOWS_SIGN_TIMESTAMP` overrides the timestamp server (empty: no timestamp).
 
 ### Android release key
 

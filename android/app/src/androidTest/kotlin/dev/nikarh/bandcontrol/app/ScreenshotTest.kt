@@ -77,11 +77,11 @@ class ScreenshotTest {
     fun launch() {
         out.mkdirs()
         control("reset")
+        // In Summer, the second song of the example project (examples/BandControl-Example.RPP).
         control("seek 200")
-        // Fixed levels instead of generated ones, so the screenshots don't change from run to run.
-        val levels =
-            mapOf(6 to -9, 7 to -6, 8 to 1, 9 to -2, 10 to -12, 11 to -18, 12 to -15, 27 to -10) +
-                (18..25).associateWith { -20 + it % 4 * 3 }
+        // Fixed levels instead of generated ones, so the screenshots don't change from run to run: the inputs
+        // (the guitar clips), the PA feeds and the drummer's in-ear mix.
+        val levels = mapOf(4 to -9, 5 to -6, 6 to 1, 7 to -4, 9 to -14, 10 to -8, 11 to -11, 13 to -10)
         for ((track, db) in levels) control("meter $track $db")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Band%20PC&t=$tcp")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -91,7 +91,7 @@ class ScreenshotTest {
             .clear()
             .commit()
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 20_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Summer"), 20_000)
     }
 
     @After
@@ -107,10 +107,10 @@ class ScreenshotTest {
         shot("setlist")
         compose.onNodeWithTag("edit-regions").performClick()
         compose.onNodeWithTag("tab-inputs").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("CLIP +1.0"), 10_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-6") and hasText("CLIP +1.0"), 10_000)
         shot("inputs")
         compose.onNodeWithTag("tab-pa").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("level-18"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("level-9"), 5_000)
         shot("pa")
         compose.onNodeWithTag("tab-iem").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("mix-title"), 5_000)

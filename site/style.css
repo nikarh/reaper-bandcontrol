@@ -68,7 +68,7 @@ h3 { margin: 0 0 0.3em; }
 .download:hover { border-color: var(--accent); }
 .download span { color: var(--muted); font-size: 0.9em; }
 .download.soon { opacity: 0.6; border-style: dashed; }
-h2 .version { font-size: 0.55em; color: var(--green); vertical-align: middle; margin-left: 0.4em; }
+h2 .version, h3 .version { font-size: 0.55em; color: var(--green); vertical-align: middle; margin-left: 0.4em; }
 .note { color: var(--muted); }
 
 .steps li { margin-bottom: 0.6em; }
@@ -77,7 +77,14 @@ h2 .version { font-size: 0.55em; color: var(--green); vertical-align: middle; ma
 
 .shots figure { margin: 0; }
 .shots img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+.supports { color: var(--muted); font-size: 0.95em; }
+pre.tree { overflow-x: auto; }
+details.manual { margin: 16px 0 28px; }
+details.manual summary { cursor: pointer; color: var(--muted); }
 .shots figcaption { color: var(--muted); font-size: 0.9em; margin-top: 6px; }
+/* A single window, about as wide as the phone screenshots, beside the text it belongs to. */
+.shots.narrow { float: right; width: 260px; margin: 0 0 16px 24px; }
+#pairing::after { content: ""; display: block; clear: both; }
 
 .changes h3 { margin-top: 1.4em; }
 .changes ul { color: var(--muted); }
@@ -87,4 +94,6 @@ footer { padding: 32px 0; color: var(--muted); border-top: 1px solid var(--line)
 @media (max-width: 760px) {
   .feature, .feature:nth-of-type(even) { flex-direction: column; align-items: flex-start; }
   .phones img:nth-child(2) { margin-top: 0; }
+  .shots.narrow { float: none; margin: 0 auto 16px; }
 }
+h3 .version { font-size: 0.7em; }
