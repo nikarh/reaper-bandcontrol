@@ -53,7 +53,7 @@ run = "cargo test -p reaper-harness -- --ignored --test-threads=1"
 
 
 [tasks."e2e:reaper-versions"]
-description = "REAPER e2e against several REAPER releases for Linux (args: versions, default 5.93 to 7.82)"
+description = "REAPER e2e against several REAPER releases for Linux (args: versions, default the supported range)"
 run         = "scripts/reaper-versions.sh"
 
 [tasks."package:windows"]
