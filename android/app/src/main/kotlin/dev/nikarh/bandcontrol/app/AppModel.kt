@@ -64,8 +64,16 @@ class AppModel(
 
     init {
         status
-            .onEach { if (it is ConnectionStatus.Disconnected) Log.w(TAG, "disconnected: ${it.problem} (${it.detail})") }
-            .launchIn(viewModelScope)
+            .onEach {
+                when (it) {
+                    is ConnectionStatus.Disconnected -> Log.w(TAG, "disconnected: ${it.problem} (${it.detail})")
+
+                    // The computer may have been renamed since pairing; keep the saved name current.
+                    is ConnectionStatus.Connected -> rememberName(it.serverName)
+
+                    else -> Unit
+                }
+            }.launchIn(viewModelScope)
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
     }
 
@@ -89,6 +97,13 @@ class AppModel(
         }
         mutablePairing.value = info
         restart()
+    }
+
+    private fun rememberName(name: String) {
+        val info = mutablePairing.value ?: return
+        if (name.isEmpty() || name == info.name) return
+        prefs.edit { putString(KEY_NAME, name) }
+        mutablePairing.value = info.copy(name = name)
     }
 
     fun unpair() {
