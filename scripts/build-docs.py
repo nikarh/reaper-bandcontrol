@@ -165,6 +165,7 @@ def build_site(out: Path) -> None:
         "reaper_min": reaper("min"),
         "reaper_tested": reaper("tested"),
         "repo": REPO,
+        "repo_path": REPO.removeprefix("https://github.com/"),
     }.items():
         page = page.replace("{{" + key + "}}", value)
     page = ICON.sub(lambda m: icon(m.group(1)), page)

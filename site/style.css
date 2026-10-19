@@ -50,6 +50,11 @@ main > section > .wrap > :last-child, .pairing > :last-child { margin-bottom: 0;
 .card h3 .icon { color: var(--green); }
 .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .button.ghost { background: transparent; }
+/* The star count, a pill at the end of the GitHub button. */
+.button.star .stars { display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; padding: 1px 8px;
+  border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 0.9em; }
+.button.star .stars[hidden] { display: none; }
+.button.star .stars .icon { width: 1em; height: 1em; margin: 0; color: #fbbf24; fill: #fbbf24; }
 
 /* Hero phones: three side by side, shrinking on tablets; a carousel on phones (see the media query). */
 .phones { display: flex; gap: 20px; justify-content: center; align-items: flex-start; padding-bottom: 8px; }
@@ -122,6 +127,7 @@ details.manual summary { cursor: pointer; color: var(--muted); }
 .changes ul { color: var(--muted); }
 
 footer { padding: 32px 0; color: var(--muted); border-top: 1px solid var(--line); }
+footer .icon { margin-right: 0.25em; color: #fbbf24; }
 
 @media (max-width: 760px) {
   .feature, .feature:nth-of-type(even) { flex-direction: column; align-items: flex-start; }

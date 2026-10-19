@@ -78,3 +78,26 @@ function updateDots() {
 track.addEventListener("scroll", updateDots, { passive: true });
 window.addEventListener("resize", updateDots);
 updateDots();
+
+// The star count on the GitHub button, from GitHub's public API (60 requests an hour per visitor, so cached for the
+// session). Without it, e.g. offline or rate limited, the button just links to the repository.
+const star = document.querySelector("a.star");
+async function stars(repo) {
+  const cached = sessionStorage.getItem(`stars:${repo}`);
+  if (cached !== null) return Number(cached);
+  const response = await fetch(`https://api.github.com/repos/${repo}`, { headers: { Accept: "application/vnd.github+json" } });
+  if (!response.ok) throw new Error(`GitHub API: ${response.status}`);
+  const count = (await response.json()).stargazers_count;
+  sessionStorage.setItem(`stars:${repo}`, String(count));
+  return count;
+}
+if (star) {
+  stars(star.dataset.repo)
+    .then((count) => {
+      const label = new Intl.NumberFormat("en", { notation: "compact" }).format(count);
+      star.querySelector(".count").textContent = label;
+      star.querySelector(".stars").hidden = false;
+      star.setAttribute("aria-label", `Star on GitHub (${count} stars)`);
+    })
+    .catch(() => {});
+}

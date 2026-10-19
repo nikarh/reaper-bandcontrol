@@ -21,7 +21,7 @@
     <div class="buttons">
       <a class="button primary" href="#download">{{icon:download}}Download</a>
       <a class="button" href="#setup">{{icon:wrench}}Set up in 5 minutes</a>
-      <a class="button ghost" href="{{repo}}">{{icon:github}}Source on GitHub</a>
+      <a class="button ghost star" href="{{repo}}" data-repo="{{repo_path}}">{{icon:github}}Star on GitHub<span class="stars" hidden>{{icon:star}}<span class="count"></span></span></a>
     </div>
     <div class="phones" id="phones">
       <a class="zoom" href="screenshots/playback.png"><img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy"></a>
@@ -246,7 +246,8 @@ sha256sum --ignore-missing -c SHA256SUMS</pre>
 </main>
 
 <footer>
-  <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a></div>
+  <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a> ·
+    Useful to your band? <a href="{{repo}}/stargazers">{{icon:star}}Star it on GitHub</a></div>
 </footer>
 <dialog id="zoom" aria-label="Screenshot">
   <figure>
