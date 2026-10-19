@@ -8,7 +8,9 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
@@ -206,5 +208,17 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("output-40").assertExists()
         compose.onNodeWithTag("output-30").assertDoesNotExist()
         compose.onNodeWithTag("output-45").assertDoesNotExist()
+    }
+
+    @Test
+    fun qrScannerWorksWithoutPlayServices() {
+        compose.onNodeWithContentDescription("Menu").performClick()
+        compose.onNodeWithText("Pair with another computer").performClick()
+        compose.onNodeWithTag("scan-button").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Point the camera at the QR code shown by REAPER"), 5_000)
+        Thread.sleep(1_000)
+        compose.onNodeWithText("Camera unavailable", substring = true).assertDoesNotExist()
+        compose.onNodeWithTag("qr-close").performClick()
+        compose.onNodeWithTag("pair-code").assertExists()
     }
 }

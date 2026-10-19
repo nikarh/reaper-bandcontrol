@@ -62,9 +62,9 @@ dependencies {
     implementation(project(":core"))
     implementation(platform(libs.compose.bom))
     implementation(libs.activity.compose)
-    implementation(libs.code.scanner)
-    // The scanner depends on fragment 1.0, which breaks the activity result API.
-    implementation(libs.fragment)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
     implementation(libs.compose.icons)
     implementation(libs.compose.material3)
     implementation(libs.compose.ui)

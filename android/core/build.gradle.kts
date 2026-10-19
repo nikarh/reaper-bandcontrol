@@ -37,6 +37,7 @@ wire {
 dependencies {
     api(libs.wire.runtime)
     api(libs.coroutines.core)
+    implementation(libs.zxing.core)
     testImplementation(libs.junit)
     testImplementation(libs.json)
     testImplementation(libs.coroutines.test)
