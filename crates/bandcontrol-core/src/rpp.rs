@@ -277,23 +277,21 @@ mod tests {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/fixtures/Band Project.RPP");
         let daw = parse(&std::fs::read_to_string(path).unwrap()).unwrap();
         let track = |id: TrackId| &daw.tracks[usize::try_from(id - 1).unwrap()];
-        assert_eq!(daw.tracks.len(), 46);
-        assert_eq!(track(13).name, "INPUTS");
-        assert_eq!(track(14).parent, Some(13));
-        // Nested folder inside the inputs folder, closed together with it.
-        assert_eq!(track(19).parent, Some(18));
-        assert_eq!(track(24).parent, Some(23));
-        assert_eq!(track(25).parent, None);
-        assert_eq!(track(30).name, "PA Backtrack");
-        assert_eq!(track(30).parent, Some(29));
-        assert!(track(30).hw_out);
-        assert_eq!(track(30).receives[0].src, 11);
-        assert_eq!(track(38).parent, Some(37));
-        assert_eq!(track(40).parent, Some(39));
-        assert_eq!(track(40).receives.len(), 14);
-        assert_eq!(track(45).parent, None);
-        assert_eq!(track(41).name, "Left guitar");
-        assert_eq!(track(4).name, "Track 4");
+        assert_eq!(daw.tracks.len(), 31);
+        assert_eq!(track(5).name, "INPUTS");
+        assert_eq!(track(6).parent, Some(5));
+        // The last track of a folder closes it.
+        assert_eq!(track(12).parent, Some(5));
+        assert_eq!(track(13).parent, None);
+        assert_eq!(track(18).name, "PA Backtrack");
+        assert_eq!(track(18).parent, Some(17));
+        assert!(track(18).hw_out);
+        assert_eq!(track(18).receives[0].src, 3);
+        assert_eq!(track(27).name, "Drums");
+        assert_eq!(track(27).parent, Some(26));
+        assert_eq!(track(27).receives.len(), 10);
+        assert!(track(27).receives[2].mute);
+        assert_eq!(track(31).parent, Some(26));
         assert_eq!(daw.regions.len(), 17);
         assert_eq!(daw.regions[2].name, "Paper Lions");
         assert_eq!(daw.markers.len(), 4);

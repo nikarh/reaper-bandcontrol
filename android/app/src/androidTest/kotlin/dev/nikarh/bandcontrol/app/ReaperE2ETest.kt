@@ -93,7 +93,7 @@ class ReaperE2ETest {
 
     @Before
     fun launch() {
-        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/40/VOL/0.251189;SET/TRACK/15/VOL/1")
+        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/27/VOL/0.251189;SET/TRACK/7/VOL/1")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=REAPER" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
@@ -146,41 +146,41 @@ class ReaperE2ETest {
     @Test
     fun mixFollowsBothSides() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-40").performClick()
+        compose.onNodeWithTag("output-27").performClick()
 
-        // Drums input is receive 7 of the drums mix. The mute button only shows what REAPER reports back, so
+        // Drums input is receive 3 of the drums mix. The mute button only shows what REAPER reports back, so
         // this round-trips through REAPER.
-        compose.onNodeWithTag("receives").performScrollToNode(hasTestTag("mute-14"))
-        compose.onNodeWithTag("mute-14").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("mute-14") and isOn(), 5_000)
-        web("SET/TRACK/40/SEND/-8/MUTE/-1")
-        compose.waitUntilAtLeastOneExists(hasTestTag("mute-14") and isOff(), 5_000)
+        compose.onNodeWithTag("receives").performScrollToNode(hasTestTag("mute-6"))
+        compose.onNodeWithTag("mute-6").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("mute-6") and isOn(), 5_000)
+        web("SET/TRACK/27/SEND/-4/MUTE/-1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("mute-6") and isOff(), 5_000)
 
         compose.onNodeWithTag("output-volume").performTouchInput { swipeLeft() }
-        eventually { trackVolume(40) < 0.2 }
+        eventually { trackVolume(27) < 0.2 }
         settle()
 
-        web("SET/TRACK/40/VOL/0.5")
+        web("SET/TRACK/27/VOL/0.5")
         compose.waitUntilAtLeastOneExists(hasTestTag("output-volume") and stateIs("-6.0 dB"), 5_000)
     }
 
     @Test
     fun inputGain() {
         compose.onNodeWithTag("tab-inputs").performClick()
-        compose.onNodeWithTag("gain-15").performTouchInput { swipeLeft() }
-        eventually { trackVolume(15) < 0.5 }
+        compose.onNodeWithTag("gain-7").performTouchInput { swipeLeft() }
+        eventually { trackVolume(7) < 0.5 }
         settle()
-        web("SET/TRACK/15/VOL/1")
-        compose.waitUntilAtLeastOneExists(hasTestTag("gain-15") and stateIs("0.0 dB"), 5_000)
+        web("SET/TRACK/7/VOL/1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-7") and stateIs("0.0 dB"), 5_000)
     }
 
     @Test
     fun paOutputs() {
         compose.onNodeWithTag("tab-pa").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("gain-30") and stateIs("-5.0 dB"), 5_000)
-        web("SET/TRACK/30/VOL/1")
-        compose.waitUntilAtLeastOneExists(hasTestTag("gain-30") and stateIs("0.0 dB"), 5_000)
-        web("SET/TRACK/30/VOL/0.562341")
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-18") and stateIs("-5.0 dB"), 5_000)
+        web("SET/TRACK/18/VOL/1")
+        compose.waitUntilAtLeastOneExists(hasTestTag("gain-18") and stateIs("0.0 dB"), 5_000)
+        web("SET/TRACK/18/VOL/0.562341")
     }
 
     private companion object {

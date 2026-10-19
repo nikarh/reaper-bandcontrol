@@ -80,8 +80,8 @@ class ScreenshotTest {
         control("seek 200")
         // Fixed levels instead of generated ones, so the screenshots don't change from run to run.
         val levels =
-            mapOf(14 to -9, 15 to -6, 16 to 1, 17 to -2, 18 to -12, 21 to -18, 23 to -15, 40 to -10) +
-                (30..37).associateWith { -20 + it % 4 * 3 }
+            mapOf(6 to -9, 7 to -6, 8 to 1, 9 to -2, 10 to -12, 11 to -18, 12 to -15, 27 to -10) +
+                (18..25).associateWith { -20 + it % 4 * 3 }
         for ((track, db) in levels) control("meter $track $db")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Band%20PC&t=$tcp")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -98,10 +98,10 @@ class ScreenshotTest {
     fun screenshots() {
         shot("playback")
         compose.onNodeWithTag("tab-inputs").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("peak-16") and hasText("CLIP +1.0"), 10_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("CLIP +1.0"), 10_000)
         shot("inputs")
         compose.onNodeWithTag("tab-pa").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("level-30"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("level-18"), 5_000)
         shot("pa")
         compose.onNodeWithTag("tab-iem").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("mix-title"), 5_000)

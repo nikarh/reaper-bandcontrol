@@ -318,7 +318,7 @@ async fn band_project_in_reaper() {
         "{actual_colors:?}\n{expected_colors:?}"
     );
 
-    // While playing, the click track and the drummer's IEM mix (which receives it) have levels, inputs are silent.
+    // While playing, the click track and the drums IEM mix (which receives it) have levels, inputs are silent.
     client
         .send(Msg::Goto(pb::Goto {
             region: 2,
@@ -333,7 +333,7 @@ async fn band_project_in_reaper() {
     client
         .send(Msg::SubscribeMeters(pb::SubscribeMeters {
             subscription: 1,
-            tracks: vec![1, 40, 14],
+            tracks: vec![1, 27, 6],
         }))
         .await
         .unwrap();
@@ -348,12 +348,12 @@ async fn band_project_in_reaper() {
 
     // Input gain from the phone.
     client
-        .send(Msg::SetTrackVolume(pb::SetTrackVolume { track: 14, volume: 0.5 }))
+        .send(Msg::SetTrackVolume(pb::SetTrackVolume { track: 6, volume: 0.5 }))
         .await
         .unwrap();
     client
-        .wait_for(&mut mirror, TIMEOUT, |m| track(m, 14).volume == 0.5)
+        .wait_for(&mut mirror, TIMEOUT, |m| track(m, 6).volume == 0.5)
         .await
         .unwrap();
-    assert!(env.reaper.web("TRACK/14").unwrap().contains("\t0.500000\t"));
+    assert!(env.reaper.web("TRACK/6").unwrap().contains("\t0.500000\t"));
 }

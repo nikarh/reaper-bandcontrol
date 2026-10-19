@@ -87,7 +87,7 @@ Phones talk to the computer over Bluetooth Low Energy, wherever you play: no rou
 
 No special plugins or routing: songs are regions, an IEM mix is a track with a hardware output and receives, and folders named "Inputs", "PA" and "IEM" decide what shows up in which tab. Existing reaper-remote-bandui projects work as they are.
 
-<img src="docs/screenshots/reaper-inputs.png" alt="Works with your REAPER project">
+<img src="docs/screenshots/reaper-project.png" alt="Works with your REAPER project">
 
 <!-- features:end -->
 
@@ -138,9 +138,9 @@ the app shows:
 2. **An IEM mix is a track with a hardware output and at least one receive**, one per band member, receiving every
    source they want to hear (click, backtracks, instruments, vocals). The IEM tab sets the volume and mute of those
    receives and the mix's own volume. Put the mixes in a folder named like **IEM** or **Monitor**: then other output
-   tracks (PA feeds, a debug mix) are not listed.
-3. **Inputs** are the direct children of a top level folder named like **Inputs**. Nested tracks (vocal effects,
-   MIDI helpers) are not inputs.
+   tracks (PA feeds, spare outputs) are not listed.
+3. **Inputs** are the direct children of a top level folder named like **Inputs**. Nested tracks (effect returns
+   and the like) are not inputs.
 4. **PA outputs** are the direct children of a top level folder with **PA** in its name.
 5. The **song order** and disabled songs are stored in the project (project state `BANDUI/regions`), shared with
    reaper-remote-bandui.
@@ -148,26 +148,21 @@ the app shows:
 Inputs and PA tabs are hidden when the project has no such folder; a reaper-remote-bandui `Mother Project.RPP`
 works as it is.
 
-| Inputs folder | PA and IEM folders |
-| --- | --- |
-| ![REAPER: helper tracks and the inputs folder](docs/screenshots/reaper-inputs.png) | ![REAPER: PA and IEM folders](docs/screenshots/reaper-outputs.png) |
+![REAPER: the example project with its folders](docs/screenshots/reaper-project.png)
 
 ### Example project
 
-[`tests/fixtures/Band Project.RPP`](tests/fixtures/Band%20Project.RPP) has the layout of a real band's live project,
-with invented songs and tempos, band members named by instrument, and the few markers real projects have. It opens
-in any REAPER (no third party plugins) and is a good template. It's also what every screenshot and most tests use.
+[`tests/fixtures/Band Project.RPP`](tests/fixtures/Band%20Project.RPP) is a band's live project with invented songs
+and tempos and the few markers real projects have. It opens in any REAPER (no third party plugins) and is a good
+template; every screenshot and most tests use it.
 
 ```text
-Click, Cues, ...    helper tracks; a click plays during every song
-BACKTRACKS/                                rehearsal stems, backtracks
-INPUTS/                              -> Inputs tab
-  Drums input, Bass input, L/R GTR input   (guitars run at +6 dB)
-  VOX input/  VOX BASS input/  VOX R GTR input/   vocals, nested helper tracks are not inputs themselves
-IEM VOCALS/               vocals processed for the in-ears, receive from the vocal inputs
-PA OUT/                            -> PA tab: 8 outputs to the front of house, each receiving one source
-IEM OUT/   -> IEM tab: Drums, Left guitar, Right guitar, Bass, Vocals (13-15 receives)
-Spare mix, Spare mix               outputs outside the IEM folder, not listed
+Click                 a click plays during every song
+BACKTRACKS/           Backtrack, Vocal Backtrack
+INPUTS/               -> Inputs tab: Drums, Bass, L GTR, R GTR (at +6 dB), VOX, VOX BASS, VOX R GTR inputs
+IEM VOCALS/           the vocals processed for the in-ears, each receiving its input
+PA OUT/               -> PA tab: 8 outputs to the front of house, each receiving one source
+IEM OUT/              -> IEM tab: Drums, Left guitar, Right guitar, Bass, Vocals, each receiving 10 sources
 ```
 
 ## How it works
@@ -205,7 +200,7 @@ Spare mix, Spare mix               outputs outside the IEM folder, not listed
 - **Range.** Bluetooth LE reaches roughly 10 m through a stage, more with line of sight. Keep the computer's
   adapter unobstructed; a USB adapter on a short extension cable helps with laptops in flight cases.
 - **Number of phones.** Adapters handle a limited number of simultaneous connections, usually 5 to 10. A typical
-  band fits; a big ensemble may need a second adapter-sized compromise.
+  band fits; a big ensemble may hit the adapter's limit.
 - **macOS.** macOS only lets an application use Bluetooth if its `Info.plist` declares it
   (`NSBluetoothAlwaysUsageDescription`). The extension checks this instead of letting macOS terminate REAPER; if
   REAPER's bundle lacks the key, **Show status** says so and Bluetooth stays off. The extension is not notarized yet

@@ -3,7 +3,8 @@
 //! `screenshot FILE.png` saves a screenshot (headless only), `sleep MS` waits, other lines except `q` are sent to the
 //! REAPER web interface and the response is printed, e.g. `SET/TRACK/13/VOL/0.5;TRACK/13`.
 //!
-//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT]` (default project: the band fixture);
+//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT] [--dir DIR]` (default project: the band
+//! fixture, default directory: `target/reaper-harness`, wiped on start);
 //! `BANDCONTROL_*` variables are passed to REAPER.
 
 use std::{
@@ -18,18 +19,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut release = false;
     let mut project = band_project();
     let mut web_port = None;
+    let mut dir = workspace_root().join("target/reaper-harness");
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--release" => release = true,
             "--project" => project = PathBuf::from(args.next().ok_or("--project needs a value")?),
             "--web-port" => web_port = Some(args.next().ok_or("--web-port needs a value")?.parse()?),
+            // Absolute: it ends up in REAPER's -cfgfile and the compositor's runtime directory.
+            "--dir" => dir = std::env::current_dir()?.join(args.next().ok_or("--dir needs a value")?),
             other => return Err(format!("unknown argument {other}").into()),
         }
     }
 
     let mut reaper = Reaper::launch(&Options {
-        dir: workspace_root().join("target/reaper-harness"),
+        dir,
         project,
         plugin: build_plugin(release)?,
         env: std::env::vars()
