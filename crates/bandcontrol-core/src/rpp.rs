@@ -283,9 +283,9 @@ mod tests {
                 .map(|t| t.name.as_str())
                 .collect::<Vec<_>>()
         };
-        assert_eq!(names(None), ["Click", "Backtrack", "INPUTS", "PA OUT", "IEM OUT"]);
+        assert_eq!(names(None), ["Click", "Backtrack", "INPUTS", "FOH OUT", "IEM OUT"]);
         assert_eq!(names(Some(3)), ["Drums", "Bass", "Guitar", "Vocals"]);
-        assert_eq!(names(Some(8)), ["PA Backtrack", "PA Instruments", "PA Vocals"]);
+        assert_eq!(names(Some(8)), ["FOH Backtrack", "FOH Instruments", "FOH Vocals"]);
         assert_eq!(names(Some(12)), ["Drummer", "Bassist", "Guitarist", "Singer"]);
         for track in daw
             .tracks

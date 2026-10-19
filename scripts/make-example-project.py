@@ -3,7 +3,7 @@
 
     Click, Backtrack          sources at the top level
     INPUTS/                   the musicians' inputs: the Inputs tab (levels and gain)
-    PA OUT/                   feeds to the venue's console, one hardware output each: the PA tab
+    FOH OUT/                  front of house: feeds to the house desk or the PA, one hardware output each: the FOH tab
     IEM OUT/                  one in-ear mix per musician, a hardware output receiving the sources: the IEM tab
 
 Four songs (regions) at REAPER's default 120 BPM in 4/4, one empty bar apart. A click source on the Click track
@@ -20,7 +20,7 @@ OUT = Path(__file__).resolve().parent.parent / "examples" / "BandControl-Example
 rng = random.Random(4)
 
 # PEAKCOL values (REAPER's native 0x01BBGGRR), 0 for the theme default.
-CLICK, SOURCE, INPUT, PA, IEM = 0x10000C0, 0x1C08040, 0x10060C0, 0x1308040, 0x1C0A030
+CLICK, SOURCE, INPUT, FOH, IEM = 0x10000C0, 0x1C08040, 0x10060C0, 0x1308040, 0x1C0A030
 
 SOURCES = ["Click", "Backtrack", "Drums", "Bass", "Guitar", "Vocals"]
 
@@ -49,10 +49,10 @@ TRACKS = [
     ("Bass", "", INPUT, 1, None, []),
     ("Guitar", "", INPUT, 2, None, []),
     ("Vocals", "end", INPUT, 3, None, []),
-    ("PA OUT", "start", 0, None, None, []),
-    ("PA Backtrack", "", PA, None, mono(9), [("Backtrack", 1.0, 0)]),
-    ("PA Instruments", "", PA, None, mono(10), [("Drums", 1.0, 0), ("Bass", 1.0, 0), ("Guitar", 1.0, 0)]),
-    ("PA Vocals", "end", PA, None, mono(11), [("Vocals", 1.0, 0)]),
+    ("FOH OUT", "start", 0, None, None, []),
+    ("FOH Backtrack", "", FOH, None, mono(9), [("Backtrack", 1.0, 0)]),
+    ("FOH Instruments", "", FOH, None, mono(10), [("Drums", 1.0, 0), ("Bass", 1.0, 0), ("Guitar", 1.0, 0)]),
+    ("FOH Vocals", "end", FOH, None, mono(11), [("Vocals", 1.0, 0)]),
     ("IEM OUT", "start", 0, None, None, []),
     ("Drummer", "", IEM, None, stereo(0), mix(1.0, 0.7, 1.0, 0.8, 0.5, 0.6)),
     ("Bassist", "", IEM, None, stereo(1), mix(0.8, 0.7, 0.9, 1.0, 0.5, 0.6)),

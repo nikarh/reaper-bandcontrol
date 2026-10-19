@@ -62,7 +62,7 @@ enum class Tab(
 ) {
     Playback("Playback", Icons.Default.PlayCircle),
     Inputs("Inputs", Icons.Default.Mic),
-    Pa("PA", Icons.Default.Speaker),
+    Foh("FOH", Icons.Default.Speaker),
     Iem("IEM", Icons.Default.Tune),
 }
 
@@ -95,7 +95,7 @@ fun BandControlApp(
         Tab.entries.filter {
             when (it) {
                 Tab.Inputs -> groups.inputs.isNotEmpty()
-                Tab.Pa -> groups.paOutputs.isNotEmpty()
+                Tab.Foh -> groups.fohOutputs.isNotEmpty()
                 else -> true
             }
         }
@@ -106,7 +106,7 @@ fun BandControlApp(
             Tab.Playback -> emptyList()
             Tab.Iem -> listOfNotNull(output?.id)
             Tab.Inputs -> groups.inputs.map { it.id }
-            Tab.Pa -> groups.paOutputs.map { it.id }
+            Tab.Foh -> groups.fohOutputs.map { it.id }
         }
     LaunchedEffect(metered, pairing, repairing) { model.meter(if (pairing == null || repairing) emptyList() else metered) }
 
@@ -208,15 +208,16 @@ fun BandControlApp(
                             LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
                         }
 
-                        Tab.Pa -> {
+                        Tab.Foh -> {
                             LevelsScreen(
-                                "PA outputs",
-                                groups.paOutputs,
+                                "FOH outputs",
+                                groups.fohOutputs,
                                 model.meters,
                                 model.peaks,
                                 model::resetPeaks,
                                 connected,
                                 model::send,
+                                hint = "To the house desk or the PA",
                             )
                         }
                     }

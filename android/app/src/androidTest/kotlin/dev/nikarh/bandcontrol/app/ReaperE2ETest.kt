@@ -180,8 +180,8 @@ class ReaperE2ETest {
     }
 
     @Test
-    fun paOutputs() {
-        compose.onNodeWithTag("tab-pa").performClick()
+    fun fohOutputs() {
+        compose.onNodeWithTag("tab-foh").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("gain-18") and stateIs("-5.0 dB"), 5_000)
         web("SET/TRACK/18/VOL/1")
         compose.waitUntilAtLeastOneExists(hasTestTag("gain-18") and stateIs("0.0 dB"), 5_000)

@@ -43,6 +43,7 @@ fun LevelsScreen(
     onResetPeaks: (Collection<Int>) -> Unit,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
+    hint: String? = null,
 ) {
     val levels by meters.collectAsStateWithLifecycle()
     val holds by peaks.collectAsStateWithLifecycle()
@@ -51,7 +52,10 @@ fun LevelsScreen(
             Modifier.fillMaxWidth().background(Palette.gray800).padding(start = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, color = Palette.gray200, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Column(Modifier.weight(1f)) {
+                Text(title, color = Palette.gray200, fontWeight = FontWeight.Bold)
+                if (hint != null) Text(hint, color = Palette.gray400, fontSize = 12.sp, lineHeight = 14.sp)
+            }
             TextButton(
                 onClick = { onResetPeaks(tracks.map { it.id }) },
                 modifier = Modifier.testTag("reset-peaks"),

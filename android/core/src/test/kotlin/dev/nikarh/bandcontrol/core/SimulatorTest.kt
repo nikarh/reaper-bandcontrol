@@ -87,7 +87,7 @@ class SimulatorTest {
         val state = c.state.await { s -> s.loaded && s.tracks.any { it.name == "Drummer" } }
         val groups = state.groups()
         assertEquals(listOf("Drums", "Bass", "Guitar", "Vocals"), groups.inputs.map { it.name })
-        assertEquals(listOf("PA Backtrack", "PA Instruments", "PA Vocals"), groups.paOutputs.map { it.name })
+        assertEquals(listOf("FOH Backtrack", "FOH Instruments", "FOH Vocals"), groups.fohOutputs.map { it.name })
         assertEquals(listOf("Drummer", "Bassist", "Guitarist", "Singer"), groups.iemOutputs.map { it.name })
         assertEquals(listOf("Spring", "Summer", "Autumn", "Winter"), state.regions.map { it.name })
     }
@@ -141,8 +141,9 @@ class SimulatorTest {
             listOf("Drums", "Left guitar", "Right guitar", "Bass", "Vocals"),
             groups.iemOutputs.map { it.name },
         )
-        assertEquals(8, groups.paOutputs.size)
-        assertEquals("PA Backtrack", groups.paOutputs.first().name)
+        // The band fixture names its folder "PA OUT": still the FOH tab.
+        assertEquals(8, groups.fohOutputs.size)
+        assertEquals("PA Backtrack", groups.fohOutputs.first().name)
 
         val drums = groups.inputs.first().id
         val bass = groups.inputs[1].id
