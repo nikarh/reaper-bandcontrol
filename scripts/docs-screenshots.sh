@@ -19,7 +19,11 @@ reaper() {
   local tmp
   tmp=$(mktemp -d)
   # Whole project in view, small tracks, no mixer.
-  printf '%s\n' "40295;40110;40078" "sleep 2000" "screenshot $tmp/reaper-project.png" q | BANDCONTROL_BLE=0 ./target/debug/reaper-harness --dir target/reaper-harness-docs > target/docs-reaper.log 2>&1
+  # Then the pairing window, alone where windows can be told apart (Xvfb).
+  printf '%s\n' "40295;40110;40078" "sleep 2000" "screenshot $tmp/reaper-project.png" \
+    _BANDCONTROL_SHOW_PAIRING "sleep 1500" "screenshot-window $tmp/reaper-pairing.png ^BandControl pairing$" q |
+    BANDCONTROL_BLE=0 BANDCONTROL_TCP=127.0.0.1:0 BANDCONTROL_NAME="Rehearsal laptop" BANDCONTROL_SECRET=MZXW6YTBOI2DGNBVGY3TQOJQGE \
+      ./target/debug/reaper-harness --dir target/reaper-harness-docs > target/docs-reaper.log 2>&1
   for f in "$tmp"/*.png; do
     "$IM" "$f" -strip "$OUT/$(basename "$f")"
   done

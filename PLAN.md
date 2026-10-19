@@ -142,7 +142,7 @@ designed to be broadcast-safe on every OS:
 ### 5. REAPER extension
 - [x] FFI (plugin entry, GetFunc table, timer, actions)
 - [x] `ReaperDaw` (read structure/gains/transport, apply commands, project ext state for region order)
-- [x] secret storage in ExtState, "Show pairing QR" (HTML w/ SVG opened in browser), "Reset pairing key", "Show status"
+- [x] secret storage in ExtState, "Show pairing QR" (native window, see 12), "Reset pairing key", "Show status"
 - [x] `reaper-harness` crate: isolated REAPER env (fresh resource dir, license copy, web control on a free port, dummy audio), headless launch via `cage`; `mise run reaper` for manual/phone runs
 - [x] e2e (`mise run e2e:reaper`): real REAPER + TCP client: initial state equals `FakeDaw::mother_project()`, commands applied, REAPER-side changes (via web API) propagate
 
@@ -197,7 +197,8 @@ designed to be broadcast-safe on every OS:
 - [x] generated screenshots: `ScreenshotTest` (phone or emulator) and headless REAPER (cage or Xvfb)
 - [x] AGENTS.md conventions, docs/RELEASING.md one-time setup
 - [ ] first release once the repository is on GitHub and the secrets exist
-- [ ] find out why parallel REAPER instances under Xvfb interfere (tests run serially for now)
+- [ ] find out why parallel REAPER instances under Xvfb interfere (tests run serially for now); REAPER also
+      occasionally dies at startup under Xvfb with a GDK `BadDrawable` X error (seen with and without the extension)
 
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
@@ -207,6 +208,16 @@ designed to be broadcast-safe on every OS:
       forwarded `adb reverse` port accepts and closes, a live server stays silent)
 - [x] `bandctl sim` control `offline` / `online`; phone e2e with a second simulator ("Stage PC")
 - [ ] BLE path of the in-range scan is only tested by hand (two BLE peripherals on one adapter)
+
+### 12. Native pairing window (instead of the browser page)
+- [x] one window for QR code, code, name and status with Rename… / Reset pairing key… buttons; the layout is pure
+      Rust (`window::layout`), the QR code takes the largest whole number of pixels per module that fits
+- [x] Linux/macOS through SWELL (`SWELL_dllMain` on Linux, the app delegate's `swellGetAPPAPIFunc` on macOS; an
+      empty resizable dialog `0x400001`, `WM_NCHITTEST` answered with `HTCLIENT`), Windows through Win32 + GDI
+      (double buffered); centered on REAPER's window; the browser page stays as fallback without SWELL
+- [x] REAPER e2e: the QR code on screen decodes to the pairing URL, grows when the window is resized (Xvfb)
+- [x] docs screenshot `reaper-pairing.png` (Xvfb only: needs window capture)
+- [ ] macOS and Windows windows only checked by clippy so far; dockable window
 
 ## Log / notes
 
