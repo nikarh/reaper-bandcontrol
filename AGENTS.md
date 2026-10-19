@@ -31,6 +31,10 @@ how. One logical change per commit.
 5. `mise run lint` checks that the README matches `features.toml` and that every referenced screenshot and icon
    exists.
 
+Website structure: every block of `site/index.html` is `<section id="…"><div class="wrap"><h2>…</h2> … </div></section>`
+directly in `<main>`; the CSS gives them the same spacing and alternates their background. A block's subsections are
+`h3` directly inside its `.wrap`; no other heading levels, and no second `h2` in a block.
+
 Icons on the website: `{{icon:NAME}}` in `site/index.html` inlines `site/icons/NAME.svg`, so it takes the text color.
 Platform logos come from [Simple Icons](https://simpleicons.org) (CC0), everything else from
 [Lucide](https://lucide.dev) (ISC); keep their markup, minus titles, comments and fixed sizes.
