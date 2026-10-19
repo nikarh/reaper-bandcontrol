@@ -5,6 +5,7 @@ edition.workspace      = true
 keywords               = ["ble", "protocol", "reaper"]
 license.workspace      = true
 name                   = "bandcontrol-proto"
+publish.workspace      = true
 readme                 = "../../README.md"
 repository.workspace   = true
 rust-version.workspace = true

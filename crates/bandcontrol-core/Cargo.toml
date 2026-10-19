@@ -5,6 +5,7 @@ edition.workspace      = true
 keywords               = ["ble", "reaper", "remote"]
 license.workspace      = true
 name                   = "bandcontrol-core"
+publish.workspace      = true
 readme                 = "../../README.md"
 repository.workspace   = true
 rust-version.workspace = true
