@@ -1,9 +1,11 @@
 package dev.nikarh.bandcontrol.core
 
 import dev.nikarh.bandcontrol.core.link.Connector
+import dev.nikarh.bandcontrol.core.link.LinkException
 import dev.nikarh.bandcontrol.core.link.PacketLink
+import dev.nikarh.bandcontrol.core.link.Problem
+import dev.nikarh.bandcontrol.core.link.problemOf
 import dev.nikarh.bandcontrol.core.protocol.ClientEvent
-import dev.nikarh.bandcontrol.core.protocol.ClientException
 import dev.nikarh.bandcontrol.core.protocol.ClientSession
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.protocol.Peaks
@@ -25,7 +27,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.IOException
 import kotlin.coroutines.coroutineContext
 
 sealed interface ConnectionStatus {
@@ -41,9 +42,12 @@ sealed interface ConnectionStatus {
     ) : ConnectionStatus
 
     data class Disconnected(
-        val reason: String,
-        val authRejected: Boolean = false,
-    ) : ConnectionStatus
+        val problem: Problem,
+        /** Technical description for logs, never shown to users. */
+        val detail: String = "",
+    ) : ConnectionStatus {
+        val authRejected get() = problem == Problem.PairingRejected
+    }
 }
 
 /**
@@ -113,26 +117,30 @@ class Connection(
 
     private suspend fun run() {
         var failures = 0
+        var wasConnected = false
         while (coroutineContext.isActive) {
             mutableStatus.value = ConnectionStatus.Connecting
-            var authRejected = false
-            val reason =
+            var connected = false
+            val status =
                 try {
-                    connector.connect().use { link -> session(link) { failures = 0 } }
-                    "disconnected"
+                    connector.connect().use { link ->
+                        session(link) {
+                            connected = true
+                            wasConnected = true
+                            failures = 0
+                        }
+                    }
+                    ConnectionStatus.Disconnected(Problem.Lost, "link closed")
                 } catch (e: CancellationException) {
                     throw e
-                } catch (e: ClientException.AuthFailed) {
-                    authRejected = true
-                    e.message
-                } catch (e: ClientException.BadServerProof) {
-                    authRejected = true
-                    e.message
                 } catch (e: Exception) {
-                    e.message ?: e.javaClass.simpleName
+                    val problem = problemOf(e, connected)
+                    // After a working session, failing reconnects are still "connection lost" to the user.
+                    val shown = if (wasConnected && problem in RECONNECT_FAILURES) Problem.Lost else problem
+                    ConnectionStatus.Disconnected(shown, e.toString())
                 }
-            mutableStatus.value = ConnectionStatus.Disconnected(reason ?: "disconnected", authRejected)
-            val wait = if (authRejected) maxRetryDelayMs else minOf(retryDelayMs shl minOf(failures, 8), maxRetryDelayMs)
+            mutableStatus.value = status
+            val wait = if (status.authRejected) maxRetryDelayMs else minOf(retryDelayMs shl minOf(failures, 8), maxRetryDelayMs)
             failures++
             delay(wait)
         }
@@ -153,7 +161,7 @@ class Connection(
         val handshakeTimer =
             launch {
                 delay(handshakeTimeoutMs)
-                throw IOException("handshake timed out")
+                throw LinkException(Problem.NoAnswer, "handshake timed out")
             }
         launch {
             for (message in outgoing) {
@@ -191,5 +199,6 @@ class Connection(
 
     private companion object {
         const val OUTGOING_CAPACITY = 64
+        val RECONNECT_FAILURES = setOf(Problem.NotFound, Problem.Unreachable, Problem.NoAnswer, Problem.Unknown)
     }
 }

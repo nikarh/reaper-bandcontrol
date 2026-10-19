@@ -2,6 +2,7 @@ package dev.nikarh.bandcontrol.app.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -103,7 +104,8 @@ fun QrScanner(
                 provider.unbindAll()
                 provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             } catch (e: Exception) {
-                problem = "Camera unavailable (${e.message}). Type the pairing code instead."
+                Log.w("BandControl", "camera failed", e)
+                problem = "The camera couldn't be started. Type the pairing code instead."
             }
         }, main)
         onDispose {

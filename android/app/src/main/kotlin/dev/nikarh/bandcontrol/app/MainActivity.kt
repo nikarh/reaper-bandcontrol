@@ -1,10 +1,13 @@
 package dev.nikarh.bandcontrol.app
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -47,7 +50,11 @@ class MainActivity : ComponentActivity() {
             BandControlTheme {
                 // Test tags double as resource ids so UiAutomator / adb scripts can find elements.
                 Box(Modifier.semantics { testTagsAsResourceId = true }) {
-                    BandControlApp(model, onRequestPermissions = { permissionRequest.launch(bluetoothPermissions) })
+                    BandControlApp(
+                        model,
+                        onRequestPermissions = { permissionRequest.launch(bluetoothPermissions) },
+                        onEnableBluetooth = ::enableBluetooth,
+                    )
                 }
             }
         }
@@ -79,6 +86,16 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+    }
+
+    // Without BLUETOOTH_CONNECT the request throws, then the Bluetooth settings open instead.
+    @SuppressLint("MissingPermission")
+    private fun enableBluetooth() {
+        try {
+            startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        } catch (_: SecurityException) {
+            startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+        }
     }
 
     private fun hasPermissions() = bluetoothPermissions.all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }

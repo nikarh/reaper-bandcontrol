@@ -19,7 +19,9 @@ import android.os.ParcelUuid
 import android.util.Log
 import dev.nikarh.bandcontrol.core.link.ChannelLink
 import dev.nikarh.bandcontrol.core.link.Connector
+import dev.nikarh.bandcontrol.core.link.LinkException
 import dev.nikarh.bandcontrol.core.link.PacketLink
+import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.Gatt
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.TimeoutCancellationException
@@ -43,9 +45,11 @@ class BleConnector(
     private val service: UUID,
 ) : Connector {
     override suspend fun connect(): PacketLink {
-        val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter ?: throw IOException("Bluetooth is not available")
-        if (!adapter.isEnabled) throw IOException("Bluetooth is off")
-        val device = scan(adapter.bluetoothLeScanner ?: throw IOException("Bluetooth is off"))
+        val adapter =
+            context.getSystemService(BluetoothManager::class.java)?.adapter
+                ?: throw LinkException(Problem.BluetoothUnavailable, "no Bluetooth adapter")
+        if (!adapter.isEnabled) throw LinkException(Problem.BluetoothOff, "adapter disabled")
+        val device = scan(adapter.bluetoothLeScanner ?: throw LinkException(Problem.BluetoothOff, "no LE scanner"))
         return BleLink.open(context, device, service)
     }
 
@@ -64,7 +68,7 @@ class BleConnector(
                             }
 
                             override fun onScanFailed(errorCode: Int) {
-                                if (cont.isActive) cont.resumeWithException(IOException("scan failed ($errorCode)"))
+                                if (cont.isActive) cont.resumeWithException(LinkException(Problem.Unknown, "scan failed ($errorCode)"))
                             }
                         }
                     val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(service)).build()
@@ -74,7 +78,7 @@ class BleConnector(
                 }
             }
         } catch (_: TimeoutCancellationException) {
-            throw IOException("REAPER not found nearby")
+            throw LinkException(Problem.NotFound, "no device advertises the paired service")
         }
 }
 
@@ -164,7 +168,7 @@ private class BleLink private constructor(
     @Suppress("DEPRECATION")
     private val gatt: BluetoothGatt =
         device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
-            ?: throw IOException("could not connect")
+            ?: throw LinkException(Problem.Unreachable, "connectGatt returned null")
 
     override val maxPacket get() = mtu - 3
 
@@ -197,11 +201,13 @@ private class BleLink private constructor(
         if (op("service discovery") { gatt.discoverServices() } != BluetoothGatt.GATT_SUCCESS) {
             throw IOException("service discovery failed")
         }
-        val s = gatt.getService(service) ?: throw IOException("REAPER service not found")
-        rx = s.getCharacteristic(Gatt.RX) ?: throw IOException("rx characteristic missing")
-        val tx = s.getCharacteristic(Gatt.TX) ?: throw IOException("tx characteristic missing")
+        val s = gatt.getService(service) ?: throw LinkException(Problem.Unreachable, "service not discovered")
+        rx = s.getCharacteristic(Gatt.RX) ?: throw LinkException(Problem.Incompatible, "rx characteristic missing")
+        val tx = s.getCharacteristic(Gatt.TX) ?: throw LinkException(Problem.Incompatible, "tx characteristic missing")
         gatt.setCharacteristicNotification(tx, true)
-        val cccd = tx.getDescriptor(Gatt.CLIENT_CONFIG) ?: throw IOException("notification descriptor missing")
+        val cccd =
+            tx.getDescriptor(Gatt.CLIENT_CONFIG)
+                ?: throw LinkException(Problem.Incompatible, "notification descriptor missing")
         val status =
             op("notification subscription") {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -249,6 +255,12 @@ private class BleLink private constructor(
             val link = BleLink(context, device)
             try {
                 link.setup(service)
+            } catch (e: LinkException) {
+                link.close()
+                throw e
+            } catch (e: IOException) {
+                link.close()
+                throw LinkException(Problem.Unreachable, "setup failed: ${e.message}", e)
             } catch (e: Throwable) {
                 link.close()
                 throw e
