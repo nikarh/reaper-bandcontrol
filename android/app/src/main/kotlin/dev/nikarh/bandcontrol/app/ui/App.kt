@@ -58,10 +58,10 @@ enum class Tab(
     val label: String,
     val icon: ImageVector,
 ) {
-    Control("Control", Icons.Default.PlayCircle),
-    Mix("Mix", Icons.Default.Tune),
+    Playback("Playback", Icons.Default.PlayCircle),
     Inputs("Inputs", Icons.Default.Mic),
     Pa("PA", Icons.Default.Speaker),
+    Iem("IEM", Icons.Default.Tune),
 }
 
 @Composable
@@ -73,7 +73,7 @@ fun BandControlApp(
     val status by model.status.collectAsStateWithLifecycle()
     val state by model.state.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
-    var tab by rememberSaveable { mutableStateOf(Tab.Control) }
+    var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
     var repairing by remember { mutableStateOf(false) }
     // Keeps each tab's scroll positions and selections while another tab is shown.
@@ -87,12 +87,12 @@ fun BandControlApp(
                 else -> true
             }
         }
-    val shown = if (tab in tabs || !state.loaded) tab else Tab.Control
+    val shown = if (tab in tabs || !state.loaded) tab else Tab.Playback
     val output = groups.iemOutputs.find { it.id == selectedOutput } ?: groups.iemOutputs.firstOrNull()
     val metered =
         when (shown) {
-            Tab.Control -> emptyList()
-            Tab.Mix -> listOfNotNull(output?.id)
+            Tab.Playback -> emptyList()
+            Tab.Iem -> listOfNotNull(output?.id)
             Tab.Inputs -> groups.inputs.map { it.id }
             Tab.Pa -> groups.paOutputs.map { it.id }
         }
@@ -137,11 +137,11 @@ fun BandControlApp(
             } else {
                 tabStates.SaveableStateProvider(shown.name) {
                     when (shown) {
-                        Tab.Control -> {
+                        Tab.Playback -> {
                             ControlScreen(state, enabled = connected, send = model::send)
                         }
 
-                        Tab.Mix -> {
+                        Tab.Iem -> {
                             MixScreen(
                                 state = state,
                                 outputs = groups.iemOutputs,

@@ -3,11 +3,12 @@
 Control REAPER from the band's phones over Bluetooth LE, without Wi-Fi, tethering or typing IP addresses.
 
 A REAPER extension (Rust) turns the computer into a Bluetooth LE peripheral. An Android app connects to it and
-offers the same two tabs as [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui):
+offers the playback and IEM controls of [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui) and
+more:
 
-- **Control**: transport, previous/next marker, song (region) list with markers and progress, song order editor
-- **Mix**: each band member's IEM mix: the mix level on top, the receive levels and mutes of their output track below
+- **Playback**: transport, previous/next marker, song (region) list with markers and progress, song order editor
 - **Inputs** and **PA**: gain and live level of every input and PA output, with peak hold and clip indicator
+- **IEM**: each band member's IEM mix: the mix level on top, the receive levels and mutes of their output track below
 
 ## Install
 
@@ -34,7 +35,7 @@ All phones use the same pairing code. **BandControl: Reset pairing key** creates
 The same rules as for reaper-remote-bandui (see `Mother Project.RPP` there):
 
 1. Songs are named regions that don't overlap. Markers inside a region are the song's parts.
-2. An output (a band member's IEM mix) is a track with a hardware output and at least one receive. The Mix tab
+2. An output (a band member's IEM mix) is a track with a hardware output and at least one receive. The IEM tab
    changes the volume and mute of those receives. If the mixes are in a folder named like "IEM" or "Monitor", only
    those are listed.
 3. Optional: direct children of a top level folder named like "Inputs" show in the Inputs tab, direct children of a

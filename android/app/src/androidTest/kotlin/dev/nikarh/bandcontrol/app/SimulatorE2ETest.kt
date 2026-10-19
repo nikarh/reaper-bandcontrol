@@ -121,7 +121,7 @@ class SimulatorE2ETest {
 
     @Test
     fun mixFollowsBothSides() {
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-13").performClick()
 
         compose.onNodeWithTag("mute-2").performClick()
@@ -145,7 +145,7 @@ class SimulatorE2ETest {
 
     @Test
     fun faderIgnoresTapsAndVerticalSwipes() {
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-13").performClick()
         val before = receiveVolume(13, 3)
         compose.onNodeWithTag("receive-7").performClick()
@@ -165,12 +165,12 @@ class SimulatorE2ETest {
 
     @Test
     fun tabsKeepTheirState() {
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-15").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Guitar [7+8]"), 5_000)
-        compose.onNodeWithTag("tab-control").performClick()
+        compose.onNodeWithTag("tab-playback").performClick()
         compose.onNodeWithTag("region-3").assertExists()
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("mix-title").assertTextEquals("Guitar [7+8]")
     }
 
@@ -204,7 +204,7 @@ class SimulatorE2ETest {
         compose.waitUntilAtLeastOneExists(hasTestTag("peak-35") and hasText("-9.0"), 5_000)
 
         // The Mix tab only lists the monitor mixes, not the PA outputs or the debug mix.
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-40").assertExists()
         compose.onNodeWithTag("output-30").assertDoesNotExist()
         compose.onNodeWithTag("output-45").assertDoesNotExist()
