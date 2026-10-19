@@ -119,5 +119,10 @@ class ScreenshotTest {
         compose.onNodeWithText("Share pairing with another phone").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("share-qr"), 5_000)
         shot("share")
+        compose.onNodeWithTag("share-close").performClick()
+        compose.onNodeWithContentDescription("Menu").performClick()
+        compose.onNodeWithTag("about").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("about-qr"), 5_000)
+        shot("get-app")
     }
 }

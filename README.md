@@ -126,6 +126,14 @@ apps from your browser or file manager the first time. The app needs the *Nearby
 and older: location, which those versions require for Bluetooth scanning) and the camera only to scan QR codes.
 Google Play services are not needed; it runs on de-Googled phones like LineageOS.
 
+<img src="docs/screenshots/get-app.png" alt="Get BandControl: a QR code for the latest app" width="220" align="right">
+
+Once one phone has the app, the others don't need this page: menu (⋮) → **About & share the app** shows a QR code
+that downloads the latest APK from GitHub when scanned with any phone camera, a **Share link** button for messengers
+and a link to the project on GitHub.
+
+<br clear="right">
+
 ### Pairing
 
 <img src="docs/screenshots/reaper-pairing.png" alt="The pairing window in REAPER" width="300" align="right">
