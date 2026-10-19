@@ -17,7 +17,7 @@
     <h1>Your band's REAPER, on everyone's phone.</h1>
     <p class="lead">Playback, setlist, input and front of house levels and a personal in-ear mix for every band member, over
       Bluetooth. No Wi-Fi, no tethering, no IP addresses.</p>
-    <p class="supports">For REAPER 5.93 and newer on Windows, macOS and Linux · Android app</p>
+    <p class="supports">For REAPER {{reaper_min}} and newer on Windows, macOS and Linux · Android app</p>
     <div class="buttons">
       <a class="button primary" href="#download">{{icon:download}}Download</a>
       <a class="button" href="#setup">{{icon:wrench}}Set up in 5 minutes</a>
@@ -59,7 +59,7 @@
       <p>Two parts: the extension goes on the computer running REAPER, the app on every band member's phone. All files
         are on the <a href="{{repo}}/releases/latest">latest release</a>, with checksums signed by the project's key;
         see <a href="#verify">verifying downloads</a>.</p>
-      <h3>REAPER extension <span class="version">REAPER 5.93 or newer</span></h3>
+      <h3>REAPER extension <span class="version">REAPER {{reaper_min}} or newer</span></h3>
       <div class="grid downloads">
         <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-x64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows</strong><span>x64 · installer</span></a>
         <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-arm64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows on ARM</strong><span>ARM64EC · installer</span></a>
@@ -132,7 +132,7 @@
       </details>
       <details>
         <summary>{{icon:book-open}}REAPER versions</summary>
-        <p>REAPER 5.93 or newer. Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes
+        <p>REAPER {{reaper_min}} or newer. Every release from {{reaper_min}} (the oldest REAPER for Linux still available) to {{reaper_tested}} passes
           the end-to-end tests, and every change is tested against the oldest and the newest. The extension only uses
           REAPER functions that are older than that; Windows and macOS use the same ones.</p>
       </details>
@@ -188,7 +188,7 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
       <p><a class="button primary" href="examples/BandControl-Example.RPP" download>{{icon:file-down}}Download the example project</a>
         &nbsp;The smallest project with this layout: Click and Backtrack, four inputs, three FOH feeds and an in-ear mix
         for each of four musicians, and four songs (Spring, Summer, Autumn, Winter) at REAPER's default 120 BPM. Opens
-        in any REAPER from 5.93 on, no plugins needed.</p>
+        in any REAPER from {{reaper_min}} on, no plugins needed.</p>
       <figure class="shots"><img src="screenshots/reaper-project.png" alt="REAPER: the example project with its folders" loading="lazy"><figcaption>The example project in REAPER: the INPUTS, FOH OUT and IEM OUT folders and the four songs.</figcaption></figure>
     </div>
   </section>

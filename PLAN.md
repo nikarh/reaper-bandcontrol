@@ -219,6 +219,9 @@ designed to be broadcast-safe on every OS:
 - [x] `examples/BandControl-Example.RPP` (`scripts/make-example-project.py`): Click, Backtrack, INPUTS, PA OUT,
       IEM OUT, four songs at 120 BPM; the screenshots use it, the tests keep the band fixture
 - [x] README and landing: requirements, installers first and plain libraries second, the naming convention
+- [x] supported REAPER range in one place (`[workspace.metadata.reaper]` min / tested): extension warns below min,
+      CI matrix "REAPER e2e (oldest|newest)", scripts, website placeholders, README checked by lint; weekly
+      *Newest REAPER* workflow opens issues
 - [x] the PA tab is the FOH tab (front of house, the counterpart of the in-ear monitors); folders named "FOH" or
       "PA" both fill it, the example project uses FOH OUT, the band fixture keeps PA OUT
 

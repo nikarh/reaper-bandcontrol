@@ -110,7 +110,7 @@ the [website](https://nikarh.github.io/reaper-bandcontrol/).
 
 | | |
 | --- | --- |
-| REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
+| REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change, and every week the newest REAPER release. On an older REAPER the extension says so in the console when it loads. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
 | Windows | Windows 10 1803 or newer, x64 or ARM, with a Bluetooth adapter that supports the LE peripheral role (most built-in ones do). |
 | macOS | macOS 10.12 or newer (11 on Apple silicon). REAPER must be allowed to use Bluetooth, see [quirks](#quirks-and-limitations). |
 | Linux | x86_64 or aarch64 (e.g. a Raspberry Pi 5) with BlueZ (`bluetoothd`) and glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and newer. |
