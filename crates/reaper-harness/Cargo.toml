@@ -1,0 +1,25 @@
+[package]
+categories             = ["development-tools::testing"]
+description            = "Runs an isolated headless REAPER with the bandcontrol extension for end-to-end tests"
+edition.workspace      = true
+keywords               = ["reaper", "testing"]
+license.workspace      = true
+name                   = "reaper-harness"
+publish.workspace      = true
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[dependencies]
+thiserror = { workspace = true }
+
+[dev-dependencies]
+bandcontrol-core   = { workspace = true }
+bandcontrol-proto  = { workspace = true }
+bandcontrol-server = { workspace = true }
+pretty_assertions  = { workspace = true }
+tokio              = { workspace = true }
+
+[lints]
+workspace = true

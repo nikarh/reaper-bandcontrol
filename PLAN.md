@@ -139,11 +139,11 @@ designed to be broadcast-safe on every OS:
 - [x] `pair` (URL + terminal QR)
 
 ### 5. REAPER extension
-- [ ] FFI (plugin entry, GetFunc table, timer, actions)
-- [ ] `ReaperDaw` (read structure/gains/transport, apply commands, project ext state for region order)
-- [ ] secret storage in ExtState, "Show pairing QR" (HTML w/ SVG opened in browser), "Reset pairing key"
-- [ ] xtask: portable REAPER env (separate resource dir, license copy, web control enabled, dummy audio), headless launch via `cage`
-- [ ] e2e: real REAPER + TCP client: initial state matches Mother Project, commands applied, REAPER-side changes (via web API) propagate
+- [x] FFI (plugin entry, GetFunc table, timer, actions)
+- [x] `ReaperDaw` (read structure/gains/transport, apply commands, project ext state for region order)
+- [x] secret storage in ExtState, "Show pairing QR" (HTML w/ SVG opened in browser), "Reset pairing key", "Show status"
+- [x] `reaper-harness` crate: isolated REAPER env (fresh resource dir, license copy, web control on a free port, dummy audio), headless launch via `cage`; `mise run reaper` for manual/phone runs
+- [x] e2e (`mise run e2e:reaper`): real REAPER + TCP client: initial state equals `FakeDaw::mother_project()`, commands applied, REAPER-side changes (via web API) propagate
 
 ### 6. Android app
 - [ ] Gradle project (wrapper, version catalog), Kotlin, Compose, Wire protobuf, ktlint/detekt
@@ -179,3 +179,8 @@ designed to be broadcast-safe on every OS:
 - mise `android-sdk` (vfox) plugin is broken (`semver` lua module) → cmdline-tools via mise `http:` backend.
 - bluer dispatches each D-Bus `WriteValue` in its own task (no ordering) → IO (socket) methods for both characteristics.
 - `bandctl sim --ble` advertises fine without root.
+- REAPER e2e: the real Mother Project state is asserted equal to `FakeDaw::mother_project()`, which keeps the fake
+  faithful (it caught wrong marker colors in the fake). Native colors: SWELL (Linux/macOS) `0xRRGGBB`, Windows
+  `0x00BBGGRR`; decoded directly in `daw.rs`.
+- The extension only ticks the engine while phones are connected; the engine re-snapshots on the first join.
+- Harness kills the whole process group (cage + REAPER) on drop; it never touches the user's REAPER config.

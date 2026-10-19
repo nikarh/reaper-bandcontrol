@@ -91,7 +91,6 @@ api! {
     ShowConsoleMsg: fn(*const c_char);
     ShowMessageBox: fn(*const c_char, *const c_char, c_int) -> c_int;
     GetResourcePath: fn() -> *const c_char;
-    ColorFromNative: fn(c_int, *mut c_int, *mut c_int, *mut c_int);
 }
 
 pub struct Reaper {
@@ -369,14 +368,5 @@ impl Reaper {
         }
         // SAFETY: non-null, NUL terminated.
         unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
-    }
-
-    /// Converts a native color (without the 0x1000000 "custom color" flag) to 0xRRGGBB.
-    pub fn color_from_native(&self, native: i32) -> u32 {
-        let (mut r, mut g, mut b) = (0, 0, 0);
-        // SAFETY: valid out pointers.
-        unsafe { (self.f.ColorFromNative)(native, &raw mut r, &raw mut g, &raw mut b) };
-        let channel = |c: c_int| u32::try_from(c.clamp(0, 255)).unwrap_or(0);
-        (channel(r) << 16) | (channel(g) << 8) | channel(b)
     }
 }
