@@ -75,7 +75,7 @@ Every band member picks their own mix and sets the level of each source: click, 
 
 <img src="docs/screenshots/share.png" alt="Pair once, share by QR code" width="220" align="right">
 
-REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows the same QR code to the next one, so the whole band is set up in a minute without touching the computer again.
+REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows the same QR code to the next one, so the whole band is set up in a minute without touching the computer again. Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
 
 <br clear="right">
 
@@ -137,10 +137,13 @@ All phones share one pairing code. **BandControl: Reset pairing key** creates a 
   it is set it's the computer's hostname (`BANDCONTROL_NAME` in the environment overrides both). Give every computer
   a name the band recognizes, like "Rehearsal laptop" or "Stage PC". The app shows it at the top while connected and
   picks up renames by itself.
-- **On the phone** the app remembers one computer: the last one it was paired with. Pairing another computer
-  (menu → **Pair with another computer**) replaces it; scan the first one's QR code again to switch back. Because
-  every installation has its own code, a phone only ever connects to the computer it was paired with, even when
-  several are in range.
+- **On the phone** the app remembers every computer it was paired with (menu → **Pair with another computer**
+  adds one). Each installation has its own code, so the phone only ever finds computers it was paired with.
+  - Only one of them in range: the app connects to it by itself.
+  - Several in range when the app opens: it asks which one.
+  - Another paired computer comes in range while one is in use: the app says so (**Stage PC is nearby**, with a
+    **Switch** button) and stays connected to the current one.
+  - The menu switches to any paired computer and **Forget** removes the current one.
 
 ## Organizing the REAPER project
 

@@ -49,6 +49,7 @@ screenshot = "share"
 text = """
 REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows
 the same QR code to the next one, so the whole band is set up in a minute without touching the computer again.
+Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
 """
 title = "Pair once, share by QR code"
 
