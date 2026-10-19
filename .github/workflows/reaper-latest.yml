@@ -18,7 +18,7 @@ jobs:
     if: github.repository_owner == 'nikarh'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Find the newest REAPER
         id: reaper
         run: |
@@ -34,17 +34,17 @@ jobs:
           sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
             libgtk-3-0t64 libasound2t64 libxml2
           echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "${{ steps.reaper.outputs.latest }}")" >> "$GITHUB_ENV"
-      - uses: jdx/mise-action@v5
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
         with:
           install_args: rust
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - id: e2e
         run: mise run e2e:reaper
         env:
           REAPER_HEADLESS: xvfb
           REAPER_LICENSE: ""
       - if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: reaper-e2e-logs-latest
           path: target/reaper-e2e/**/*.log

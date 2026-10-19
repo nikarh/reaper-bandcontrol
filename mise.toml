@@ -40,6 +40,7 @@ run = [
   "cargo clippy -p reaper-bandcontrol --target arm64ec-pc-windows-msvc",
   "cargo deny check",
   "cargo fmt --all --check",
+  "scripts/check-actions.sh",
   "shellcheck scripts/*.sh",
   "taplo fmt --check",
 ]

@@ -1,0 +1,11 @@
+# Third party actions the workflows may use (as in `uses:`, without the @ref), besides GitHub's own (actions/*). The repository's Actions settings allow
+# GitHub's actions, verified creators and exactly these (see docs/RELEASING.md); scripts/check-actions.sh fails when a
+# workflow uses anything else, or refers to an action by anything but a full commit SHA.
+crazy-max/ghaction-import-gpg
+gradle/actions/setup-gradle
+jdx/mise-action
+mathieudutour/github-tag-action
+ncipollo/release-action
+peter-evans/create-pull-request
+reactivecircus/android-emulator-runner
+Swatinem/rust-cache

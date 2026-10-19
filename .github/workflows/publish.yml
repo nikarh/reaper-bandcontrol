@@ -28,11 +28,11 @@ jobs:
     runs-on: ubuntu-24.04
     environment: release
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.TAG }}
       - run: sudo apt-get update -q && sudo apt-get install -yq nsis osslsigncode
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: dist-windows-*
           merge-multiple: true
@@ -53,7 +53,7 @@ jobs:
           scripts/package-windows.sh x64 dist/reaper_bandcontrol-windows-x86_64.dll dist
           scripts/package-windows.sh arm64 dist/reaper_bandcontrol-windows-arm64ec.dll dist
           rm -f "$RUNNER_TEMP/sign.pfx"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: signed-windows
           path: dist/*
@@ -65,10 +65,10 @@ jobs:
     runs-on: macos-15
     environment: release
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.TAG }}
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist-macos-universal
           path: dist
@@ -91,7 +91,7 @@ jobs:
             codesign --force --timestamp --options runtime --sign "$MACOS_SIGN_IDENTITY" "$lib"
           fi
           scripts/package-macos.sh "$lib" dist
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: signed-macos
           path: dist/*
@@ -103,13 +103,13 @@ jobs:
     runs-on: ubuntu-24.04
     environment: release
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: dist-*
           merge-multiple: true
           path: dist
       # Signed libraries and installers replace the unsigned libraries from the build.
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: signed-*
           merge-multiple: true
@@ -129,7 +129,7 @@ jobs:
           "$tools/apksigner" verify --print-certs dist/bandcontrol.apk
           rm -f dist/*.idsig "$RUNNER_TEMP/release.keystore"
       - name: Import the signing key
-        uses: crazy-max/ghaction-import-gpg@v7
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -140,7 +140,7 @@ jobs:
           gpg --batch --yes --armor --detach-sign --output SHA256SUMS.asc SHA256SUMS
           cat SHA256SUMS
       - name: Generate GitHub token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: generate-token
         with:
           app-id: ${{ secrets.APP_ID }}
