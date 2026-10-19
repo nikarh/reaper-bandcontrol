@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Downloads REAPER for Linux into a directory (for CI, where it runs unlicensed) and prints the executable's path.
 #
-#   scripts/install-reaper.sh DIR [VERSION]
+#   scripts/install-reaper.sh DIR [VERSION]   # default: the tested version from Cargo.toml
 set -euo pipefail
 
 dir=${1:?usage: install-reaper.sh DIR [VERSION]}
-version=${2:-7.82}
+version=${2:-$("$(dirname "$0")/reaper-version.sh" tested)}
 arch=$(uname -m)
 major=${version%%.*}
 mkdir -p "$dir"

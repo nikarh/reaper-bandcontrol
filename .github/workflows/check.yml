@@ -14,9 +14,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  REAPER_VERSION: "7.82"
-
 jobs:
   lint:
     name: Lint
@@ -44,15 +41,18 @@ jobs:
       - run: mise run test
 
   reaper:
-    name: REAPER e2e (${{ matrix.reaper }})
+    name: REAPER e2e (${{ matrix.name }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        # The oldest supported release (see the README) and the newest tested one.
-        reaper: ["5.93", "7.82"]
-    env:
-      REAPER_VERSION: ${{ matrix.reaper }}
+        # The oldest supported and the newest tested REAPER, from [workspace.metadata.reaper] in Cargo.toml. The job
+        # names don't contain the versions, so required checks stay the same when they change.
+        include:
+          - name: oldest
+            version: min
+          - name: newest
+            version: tested
     steps:
       - uses: actions/checkout@v7
       - name: Install REAPER and a virtual display
@@ -60,7 +60,9 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
             libgtk-3-0t64 libasound2t64 libxml2
-          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "$REAPER_VERSION")" >> "$GITHUB_ENV"
+          version=$(scripts/reaper-version.sh ${{ matrix.version }})
+          echo "Testing REAPER $version" >> "$GITHUB_STEP_SUMMARY"
+          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "$version")" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@v5
         with:
           install_args: rust
@@ -73,7 +75,7 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: reaper-e2e-logs-${{ matrix.reaper }}
+          name: reaper-e2e-logs-${{ matrix.name }}
           path: target/reaper-e2e/**/*.log
 
   android:

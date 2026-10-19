@@ -1,0 +1,68 @@
+name: Newest REAPER
+
+# Weekly: the REAPER e2e tests against the newest REAPER on reaper.fm, so a REAPER update that breaks the extension
+# shows up as an issue before users report it. When a newer release passes, an issue asks to raise the tested version
+# in Cargo.toml (which the Check workflow then tests on every change).
+on:
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  e2e:
+    name: REAPER e2e (latest release)
+    if: github.repository_owner == 'nikarh'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Find the newest REAPER
+        id: reaper
+        run: |
+          set -euo pipefail
+          latest=$(scripts/reaper-version.sh latest)
+          tested=$(scripts/reaper-version.sh tested)
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "tested=$tested" >> "$GITHUB_OUTPUT"
+          echo "Newest REAPER: $latest (tested in Check: $tested)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Install REAPER and a virtual display
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
+            libgtk-3-0t64 libasound2t64 libxml2
+          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "${{ steps.reaper.outputs.latest }}")" >> "$GITHUB_ENV"
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+      - id: e2e
+        run: mise run e2e:reaper
+        env:
+          REAPER_HEADLESS: xvfb
+          REAPER_LICENSE: ""
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reaper-e2e-logs-latest
+          path: target/reaper-e2e/**/*.log
+      - name: Report a failure
+        if: failure() && steps.e2e.conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.reaper.outputs.latest }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          scripts/report-issue.sh "REAPER $VERSION fails the end-to-end tests" \
+            "The weekly run against REAPER $VERSION failed: $RUN (logs attached to the run)."
+      - name: Ask to raise the tested version
+        if: success() && steps.reaper.outputs.latest != steps.reaper.outputs.tested
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.reaper.outputs.latest }}
+          TESTED: ${{ steps.reaper.outputs.tested }}
+        run: |
+          scripts/report-issue.sh "REAPER $VERSION passes: raise the tested REAPER version" \
+            "REAPER $VERSION passes the end-to-end tests. Set \`tested = \"$VERSION\"\` (now $TESTED) in \`[workspace.metadata.reaper]\` in Cargo.toml, so Check tests it on every change."

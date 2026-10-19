@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the REAPER end-to-end tests against several REAPER releases for Linux, to check the supported range.
 #
-#   scripts/reaper-versions.sh [VERSION...]   # default: the oldest supported, some in between and the newest
+#   scripts/reaper-versions.sh [VERSION...]   # default: the supported range from Cargo.toml, some in between
 #
 # Releases are downloaded once into target/reaper-versions/. Prints one line per version.
 set -euo pipefail
@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 versions=("$@")
 if [[ ${#versions[@]} -eq 0 ]]; then
-  versions=(5.93 5.99 6.0 6.29 6.83 7.0 7.82)
+  versions=("$(scripts/reaper-version.sh min)" 5.99 6.0 6.29 6.83 7.0 "$(scripts/reaper-version.sh tested)")
 fi
 cargo build -q -p reaper-bandcontrol -p reaper-harness
 failed=0
