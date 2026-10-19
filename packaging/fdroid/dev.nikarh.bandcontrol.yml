@@ -3,6 +3,7 @@
 # first release tag, and AllowedAPKSigningKeys to the SHA-256 of the release key's certificate.
 Categories:
   - Multimedia
+  - Remote Controller
 License: MIT
 AuthorName: Nikolay Arhipov
 WebSite: https://bandcontrol.arhipov.net/
@@ -26,7 +27,8 @@ Builds:
     gradle:
       - yes
 
-AllowedAPKSigningKeys: 0000000000000000000000000000000000000000000000000000000000000000
+# The SHA-256 of the release key's certificate (`apksigner verify --print-certs bandcontrol.apk`), once it exists:
+# AllowedAPKSigningKeys: <64 hex digits>
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+$

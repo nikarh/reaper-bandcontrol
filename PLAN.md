@@ -225,6 +225,16 @@ designed to be broadcast-safe on every OS:
 - [x] the PA tab is the FOH tab (front of house, the counterpart of the in-ear monitors); folders named "FOH" or
       "PA" both fill it, the example project uses FOH OUT, the band fixture keeps PA OUT
 
+### 10e. F-Droid readiness
+- [x] audit: MIT, 175 free runtime libraries (no GMS / Firebase / trackers), free toolchain, only gradle-wrapper.jar
+- [x] versionCode written out in Cargo.toml (checked by Gradle, bumped with the version) for F-Droid's regexes
+- [x] no dependency metadata in the APK; CI builds unsigned, Publish signs once with apksigner 34
+- [x] fastlane listing generated from features.toml / screenshots / CHANGELOG (docs check); draft recipe in
+      packaging/fdroid (fdroid lint, rewritemeta clean)
+- [x] reproducible: F-Droid's buildserver container builds a byte-identical APK; our signature verifies on it
+      (`mise run android:fdroid-check`); see docs/FDROID.md
+- [ ] submit after the first release and three months of development (AllowedAPKSigningKeys from the release key)
+
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
 - [x] the app keeps every pairing; with one in range it connects by itself, several in range at start ask, another

@@ -71,6 +71,12 @@ MACOS_SIGN_IDENTITY="Developer ID Application: ..." MACOS_INSTALLER_IDENTITY="De
 
 Both write to `dist/`. `WINDOWS_SIGN_TIMESTAMP` overrides the timestamp server (empty: no timestamp).
 
+### F-Droid
+
+The app is ready for F-Droid (free dependencies, reproducible builds, listing metadata in `fastlane/`); what was
+checked and how to submit is in [`FDROID.md`](FDROID.md). `mise run android:fdroid-check` verifies the build in
+F-Droid's build server container.
+
 ### Actions policy
 
 The repository allows only GitHub's own actions, actions by verified creators and the third party actions in
