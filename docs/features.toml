@@ -1,0 +1,72 @@
+# User facing features, rendered into the README (between the `features` markers) and the website by
+# `scripts/build-docs.py`. `screenshot` names a file in docs/screenshots without extension; app screenshots are
+# taken by android/app/src/androidTest/.../ScreenshotTest.kt, REAPER screenshots by scripts/docs-screenshots.sh.
+# Adding a feature: add an entry here, a screenshot if it is visible, then `mise run docs`.
+
+[[feature]]
+id = "playback"
+screenshot = "playback"
+text = """
+Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress;
+tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song
+in the setlist. The setlist can be reordered and songs disabled right on the phone; the order is stored in the
+REAPER project, compatible with reaper-remote-bandui.
+"""
+title = "Playback and setlist"
+
+[[feature]]
+id = "inputs"
+screenshot = "inputs"
+text = """
+A live meter for every input with its peak level, and a clip indicator that stays lit until you tap it, so you
+see which input clipped during the last song. The fader sets the input's gain (its track volume) on a dB scale up
+to +12 dB.
+"""
+title = "Input levels and gain"
+
+[[feature]]
+id = "pa"
+screenshot = "pa"
+text = """
+The same meters and faders for the outputs that go to the front of house, so whoever runs the PA can check and
+adjust levels from the stage.
+"""
+title = "PA outputs"
+
+[[feature]]
+id = "iem"
+screenshot = "iem"
+text = """
+Every band member picks their own mix and sets the level of each source: click, backtracks, other instruments,
+vocals. Faders only move when dragged sideways, relative to where they are, so a tap or a scroll never changes a
+level by accident. Mutes and the overall mix level are one tap away, and changes made in REAPER show up instantly.
+"""
+title = "Personal in-ear mixes"
+
+[[feature]]
+id = "pairing"
+screenshot = "share"
+text = """
+REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows
+the same QR code to the next one, so the whole band is set up in a minute without touching the computer again.
+"""
+title = "Pair once, share by QR code"
+
+[[feature]]
+id = "bluetooth"
+text = """
+Phones talk to the computer over Bluetooth Low Energy, wherever you play: no router, no tethering, no addresses to
+type. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and
+keeps the screen on while connected.
+"""
+title = "No Wi-Fi, no IP addresses"
+
+[[feature]]
+id = "project"
+screenshot = "reaper-inputs"
+text = """
+No special plugins or routing: songs are regions, an IEM mix is a track with a hardware output and receives, and
+folders named "Inputs", "PA" and "IEM" decide what shows up in which tab. Existing reaper-remote-bandui projects
+work as they are.
+"""
+title = "Works with your REAPER project"

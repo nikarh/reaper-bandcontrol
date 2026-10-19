@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BandControl: control REAPER from the band's phones, over Bluetooth</title>
+  <meta name="description" content="A REAPER extension and an Android app: playback, setlist, input and PA levels and personal in-ear mixes for every band member. No Wi-Fi needed.">
+  <meta property="og:title" content="BandControl for REAPER">
+  <meta property="og:description" content="Control REAPER from the band's phones over Bluetooth: setlist, levels and in-ear mixes. No Wi-Fi needed.">
+  <meta property="og:image" content="screenshots/iem.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">REAPER extension + Android app · v{{version}}</p>
+    <h1>Your band's REAPER, on everyone's phone.</h1>
+    <p class="lead">Playback, setlist, input and PA levels and a personal in-ear mix for every band member, over
+      Bluetooth. No Wi-Fi, no tethering, no IP addresses.</p>
+    <div class="buttons">
+      <a class="button primary" href="#download">Download</a>
+      <a class="button" href="#setup">Set up in 5 minutes</a>
+      <a class="button ghost" href="{{repo}}">Source on GitHub</a>
+    </div>
+    <div class="phones">
+      <img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy">
+      <img src="screenshots/iem.png" alt="IEM tab: a band member's in-ear mix" loading="lazy">
+      <img src="screenshots/inputs.png" alt="Inputs tab: meters, peaks and gain of every input" loading="lazy">
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="wrap why">
+    <h2>Why not the web remote?</h2>
+    <p>BandControl supersedes <a href="https://github.com/nikarh/reaper-remote-bandui">reaper-remote-bandui</a>, a web
+      page for REAPER's web interface. The page works, until you play somewhere without a usable Wi-Fi: then one phone
+      has to share its hotspot, the computer joins it, and every musician types the computer's IP address and port into
+      a browser, again after every reconnect.</p>
+    <div class="grid three">
+      <div class="card"><h3>No network setup</h3><p>The computer becomes a Bluetooth device the phones connect to
+        directly. It works in a basement, a field or a venue with a captive portal.</p></div>
+      <div class="card"><h3>Pair once</h3><p>Scan a QR code from REAPER (or from a bandmate's phone) once. After that
+        the app finds the computer by itself, every time.</p></div>
+      <div class="card"><h3>More than a mixer</h3><p>Input and PA meters with clip indicators, safe faders that don't
+        jump when touched, and a setlist editor, in a native app that keeps the screen on.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap" id="features">
+    <h2>What it does</h2>
+    {{features}}
+  </section>
+
+  <section class="band" id="download">
+    <div class="wrap">
+      <h2>Download</h2>
+      <p>Everything is on the <a href="{{repo}}/releases/latest">latest release</a>. Every file is signed; see
+        <a href="#verify">verifying downloads</a>.</p>
+      <div class="grid downloads">
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol.apk"><strong>Android app</strong><span>Android 9 or newer · APK</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-x86_64.dll"><strong>REAPER extension for Windows</strong><span>x64 · DLL</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-macos-universal.dylib"><strong>REAPER extension for macOS</strong><span>Apple Silicon and Intel · dylib</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><strong>REAPER extension for Linux</strong><span>x86_64 · so</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><strong>REAPER extension for Linux ARM</strong><span>aarch64 · so</span></a>
+      </div>
+      <p class="note">iPhone: not yet, an iOS app is planned. Google Play and F-Droid listings are planned as well;
+        until then install the APK directly.</p>
+    </div>
+  </section>
+
+  <section class="wrap" id="setup">
+    <h2>Set up</h2>
+    <ol class="steps">
+      <li><strong>Install the extension</strong> on the computer running REAPER (see your platform below), then
+        restart REAPER.</li>
+      <li><strong>Install the app</strong> on every phone: open the APK on the phone and allow installing from your
+        browser or file manager when Android asks.</li>
+      <li><strong>Pair:</strong> in REAPER run the action <em>BandControl: Show pairing QR code</em> (Actions → Show
+        action list). Scan the code with the app, or type the code below it.</li>
+      <li><strong>Pair the rest of the band</strong> from the first phone: menu → <em>Share pairing with another
+        phone</em>.</li>
+    </ol>
+    <div class="platforms">
+      <details open>
+        <summary>Windows</summary>
+        <p>Windows 10 (1803) or newer with a Bluetooth adapter that supports the peripheral role (most built-in
+          adapters do). Copy <code>reaper_bandcontrol-windows-x86_64.dll</code> into REAPER's
+          <code>UserPlugins</code> folder (Options → Show REAPER resource path) and restart REAPER.</p>
+      </details>
+      <details>
+        <summary>macOS</summary>
+        <p>Copy <code>reaper_bandcontrol-macos-universal.dylib</code> into REAPER's <code>UserPlugins</code> folder
+          (Options → Show REAPER resource path). The file is not notarized yet, so remove the download quarantine
+          before starting REAPER:</p>
+        <pre>xattr -d com.apple.quarantine ~/Library/Application\ Support/REAPER/UserPlugins/reaper_bandcontrol-macos-universal.dylib</pre>
+        <p>macOS only lets apps use Bluetooth when they declare it. If <em>BandControl: Show status</em> reports that
+          REAPER lacks the Bluetooth usage description, Bluetooth can't be used from REAPER on that Mac yet.</p>
+      </details>
+      <details>
+        <summary>Linux</summary>
+        <p>Needs BlueZ (<code>bluetoothd</code>), which every desktop distribution ships. Copy the
+          <code>.so</code> for your architecture into <code>~/.config/REAPER/UserPlugins</code> and restart REAPER.
+          The adapter is powered on automatically.</p>
+      </details>
+      <details>
+        <summary>Android</summary>
+        <p>Android 9 or newer with Bluetooth LE. The app asks for the <em>Nearby devices</em> permission (on Android 11
+          and older: location, which Android requires for Bluetooth scanning) and for the camera only when you scan a
+          QR code. Google Play services are not needed; it works on de-Googled phones such as LineageOS.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="band" id="project">
+    <div class="wrap">
+      <h2>Organizing the REAPER project</h2>
+      <p>BandControl reads the project as it is; a few conventions decide what shows up where.</p>
+      <ul>
+        <li><strong>Songs are regions</strong> that don't overlap. Markers inside a region are the song's parts for
+          previous / next. Most bands need none.</li>
+        <li><strong>An IEM mix is a track with a hardware output and receives</strong>, one per band member. Put
+          them in a folder named like <em>IEM</em> or <em>Monitor</em> so other outputs aren't listed.</li>
+        <li><strong>Inputs</strong>: direct children of a top level folder named like <em>Inputs</em>.</li>
+        <li><strong>PA</strong>: direct children of a top level folder with <em>PA</em> in its name.</li>
+      </ul>
+      <div class="grid two shots">
+        <figure><img src="screenshots/reaper-inputs.png" alt="REAPER: helper tracks and the inputs folder" loading="lazy"><figcaption>Helper tracks, rehearsal stems and the inputs folder.</figcaption></figure>
+        <figure><img src="screenshots/reaper-outputs.png" alt="REAPER: PA and IEM output folders" loading="lazy"><figcaption>PA outputs and the in-ear mixes, each receiving the sources it needs.</figcaption></figure>
+      </div>
+      <p>The <a href="{{repo}}/blob/main/tests/fixtures/Band%20Project.RPP">example project</a> has this layout and is
+        a good starting point.</p>
+    </div>
+  </section>
+
+  <section class="wrap" id="verify">
+    <h2>Verifying downloads</h2>
+    <p>Each release has a <code>SHA256SUMS</code> file signed with the project's key
+      (<a href="{{repo}}/blob/main/docs/signing-key.asc">public key</a>):</p>
+    <pre>gpg --import signing-key.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum --ignore-missing -c SHA256SUMS</pre>
+  </section>
+
+  <section class="wrap" id="roadmap">
+    <h2>Roadmap</h2>
+    <ul>
+      <li>iOS app</li>
+      <li>Google Play and F-Droid</li>
+      <li>Testing the macOS and Windows Bluetooth support on more hardware</li>
+    </ul>
+  </section>
+
+  <section class="wrap" id="changes">
+    <h2>Recent changes</h2>
+    {{changelog}}
+    <p><a href="{{repo}}/blob/main/CHANGELOG.md">Full changelog</a></p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a></div>
+</footer>
+</body>
+</html>

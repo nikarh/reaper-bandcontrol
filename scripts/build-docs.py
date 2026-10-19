@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Renders docs/features.toml into the README and the website.
+
+    build-docs.py readme      rewrite the README section between the `features` markers
+    build-docs.py check       fail if the README is outdated or a referenced screenshot is missing
+    build-docs.py site DIR    build the website (site/ + docs/screenshots + changelog) into DIR
+"""
+
+import html
+import re
+import shutil
+import sys
+import tomllib
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+README = ROOT / "README.md"
+SCREENSHOTS = ROOT / "docs" / "screenshots"
+REPO = "https://github.com/nikarh/reaper-bandcontrol"
+START, END = "<!-- features:start -->", "<!-- features:end -->"
+
+
+def features() -> list[dict]:
+    return tomllib.loads((ROOT / "docs" / "features.toml").read_text())["feature"]
+
+
+def version() -> str:
+    text = (ROOT / "Cargo.toml").read_text()
+    section = text.split("[workspace.package]", 1)[1]
+    return re.search(r'^version\s*=\s*"([^"]+)"', section, re.M).group(1)
+
+
+def is_app_screenshot(name: str) -> bool:
+    return not name.startswith("reaper-")
+
+
+def paragraph(text: str) -> str:
+    return " ".join(text.split())
+
+
+def readme_section() -> str:
+    out = [START, "<!-- Generated from docs/features.toml by scripts/build-docs.py, edit there. -->", ""]
+    for f in features():
+        out.append(f"### {f['title']}")
+        out.append("")
+        shot = f.get("screenshot")
+        if shot and is_app_screenshot(shot):
+            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}" width="220" align="right">')
+            out.append("")
+        out.append(paragraph(f["text"]))
+        out.append("")
+        if shot and not is_app_screenshot(shot):
+            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}">')
+            out.append("")
+        if shot and is_app_screenshot(shot):
+            out.append('<br clear="right">')
+            out.append("")
+    out.append(END)
+    return "\n".join(out)
+
+
+def render_readme() -> str:
+    text = README.read_text()
+    start, end = text.index(START), text.index(END) + len(END)
+    return text[:start] + readme_section() + text[end:]
+
+
+def inline(text: str) -> str:
+    text = html.escape(text)
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    return re.sub(r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', text)
+
+
+def changelog_html(releases: int = 3) -> str:
+    """The newest sections of CHANGELOG.md as HTML (headings and lists only)."""
+    path = ROOT / "CHANGELOG.md"
+    if not path.exists():
+        return ""
+    sections = re.split(r"^## ", path.read_text(), flags=re.M)[1 : releases + 1]
+    out = ['<div class="changes">']
+    for section in sections:
+        lines = section.strip().splitlines()
+        out.append(f"<h3>{inline(lines[0])}</h3>")
+        in_list = False
+        for line in lines[1:]:
+            if line.startswith("### "):
+                if in_list:
+                    out.append("</ul>")
+                    in_list = False
+                out.append(f"<h4>{inline(line[4:])}</h4>")
+            elif line.startswith("- "):
+                if not in_list:
+                    out.append("<ul>")
+                    in_list = True
+                out.append(f"<li>{inline(line[2:])}</li>")
+            elif line.startswith("[") or line.startswith("<!--"):
+                continue
+        if in_list:
+            out.append("</ul>")
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def features_html() -> str:
+    out = []
+    for f in features():
+        shot = f.get("screenshot")
+        image = ""
+        if shot:
+            cls = "" if is_app_screenshot(shot) else ' class="wide"'
+            image = f'<img src="screenshots/{shot}.png" alt="{html.escape(f["title"])}"{cls} loading="lazy">'
+        out.append(
+            f'<article class="feature" id="{f["id"]}"><div class="text"><h3>{html.escape(f["title"])}</h3>'
+            f"<p>{inline(paragraph(f['text']))}</p></div>{image}</article>"
+        )
+    return "\n".join(out)
+
+
+def build_site(out: Path) -> None:
+    if out.exists():
+        shutil.rmtree(out)
+    shutil.copytree(ROOT / "site", out)
+    shutil.copytree(SCREENSHOTS, out / "screenshots")
+    page = (out / "index.html").read_text()
+    for key, value in {
+        "features": features_html(),
+        "changelog": changelog_html(),
+        "version": version(),
+        "repo": REPO,
+    }.items():
+        page = page.replace("{{" + key + "}}", value)
+    (out / "index.html").write_text(page)
+    print(f"site built in {out}")
+
+
+def missing_screenshots() -> list[str]:
+    names = {f["screenshot"] for f in features() if f.get("screenshot")}
+    names |= set(re.findall(r"screenshots/([\w-]+)\.png", (ROOT / "site" / "index.html").read_text()))
+    return sorted(n for n in names if not (SCREENSHOTS / f"{n}.png").exists())
+
+
+def main() -> int:
+    command = sys.argv[1] if len(sys.argv) > 1 else ""
+    if command == "readme":
+        README.write_text(render_readme())
+    elif command == "check":
+        problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
+        if README.read_text() != render_readme():
+            problems.append("README.md feature section is outdated, run `mise run docs`")
+        for p in problems:
+            print(p, file=sys.stderr)
+        return 1 if problems else 0
+    elif command == "site" and len(sys.argv) == 3:
+        build_site(Path(sys.argv[2]))
+    else:
+        print(__doc__, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
