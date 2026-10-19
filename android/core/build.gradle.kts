@@ -22,6 +22,8 @@ kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
         allWarningsAsErrors = true
+        // Wire generates `!!` on non-null lists for repeated scalar fields.
+        freeCompilerArgs.add("-Xwarning-level=UNNECESSARY_NOT_NULL_ASSERTION:disabled")
     }
 }
 

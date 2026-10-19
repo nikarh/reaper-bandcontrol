@@ -9,3 +9,4 @@ pub mod daw;
 pub mod engine;
 pub mod fake;
 pub mod model;
+pub mod rpp;

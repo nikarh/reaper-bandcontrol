@@ -129,6 +129,8 @@ pub struct Mirror {
     pub transport: Option<pb::Transport>,
     pub states_received: usize,
     pub deltas_received: usize,
+    /// The latest meter frame.
+    pub meters: Option<pb::Meters>,
 }
 
 impl Mirror {
@@ -161,6 +163,7 @@ impl Mirror {
                     }
                 }
             }
+            Some(Msg::Meters(m)) => self.meters = Some(m.clone()),
             Some(Msg::Welcome(_)) | None => {}
         }
     }

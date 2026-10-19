@@ -225,7 +225,7 @@ class ClientSession(
     }
 
     private fun messageEvent(msg: ServerMessage): List<ClientEvent> =
-        if (msg.state != null || msg.transport != null || msg.gains != null) {
+        if (msg.state != null || msg.transport != null || msg.gains != null || msg.meters != null) {
             listOf(ClientEvent.Message(msg))
         } else {
             emptyList()

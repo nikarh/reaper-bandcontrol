@@ -138,4 +138,12 @@ class VectorsTest {
             assertEquals(command.getJSONArray("packets").strings(), client.send(message).map { it.hex() })
         }
     }
+
+    @Test
+    fun peakLevels() {
+        for (c in vectors.getJSONObject("meters").getJSONArray("decode").objects()) {
+            val expected = if (c.isNull("db")) null else c.getDouble("db").toFloat()
+            assertEquals(expected, Peaks.decode(c.getInt("byte")))
+        }
+    }
 }

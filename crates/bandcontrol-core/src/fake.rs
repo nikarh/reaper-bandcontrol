@@ -1,6 +1,6 @@
 //! In-memory DAW used by tests and the `bandctl sim` simulator.
 
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use crate::{
     daw::{Command, CommandError, Daw},
@@ -18,6 +18,7 @@ pub struct FakeTrack {
     pub volume: f32,
     pub hw_out: bool,
     pub receives: Vec<FakeReceive>,
+    pub parent: Option<TrackId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -37,6 +38,8 @@ pub struct FakeDaw {
     pub time_selection: Option<(f64, f64)>,
     /// Every applied command, for assertions.
     pub applied: Vec<Command>,
+    /// Fixed meter peaks (linear) that replace the generated ones.
+    pub meter_overrides: HashMap<TrackId, f32>,
     change_token: u64,
 }
 
@@ -49,13 +52,18 @@ impl FakeDaw {
         const INPUT: u32 = 0x80_00_02;
         const OUTPUT: u32 = 0x00_f4_2b;
 
-        let plain = |id: TrackId, name: &str, color: Option<u32>, volume: f32| FakeTrack {
+        const AUDIO_FOLDER: Option<TrackId> = Some(3);
+        const INPUT_FOLDER: Option<TrackId> = Some(6);
+        const OUTPUT_FOLDER: Option<TrackId> = Some(11);
+
+        let plain = |id: TrackId, name: &str, color: Option<u32>, volume: f32, parent| FakeTrack {
             id,
             name: name.into(),
             color,
             volume,
             hw_out: false,
             receives: vec![],
+            parent,
         };
         let output = |id: TrackId, name: &str, volume: f32, receives: &[(TrackId, f32, bool)]| FakeTrack {
             id,
@@ -67,6 +75,7 @@ impl FakeDaw {
                 .iter()
                 .map(|&(src, volume, mute)| FakeReceive { src, volume, mute })
                 .collect(),
+            parent: OUTPUT_FOLDER,
         };
 
         let region = |id, name: &str, start, end, color| Region {
@@ -85,17 +94,17 @@ impl FakeDaw {
 
         Self {
             tracks: vec![
-                plain(1, "MIDI", None, 0.44),
-                plain(2, "Click", Some(0xfb_02_ff), 1.0),
-                plain(3, "Audio", Some(AUDIO), 1.0),
-                plain(4, "Backtrack", Some(AUDIO), 1.0),
-                plain(5, "Vocal Backtrack", Some(AUDIO), 1.0),
-                plain(6, "Inputs", Some(INPUT), 1.0),
-                plain(7, "Drum mic [1]", Some(INPUT), 1.0),
-                plain(8, "Bass [3]", Some(INPUT), 1.0),
-                plain(9, "Guitar [4]", Some(INPUT), 1.0),
-                plain(10, "Vocals [5]", Some(INPUT), 1.0),
-                plain(11, "Outputs", None, 1.0),
+                plain(1, "MIDI", None, 0.44, None),
+                plain(2, "Click", Some(0xfb_02_ff), 1.0, None),
+                plain(3, "Audio", Some(AUDIO), 1.0, None),
+                plain(4, "Backtrack", Some(AUDIO), 1.0, AUDIO_FOLDER),
+                plain(5, "Vocal Backtrack", Some(AUDIO), 1.0, AUDIO_FOLDER),
+                plain(6, "Inputs", Some(INPUT), 1.0, None),
+                plain(7, "Drum mic [1]", Some(INPUT), 1.0, INPUT_FOLDER),
+                plain(8, "Bass [3]", Some(INPUT), 1.0, INPUT_FOLDER),
+                plain(9, "Guitar [4]", Some(INPUT), 1.0, INPUT_FOLDER),
+                plain(10, "Vocals [5]", Some(INPUT), 1.0, INPUT_FOLDER),
+                plain(11, "Outputs", None, 1.0, None),
                 output(12, "PA [1+2]", 1.0, &[(4, 1.0, true), (5, 1.0, true)]),
                 output(
                     13,
@@ -172,8 +181,16 @@ impl FakeDaw {
             transport: TransportState::default(),
             time_selection: None,
             applied: vec![],
+            meter_overrides: HashMap::new(),
             change_token: 0,
         }
+    }
+
+    /// Switches to another project, like opening a project in REAPER.
+    pub fn replace_project(&mut self, project: Self) {
+        let token = self.change_token;
+        *self = project;
+        self.change_token = token + 1;
     }
 
     /// Marks the structure as changed (what REAPER's project state change count does).
@@ -223,6 +240,7 @@ impl Daw for FakeDaw {
                     color: t.color,
                     output: t.hw_out && !t.receives.is_empty(),
                     receives: t.receives.iter().map(|r| ReceiveInfo { src: r.src }).collect(),
+                    parent: t.parent,
                 })
                 .collect(),
             regions: self.regions.clone(),
@@ -259,6 +277,31 @@ impl Daw for FakeDaw {
 
     fn transport(&mut self) -> TransportState {
         self.transport
+    }
+
+    /// Overrides, otherwise a wave between about -16 and -4 dBFS (scaled by the track volume) while playing.
+    fn meters(&mut self, tracks: &[TrackId]) -> Vec<f32> {
+        let playing = self.transport.play == PlayState::Playing;
+        tracks
+            .iter()
+            .map(|id| {
+                if let Some(peak) = self.meter_overrides.get(id) {
+                    return *peak;
+                }
+                let Some(track) = self.tracks.iter().find(|t| t.id == *id) else {
+                    return 0.0;
+                };
+                if !playing {
+                    return 0.0;
+                }
+                let rate = 1.3 + f64::from(*id) * 0.71;
+                let wave = 0.5 + 0.5 * (self.transport.position * rate).sin();
+                // A level, precision is irrelevant.
+                #[allow(clippy::cast_possible_truncation)]
+                let wave = wave as f32;
+                track.volume * (0.15 + 0.45 * wave)
+            })
+            .collect()
     }
 
     fn apply(&mut self, command: &Command) -> Result<(), CommandError> {

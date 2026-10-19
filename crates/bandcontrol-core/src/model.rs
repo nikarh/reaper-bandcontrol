@@ -1,7 +1,5 @@
 //! Domain model, independent of the wire format.
 
-use std::collections::HashSet;
-
 pub type TrackId = u32;
 
 /// Everything that changes rarely. Compared as a whole to detect changes.
@@ -24,6 +22,8 @@ pub struct TrackInfo {
     /// Has a hardware output and at least one receive.
     pub output: bool,
     pub receives: Vec<ReceiveInfo>,
+    /// The folder track containing this track.
+    pub parent: Option<TrackId>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,16 +90,9 @@ pub struct TransportState {
 }
 
 impl Structure {
-    /// Keeps only output tracks and the tracks feeding them; receives are only kept on output tracks.
+    /// What clients get: all tracks, but receives only on output tracks.
     #[must_use]
     pub fn relevant(mut self) -> Self {
-        let sources: HashSet<TrackId> = self
-            .tracks
-            .iter()
-            .filter(|t| t.output)
-            .flat_map(|t| t.receives.iter().map(|r| r.src))
-            .collect();
-        self.tracks.retain(|t| t.output || sources.contains(&t.id));
         for t in &mut self.tracks {
             if !t.output {
                 t.receives.clear();
@@ -161,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn relevant_keeps_outputs_and_their_sources() {
+    fn relevant_keeps_receives_of_outputs_only() {
         let track = |id, output, receives: &[TrackId]| TrackInfo {
             id,
             number: id,
@@ -169,6 +162,7 @@ mod tests {
             color: None,
             output,
             receives: receives.iter().map(|&src| ReceiveInfo { src }).collect(),
+            parent: None,
         };
         let s = Structure {
             tracks: vec![
@@ -180,6 +174,14 @@ mod tests {
             ..Structure::default()
         }
         .relevant();
-        assert_eq!(s.tracks, vec![track(2, false, &[]), track(4, true, &[2])]);
+        assert_eq!(
+            s.tracks,
+            vec![
+                track(1, false, &[]),
+                track(2, false, &[]),
+                track(3, false, &[]),
+                track(4, true, &[2])
+            ]
+        );
     }
 }

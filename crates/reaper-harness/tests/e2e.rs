@@ -149,6 +149,23 @@ async fn initial_state_and_phone_commands() {
         .await
         .unwrap();
 
+    // The click track plays a click source, a silent input track reads as silence.
+    client
+        .send(Msg::SubscribeMeters(pb::SubscribeMeters {
+            subscription: 3,
+            tracks: vec![2, 7],
+        }))
+        .await
+        .unwrap();
+    client
+        .wait_for(&mut mirror, TIMEOUT, |m| {
+            m.meters
+                .as_ref()
+                .is_some_and(|f| f.subscription == 3 && f.peaks[0] > 0 && f.peaks[1] == 0)
+        })
+        .await
+        .unwrap();
+
     client
         .send(Msg::Transport(pb::TransportAction::Stop.into()))
         .await

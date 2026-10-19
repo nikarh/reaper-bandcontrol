@@ -15,6 +15,7 @@ use crate::ffi::{Reaper, Track};
 const RECEIVES: i32 = -1;
 const HW_OUTPUTS: i32 = 1;
 const CUSTOM_COLOR: i32 = 0x0100_0000;
+const MAX_METER_CHANNELS: i32 = 64;
 
 const EXT_SECTION: &std::ffi::CStr = c"BANDUI";
 const EXT_REGIONS: &std::ffi::CStr = c"regions";
@@ -26,9 +27,9 @@ const ACTION_STOP: i32 = 40667;
 const ACTION_RECORD: i32 = 1013;
 const ACTION_TOGGLE_REPEAT: i32 = 1068;
 
-/// Custom track/marker color as `0xRRGGBB`.
+/// Custom track/marker color as `0xRRGGBB`. The flag with black reads as no color, it shows as the theme default.
 fn color(native: i32) -> Option<u32> {
-    if native & CUSTOM_COLOR == 0 {
+    if native & CUSTOM_COLOR == 0 || native == CUSTOM_COLOR {
         return None;
     }
     let native = u32::try_from(native & 0x00ff_ffff).unwrap_or(0);
@@ -113,6 +114,7 @@ impl Daw for ReaperDaw {
                     color: color(to_i32(r.track_info(track, c"I_CUSTOMCOLOR"))),
                     output: r.send_count(track, HW_OUTPUTS) > 0 && receive_count > 0,
                     receives,
+                    parent: r.parent_track(track).map(|p| self.id_of(p)),
                 }
             })
             .collect();
@@ -145,6 +147,20 @@ impl Daw for ReaperDaw {
             markers,
             region_order: parse_region_order(&r.proj_ext_state(EXT_SECTION, EXT_REGIONS)),
         }
+    }
+
+    fn meters(&mut self, tracks: &[TrackId]) -> Vec<f32> {
+        let r = self.reaper;
+        let by_id: HashMap<TrackId, Track> = self.scan().into_iter().collect();
+        tracks
+            .iter()
+            .map(|id| {
+                by_id.get(id).map_or(0.0, |&track| {
+                    let channels = to_i32(r.track_info(track, c"I_NCHAN")).clamp(1, MAX_METER_CHANNELS);
+                    to_f32((0..channels).map(|c| r.track_peak(track, c)).fold(0.0, f64::max))
+                })
+            })
+            .collect()
     }
 
     fn mix(&mut self, structure: &Structure) -> Mix {
@@ -271,6 +287,7 @@ mod tests {
     fn colors_without_custom_flag_are_default() {
         assert_eq!(color(0), None);
         assert_eq!(color(0x8b_8727), None);
+        assert_eq!(color(0x0100_0000), None);
     }
 
     #[test]

@@ -67,6 +67,8 @@ api! {
     GetTrack: fn(*mut c_void, c_int) -> *mut c_void;
     GetTrackGUID: fn(*mut c_void) -> *const [u8; 16];
     GetTrackName: fn(*mut c_void, *mut c_char, c_int) -> bool;
+    GetParentTrack: fn(*mut c_void) -> *mut c_void;
+    Track_GetPeakInfo: fn(*mut c_void, c_int) -> f64;
     GetMediaTrackInfo_Value: fn(*mut c_void, *const c_char) -> f64;
     SetMediaTrackInfo_Value: fn(*mut c_void, *const c_char, f64) -> bool;
     GetTrackNumSends: fn(*mut c_void, c_int) -> c_int;
@@ -195,6 +197,18 @@ impl Reaper {
         }
         // SAFETY: REAPER NUL terminates within the buffer.
         unsafe { CStr::from_ptr(buf.as_ptr()) }.to_string_lossy().into_owned()
+    }
+
+    /// The folder track containing `track`.
+    pub fn parent_track(&self, track: Track) -> Option<Track> {
+        // SAFETY: `track` is live.
+        NonNull::new(unsafe { (self.f.GetParentTrack)(track.0.as_ptr()) }).map(Track)
+    }
+
+    /// Current meter peak of `channel` as linear amplitude.
+    pub fn track_peak(&self, track: Track, channel: i32) -> f64 {
+        // SAFETY: `track` is live, out of range channels read as 0.
+        unsafe { (self.f.Track_GetPeakInfo)(track.0.as_ptr(), channel) }
     }
 
     pub fn track_info(&self, track: Track, param: &CStr) -> f64 {
