@@ -1,5 +1,6 @@
 package dev.nikarh.bandcontrol.core
 
+import java.util.Locale
 import kotlin.math.log10
 import kotlin.math.pow
 
@@ -43,12 +44,12 @@ object FaderLaw {
 
     fun positionToGain(position: Float) = dbToGain(positionToDb(position))
 
-    /** `-3.2`, `+6.0`, `0.0`, `-inf`. */
+    /** `-3.2`, `+6.0`, `0.0`, `-inf`, with a decimal point in every locale. */
     fun format(db: Float): String =
         when {
             db == Float.NEGATIVE_INFINITY || db < -150f -> "-inf"
-            db >= 0.05f -> "+%.1f".format(db)
+            db >= 0.05f -> "+%.1f".format(Locale.ROOT, db)
             db > -0.05f -> "0.0"
-            else -> "%.1f".format(db)
+            else -> "%.1f".format(Locale.ROOT, db)
         }
 }
