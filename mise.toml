@@ -1,4 +1,6 @@
 [tools]
+actionlint                        = "1.7.12"
+git-cliff                         = "2.14.2"
 "github:EmbarkStudios/cargo-deny" = "0.20.2"
 gradle                            = "9.8.1"
 "http:android-cmdline-tools"      = { version = "16111833", url = "https://dl.google.com/android/repository/commandlinetools-linux-{{version}}_latest.zip", bin_path = "cmdline-tools/bin" }
@@ -16,8 +18,12 @@ _.path           = ["{{config_root}}/.android-sdk/platform-tools"]
 description = "Install pinned Android SDK packages into .android-sdk"
 run = """
 yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses > /dev/null
-sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
+sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.0" "build-tools;37.0.0" "platform-tools" "cmdline-tools;latest"
 """
+
+[tasks."android:emulator-sdk"]
+description = "Install the Android emulator and a system image without Google services (for scripts/android-emulator.sh)"
+run         = 'yes | sdkmanager --sdk_root="$ANDROID_HOME" "emulator" "system-images;android-35;default;x86_64"'
 
 [tasks.fmt]
 description = "Format everything"
@@ -40,8 +46,9 @@ description = "Rust unit and integration tests (no Bluetooth, no REAPER)"
 run         = "cargo test --workspace"
 
 [tasks."e2e:reaper"]
-description = "End-to-end tests against a real, isolated, headless REAPER (needs REAPER and cage)"
-run         = "cargo test -p reaper-harness -- --ignored"
+description = "End-to-end tests against a real, isolated, headless REAPER (needs REAPER and cage or Xvfb)"
+# One REAPER at a time: parallel instances under Xvfb interfere.
+run = "cargo test -p reaper-harness -- --ignored --test-threads=1"
 
 [tasks.reaper]
 description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"
@@ -82,3 +89,16 @@ run         = "scripts/android-reaper-e2e.sh"
 [tasks.install]
 description = "Build the extension in release mode and install it into REAPER's UserPlugins (restart REAPER after)"
 run         = "scripts/install-extension.sh"
+
+
+[tasks.changelog]
+description = "Regenerate CHANGELOG.md from the conventional commits"
+run         = "git cliff -o CHANGELOG.md"
+
+[tasks.docs]
+description = "Regenerate the README feature section and build the website into target/site"
+run         = ["python3 scripts/build-docs.py readme", "python3 scripts/build-docs.py site target/site"]
+
+[tasks."docs:screenshots"]
+description = "Regenerate docs/screenshots (headless REAPER and the app on a phone or emulator)"
+run         = "scripts/docs-screenshots.sh"

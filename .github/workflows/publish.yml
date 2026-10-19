@@ -1,0 +1,70 @@
+name: Publish
+
+# Builds, signs and uploads the release artifacts when a release is published.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to (re)publish, e.g. v0.2.0
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  TAG: ${{ inputs.tag || github.event.release.tag_name }}
+
+jobs:
+  build:
+    name: Build
+    if: github.repository_owner == 'nikarh'
+    uses: ./.github/workflows/build.yml
+
+  upload:
+    name: Sign and upload
+    needs: [build]
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Sign the APK with the release key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          "$tools/apksigner" sign --ks "$RUNNER_TEMP/release.keystore" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD dist/bandcontrol.apk
+          "$tools/apksigner" verify --print-certs dist/bandcontrol.apk
+          rm -f dist/*.idsig "$RUNNER_TEMP/release.keystore"
+      - name: Import the signing key
+        uses: crazy-max/ghaction-import-gpg@v7
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Checksums and signature
+        working-directory: dist
+        run: |
+          sha256sum -- * > SHA256SUMS
+          gpg --batch --yes --armor --detach-sign --output SHA256SUMS.asc SHA256SUMS
+          cat SHA256SUMS
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@v3
+        id: generate-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "${{ github.repository }}"

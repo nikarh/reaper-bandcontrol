@@ -1,0 +1,97 @@
+name: Build
+
+# Builds every release artifact; used by the Check and Publish workflows. Publish signs the APK with the release key.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  extension:
+    name: Extension (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest supported Ubuntu, so the library runs on older glibc versions too.
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            targets: x86_64-unknown-linux-gnu
+            file: libreaper_bandcontrol.so
+            ext: so
+          - name: linux-aarch64
+            os: ubuntu-22.04-arm
+            targets: aarch64-unknown-linux-gnu
+            file: libreaper_bandcontrol.so
+            ext: so
+          - name: macos-universal
+            os: macos-15
+            targets: aarch64-apple-darwin x86_64-apple-darwin
+            file: libreaper_bandcontrol.dylib
+            ext: dylib
+          - name: windows-x86_64
+            os: windows-2025
+            targets: x86_64-pc-windows-msvc
+            file: reaper_bandcontrol.dll
+            ext: dll
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install BlueZ headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.name }}
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          libs=()
+          for target in ${{ matrix.targets }}; do
+            cargo build --release --locked -p reaper-bandcontrol --lib --target "$target"
+            libs+=("target/$target/release/${{ matrix.file }}")
+          done
+          out="dist/reaper_bandcontrol-${{ matrix.name }}.${{ matrix.ext }}"
+          if [[ ${#libs[@]} -gt 1 ]]; then
+            lipo -create -output "$out" "${libs[@]}"
+          else
+            cp "${libs[0]}" "$out"
+          fi
+          ls -l dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  apk:
+    name: Android app
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: java gradle http:android-cmdline-tools
+      - uses: actions/cache@v5
+        with:
+          path: .android-sdk
+          key: android-sdk-${{ hashFiles('mise.toml') }}
+      - run: mise run android:sdk
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build
+        working-directory: android
+        run: |
+          ./gradlew --console=plain :app:assembleRelease
+          mkdir -p ../dist
+          cp app/build/outputs/apk/release/app-release.apk ../dist/bandcontrol.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-android
+          path: dist/*
+          if-no-files-found: error

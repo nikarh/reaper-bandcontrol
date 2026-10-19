@@ -1,0 +1,48 @@
+name: Site
+
+# Builds the website from site/, docs/features.toml, docs/screenshots and CHANGELOG.md and deploys it to GitHub
+# Pages (Settings → Pages → Source: GitHub Actions). No pages branch: the built site is uploaded directly.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - site/**
+      - docs/**
+      - CHANGELOG.md
+      - Cargo.toml
+      - scripts/build-docs.py
+      - .github/workflows/pages.yml
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - run: python3 scripts/build-docs.py site _site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
