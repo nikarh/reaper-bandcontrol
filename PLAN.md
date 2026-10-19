@@ -199,6 +199,15 @@ designed to be broadcast-safe on every OS:
 - [ ] first release once the repository is on GitHub and the secrets exist
 - [ ] find out why parallel REAPER instances under Xvfb interfere (tests run serially for now)
 
+### 11. Several computers
+- [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
+- [x] the app keeps every pairing; with one in range it connects by itself, several in range at start ask, another
+      one coming in range is announced with a Switch button; menu switches and forgets (`chooseComputer` in core)
+- [x] in-range detection: BLE scan for every paired service UUID; debug TCP pairings by probing the port (a
+      forwarded `adb reverse` port accepts and closes, a live server stays silent)
+- [x] `bandctl sim` control `offline` / `online`; phone e2e with a second simulator ("Stage PC")
+- [ ] BLE path of the in-range scan is only tested by hand (two BLE peripherals on one adapter)
+
 ## Log / notes
 
 - PC BT controller supports peripheral role (BlueZ, 12 adv instances). Phone: OnePlus 8T, Android 15 (SDK 35).
