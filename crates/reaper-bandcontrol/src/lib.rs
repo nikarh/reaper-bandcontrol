@@ -9,6 +9,7 @@
 mod daw;
 mod ffi;
 mod pairing;
+mod version;
 mod window;
 
 use std::{
@@ -210,13 +211,16 @@ impl Plugin {
             Some(server) => {
                 let status = server.status();
                 format!(
-                    "Name shown on phones: {}\nBluetooth: {}\nTCP: {}\nConnected phones: {}\n\n\
+                    "Name shown on phones: {}\nBluetooth: {}\nTCP: {}\nConnected phones: {}\nREAPER: {} (supported: {} and \
+                     newer)\n\n\
                      The pairing code and the name are stored in this REAPER's settings (resource folder: {}), \
                      so they are the same for every project.",
                     self.name,
                     describe(&status.ble),
                     describe(&status.tcp),
                     status.sessions,
+                    self.reaper.app_version(),
+                    version::min_reaper(),
                     self.reaper.resource_path(),
                 )
             }
@@ -371,7 +375,16 @@ fn init_logging(reaper: &Reaper) {
 
 fn load(reaper: &'static Reaper) -> Result<(), String> {
     init_logging(reaper);
-    tracing::info!(version = env!("CARGO_PKG_VERSION"), "loading");
+    let app = reaper.app_version();
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), reaper = app, "loading");
+    if version::older_than_supported(&app) == Some(true) {
+        let msg = format!(
+            "BandControl supports REAPER {} and newer, this is REAPER {app}: some things may not work.",
+            version::min_reaper()
+        );
+        tracing::warn!("{msg}");
+        reaper.console(&format!("{msg}\n"));
+    }
 
     let plugin = catch_unwind(AssertUnwindSafe(|| Plugin::new(reaper))).map_err(|_| "panic during startup")?;
     PLUGIN.with(|p| *p.borrow_mut() = Some(plugin));
@@ -407,7 +420,10 @@ pub unsafe extern "C" fn ReaperPluginEntry(_instance: *mut c_void, info: *const 
         Ok(()) => 1,
         Err(e) => {
             if let Some(reaper) = Reaper::get() {
-                reaper.console(&format!("BandControl failed to load: {e}\n"));
+                reaper.console(&format!(
+                    "BandControl failed to load ({e}). It needs REAPER {} or newer.\n",
+                    version::min_reaper()
+                ));
             }
             0
         }

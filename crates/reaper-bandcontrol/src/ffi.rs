@@ -94,6 +94,7 @@ api! {
     ShowMessageBox: fn(*const c_char, *const c_char, c_int) -> c_int;
     GetUserInputs: fn(*const c_char, c_int, *const c_char, *mut c_char, c_int) -> bool;
     GetResourcePath: fn() -> *const c_char;
+    GetAppVersion: fn() -> *const c_char;
 }
 
 type ConfigVarStringFn = unsafe extern "C" fn(*const c_char, *mut c_char, c_int) -> bool;
@@ -434,6 +435,17 @@ impl Reaper {
         };
         // SAFETY: NUL terminated within the buffer, see above.
         ok.then(|| unsafe { CStr::from_ptr(buf.as_ptr()) }.to_string_lossy().into_owned())
+    }
+
+    /// REAPER's version, e.g. `7.82/linux-x86_64`.
+    pub fn app_version(&self) -> String {
+        // SAFETY: REAPER returns a static NUL terminated string.
+        let p = unsafe { (self.f.GetAppVersion)() };
+        if p.is_null() {
+            return String::new();
+        }
+        // SAFETY: non-null, NUL terminated.
+        unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned()
     }
 
     pub fn resource_path(&self) -> String {

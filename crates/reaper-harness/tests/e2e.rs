@@ -86,6 +86,12 @@ async fn initial_state_and_phone_commands() {
     let env = start("commands");
     let (mut client, mut mirror) = connect(&env).await;
     assert_eq!(client.server_name, "E2E");
+    // Every REAPER the tests run against is a supported one.
+    assert!(
+        !env.reaper.log().contains("some things may not work"),
+        "{}",
+        env.reaper.log()
+    );
     assert_eq!(mirror.state.clone().unwrap(), expected_initial_state());
     assert_eq!(mirror.transport.unwrap().state(), pb::PlayState::Stopped);
 
