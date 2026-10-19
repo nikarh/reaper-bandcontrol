@@ -294,16 +294,17 @@ mod tests {
         assert_eq!(track(45).parent, None);
         assert_eq!(track(41).name, "Left guitar");
         assert_eq!(track(4).name, "Track 4");
-        assert_eq!(daw.regions.len(), 12);
-        assert_eq!(daw.regions[1].name, "Paper Lions");
-        assert_eq!(daw.markers.len(), 87);
+        assert_eq!(daw.regions.len(), 17);
+        assert_eq!(daw.regions[2].name, "Paper Lions");
+        assert_eq!(daw.markers.len(), 4);
+        assert_eq!(daw.markers[3].name, "!1016");
         assert_eq!(
             daw.region_order[2],
             crate::model::RegionOrder { id: 6, disabled: false }
         );
         assert_eq!(
-            daw.region_order[10],
-            crate::model::RegionOrder { id: 11, disabled: true }
+            daw.region_order[15],
+            crate::model::RegionOrder { id: 16, disabled: true }
         );
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
@@ -116,34 +117,34 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("transport-stop").performClick()
         eventually { dump().getJSONObject("transport").getString("play") == "Stopped" }
 
-        compose.onNodeWithTag("region-2").performClick()
-        awaitPosition(158.84..158.85)
+        compose.onNodeWithTag("region-3").performClick()
+        awaitPosition(176.74..176.75)
         compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 5_000)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Intro"), 5_000)
+        compose.onNodeWithTag("current-marker").assertDoesNotExist()
 
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(174.07..174.09)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Verse 1"), 5_000)
+        awaitPosition(191.74..191.75)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Verse"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(183.60..183.61)
+        awaitPosition(221.74..221.75)
         compose.onNodeWithTag("nav-previous").performClick()
-        awaitPosition(174.07..174.09)
+        awaitPosition(191.74..191.75)
 
-        // After the last part of Paper Lions comes Static Bloom, the next song in the band's order (1, 2, 6, ...).
-        control("seek 260")
+        // After the last part of Paper Lions comes Interlude B, next in the band's order (1, 2, 6, 4, 5, 3, 7, ...).
+        control("seek 300")
         compose.waitUntilAtLeastOneExists(hasTestTag("current-marker") and hasText("Outro"), 5_000)
         compose.onNodeWithTag("nav-next").performClick()
-        awaitPosition(572.07..572.08)
-        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Static Bloom"), 5_000)
+        awaitPosition(728.92..728.93)
+        compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Interlude B"), 5_000)
     }
 
     @Test
     fun regionEditing() {
-        // Velvet Machine is disabled in the project.
-        compose.onNodeWithTag("region-11").assertDoesNotExist()
+        // Northbound is disabled in the project.
+        compose.onNodeWithTag("region-16").assertDoesNotExist()
         compose.onNodeWithTag("edit-regions").performClick()
         compose.onNodeWithTag("region-toggle-4").performClick()
-        eventually { dump().getString("region_order") == "11,12,16,04,15,13,17,18,19,110,011,112" }
+        eventually { dump().getString("region_order") == "11,12,16,04,15,13,17,18,19,110,111,112,113,114,115,016,117" }
         compose.onNodeWithTag("edit-regions").performClick()
         compose.waitUntilDoesNotExist(hasTestTag("region-4"), 5_000)
     }
@@ -154,7 +155,7 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("output-40").performClick()
         compose.onNodeWithTag("mix-title").assertTextEquals("Drums")
 
-        // Drums input is receive 7 of the drummer's mix.
+        // Drums input is receive 7 of the drums mix.
         scrollTo("receives", "mute-14")
         compose.onNodeWithTag("mute-14").performClick()
         eventually { receive(40, 7).getBoolean("mute") }
@@ -195,7 +196,7 @@ class SimulatorE2ETest {
     @Test
     fun tabsKeepTheirState() {
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("output-42").performClick()
+        compose.onNodeWithTag("output-42").performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Right guitar"), 5_000)
         compose.onNodeWithTag("tab-playback").performClick()
         compose.onNodeWithTag("region-1").assertExists()
