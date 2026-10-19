@@ -50,6 +50,10 @@ description = "End-to-end tests against a real, isolated, headless REAPER (needs
 # One REAPER at a time: parallel instances under Xvfb interfere.
 run = "cargo test -p reaper-harness -- --ignored --test-threads=1"
 
+
+[tasks."e2e:reaper-versions"]
+description = "REAPER e2e against several REAPER releases for Linux (args: versions, default 5.93 to 7.82)"
+run         = "scripts/reaper-versions.sh"
 [tasks.reaper]
 description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"
 run         = "cargo run -q -p reaper-harness --"
