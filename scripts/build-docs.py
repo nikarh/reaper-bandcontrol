@@ -189,19 +189,47 @@ def fastlane_texts() -> dict[str, str]:
     full = "\n\n".join(parts) + "\n"
     assert len(full) <= 4000, f"full description: {len(full)} characters, at most 4000"
     texts = {"title.txt": app["title"] + "\n", "short_description.txt": short + "\n", "full_description.txt": full}
-    # What's new in this version, from its section of CHANGELOG.md (once released).
-    changelog = (ROOT / "CHANGELOG.md").read_text() if (ROOT / "CHANGELOG.md").exists() else ""
-    section = re.search(rf"^## \[{re.escape(version())}\][^\n]*\n(.*?)(?=^## |\Z)", changelog, re.M | re.S)
-    if section:
-        items = [re.sub(r"\s*\(\[[0-9a-f]{7,}\]\([^)]*\)\)", "", l[2:]) for l in section.group(1).splitlines() if l.startswith("- ")]
-        notes = ""
-        for item in items:
-            line = f"• {item}\n"
-            if len(notes) + len(line) > 500:
-                break
-            notes += line
+    notes = app_release_notes()
+    if notes is not None:
         texts[f"changelogs/{android_version_code()}.txt"] = notes
     return texts
+
+
+CHANGELOG_URL = f"{REPO}/blob/main/CHANGELOG.md"
+APP_SCOPES = {"android"}
+APP_GROUPS = {"Features", "Fixes", "Performance"}
+
+
+def app_release_notes() -> str | None:
+    """What's new in the app in this version (the store's release notes: plain text, at most 500 characters), from
+    its section of CHANGELOG.md, once released: the features, fixes and performance changes of the app (scope
+    `android`), without scopes and authors. None before the version is in the changelog."""
+    changelog = (ROOT / "CHANGELOG.md").read_text() if (ROOT / "CHANGELOG.md").exists() else ""
+    sections = re.findall(r"^## \[([^\]]+)\][^\n]*\n(.*?)(?=^## |\Z)", changelog, re.M | re.S)
+    released = [v for v, _ in sections if v != "Unreleased"]
+    body = next((b for v, b in sections if v == version()), None)
+    if body is None:
+        return None
+    if released and released[-1] == version():
+        return "First release.\n"
+    items, group = [], ""
+    for line in body.splitlines():
+        if line.startswith("### "):
+            group = line[4:].strip()
+        entry = re.match(r"- \*\*([^*]+):\*\* (.*?)(?: by @\S+)?(?: in #\d+)?$", line)
+        if entry and group in APP_GROUPS and entry.group(1) in APP_SCOPES:
+            items.append(entry.group(2))
+    if not items:
+        return "No changes in the app in this version.\n"
+    more = f"More in the changelog: {CHANGELOG_URL}\n"
+    notes = ""
+    for i, item in enumerate(items):
+        line = f"• {item}\n"
+        room = 500 if i == len(items) - 1 else 500 - len(more)
+        if len(notes) + len(line) > room:
+            return notes + more
+        notes += line
+    return notes
 
 
 def fastlane_screenshots() -> list[tuple[Path, str]]:

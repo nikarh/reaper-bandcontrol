@@ -14,7 +14,8 @@ Conventions for people and coding agents. The README explains what the project i
 [Conventional Commits](https://www.conventionalcommits.org) with a scope where it helps: `feat(android): ...`,
 `fix(server): ...`, `docs: ...`, `test: ...`, `chore: ...`, `ci: ...`. Only `feat`, `fix`, `perf` and `docs` end up
 in the changelog and the release notes (`cliff.toml`), so write their subject for users: what changed for them, not
-how. One logical change per commit.
+how. Those with the scope `android` are also the app's release notes in F-Droid (and later Google Play), so use it for
+every change phone users notice. One logical change per commit.
 
 ## Adding a user facing feature
 
