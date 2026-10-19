@@ -245,7 +245,8 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
 - **INPUTS**: Drums, Bass, Guitar and Vocals on hardware inputs 1 to 4.
 - **FOH OUT**: FOH Backtrack, FOH Instruments and FOH Vocals on hardware outputs 9 to 11, each receiving its sources.
 - **IEM OUT**: Drummer, Bassist, Guitarist and Singer on output pairs 1/2 to 7/8, each receiving all six sources.
-- Four songs, Spring, Summer, Autumn and Winter, at REAPER's default 120 BPM, one empty bar apart.
+- Four songs, Spring, Summer, Autumn and Winter, each in its own color, at REAPER's default 120 BPM, one empty bar
+  apart, with markers for their parts (Verse, Chorus, Outro, ...).
 
 ![REAPER: the example project with its folders](docs/screenshots/reaper-project.png)
 

@@ -6,8 +6,9 @@
     FOH OUT/                  front of house: feeds to the house desk or the PA, one hardware output each: the FOH tab
     IEM OUT/                  one in-ear mix per musician, a hardware output receiving the sources: the IEM tab
 
-Four songs (regions) at REAPER's default 120 BPM in 4/4, one empty bar apart. A click source on the Click track
-plays during every song, so meters have something to show. Deterministic: running it again gives the same file.
+Four songs (regions, each in its own color) at REAPER's default 120 BPM in 4/4, one empty bar apart, with markers
+for their parts. A click source on the Click track plays during every song, so meters have something to show.
+Deterministic: running it again gives the same file.
 
 Usage: scripts/make-example-project.py
 """
@@ -62,7 +63,21 @@ TRACKS = [
 
 BPM = 120
 BAR = 4 * 60 / BPM
-SONGS = [("Spring", 64), ("Summer", 72), ("Autumn", 56), ("Winter", 80)]
+
+
+def color(rgb: int) -> int:
+    """A region color as REAPER stores it in project files on Linux and macOS (unlike PEAKCOL): the custom color
+    flag and 0xRRGGBB."""
+    return 0x1000000 | rgb
+
+
+# (name, length in bars, color, parts: (marker name, bar within the song))
+SONGS = [
+    ("Spring", 64, 0x6BBF59, [("Verse", 8), ("Chorus", 24), ("Verse", 32), ("Chorus", 48), ("Outro", 56)]),
+    ("Summer", 72, 0xE8C547, [("Verse", 8), ("Chorus", 24), ("Verse", 32), ("Chorus", 48), ("Bridge", 56), ("Outro", 64)]),
+    ("Autumn", 56, 0xD9733B, [("Verse", 4), ("Chorus", 20), ("Solo", 28), ("Chorus", 40), ("Outro", 48)]),
+    ("Winter", 80, 0x5B9BD5, [("Verse", 8), ("Chorus", 24), ("Verse", 40), ("Chorus", 56), ("Outro", 72)]),
+]
 
 
 def guid() -> str:
@@ -70,9 +85,10 @@ def guid() -> str:
 
 
 def main() -> None:
-    regions, pos = [], 0.0
-    for name, bars in SONGS:
-        regions.append((len(regions) + 1, name, pos, pos + bars * BAR))
+    regions, markers, pos = [], [], 0.0
+    for name, bars, rgb, parts in SONGS:
+        regions.append((len(regions) + 1, name, pos, pos + bars * BAR, color(rgb)))
+        markers += [(len(markers) + i, part, pos + bar * BAR) for i, (part, bar) in enumerate(parts, 1)]
         pos += (bars + 1) * BAR
 
     out = [
@@ -84,9 +100,11 @@ def main() -> None:
         "  SAMPLERATE 48000 0 0",
         f"  TEMPO {BPM} 4 4",
     ]
-    for rid, name, start, end in regions:
-        out.append(f'  MARKER {rid} {start:.6f} "{name}" 1 0 1 B {guid()} 0')
+    for rid, name, start, end, native in regions:
+        out.append(f'  MARKER {rid} {start:.6f} "{name}" 1 {native} 1 B {guid()} 0')
         out.append(f'  MARKER {rid} {end:.6f} "" 1')
+    for mid, name, at in markers:
+        out.append(f'  MARKER {mid} {at:.6f} "{name}" 0 0 1 B {guid()} 0')
 
     index = {name: i for i, (name, *_) in enumerate(TRACKS)}
     for i, (name, folder, peakcol, channel, hwout, receives) in enumerate(TRACKS):
@@ -113,7 +131,7 @@ def main() -> None:
         if hwout:
             out.append(f"    HWOUT {hwout}")
         if name == "Click":
-            for rid, _, start, end in regions:
+            for rid, _, start, end, _ in regions:
                 out += [
                     "    <ITEM",
                     f"      POSITION {start:.6f}",
@@ -136,7 +154,7 @@ def main() -> None:
     out.append(">")
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text("\n".join(out) + "\n")
-    print(f"wrote {OUT} ({len(regions)} songs, {len(TRACKS)} tracks)")
+    print(f"wrote {OUT} ({len(regions)} songs, {len(markers)} markers, {len(TRACKS)} tracks)")
 
 
 if __name__ == "__main__":

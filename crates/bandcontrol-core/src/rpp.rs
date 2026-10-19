@@ -317,7 +317,18 @@ mod tests {
                 ("Winter", 390_000, 550_000)
             ]
         );
-        assert_eq!(daw.markers.len(), 0);
+        assert!(daw.regions.iter().all(|r| r.color.is_some()), "{:?}", daw.regions);
+        // The parts of every song, numbered through.
+        assert_eq!(daw.markers.len(), 21);
+        assert_eq!(
+            daw.markers.iter().map(|m| m.id).collect::<Vec<_>>(),
+            (1..=21).collect::<Vec<_>>()
+        );
+        assert!(
+            daw.markers
+                .iter()
+                .all(|m| daw.regions.iter().any(|r| r.start < m.pos && m.pos < r.end))
+        );
     }
 
     #[test]
