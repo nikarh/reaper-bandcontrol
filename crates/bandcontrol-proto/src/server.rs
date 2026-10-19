@@ -305,6 +305,13 @@ impl ServerSessions {
         let phase = self.clients.get(&client).map(|c| &c.phase);
         match (msg, phase) {
             (pb::handshake::Msg::Hello(hello), Some(Phase::Connected)) => self.on_hello(client, hello),
+            // A transport that reuses ids (BLE device address) may miss a disconnect: treat it as a reconnect.
+            (pb::handshake::Msg::Hello(hello), Some(_)) => {
+                let mut events = self.disconnect(client);
+                self.connect(client, now);
+                events.extend(self.on_hello(client, hello));
+                events
+            }
             (pb::handshake::Msg::Auth(auth), Some(Phase::Challenged { .. })) => self.on_auth(client, &auth, now),
             _ => self.drop_client(client),
         }

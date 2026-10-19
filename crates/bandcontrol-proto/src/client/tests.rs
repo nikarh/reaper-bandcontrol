@@ -333,3 +333,16 @@ fn commands_before_auth_are_rejected() {
     let events = net.server.receive(1, &[1, 2, 3], net.now);
     assert_eq!(events, vec![ServerEvent::Disconnect(1)]);
 }
+
+#[test]
+fn hello_on_existing_session_is_a_reconnect() {
+    let mut net = Net::new(false, ServerConfig::default());
+    let hello = net.add_client(1, &secret(), 512);
+    net.client_writes(1, hello);
+    // Same transport id, new client session (e.g. BLE device reconnected without us seeing the disconnect).
+    let hello = net.add_client(1, &secret(), 512);
+    net.client_writes(1, hello);
+    assert_eq!(net.left, vec![1]);
+    assert_eq!(net.joined, vec![1, 1]);
+    assert_eq!(net.server.session_count(), 1);
+}

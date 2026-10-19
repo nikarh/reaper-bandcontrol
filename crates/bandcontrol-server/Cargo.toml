@@ -1,0 +1,31 @@
+[package]
+categories             = ["network-programming"]
+description            = "BLE and TCP server hosting reaper-bandcontrol sessions"
+edition.workspace      = true
+keywords               = ["ble", "reaper", "remote"]
+license.workspace      = true
+name                   = "bandcontrol-server"
+publish.workspace      = true
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[dependencies]
+bandcontrol-core  = { workspace = true }
+bandcontrol-proto = { workspace = true }
+futures           = { workspace = true }
+parking_lot       = { workspace = true }
+thiserror         = { workspace = true }
+tokio             = { workspace = true }
+tracing           = { workspace = true }
+uuid              = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+bluer = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true
