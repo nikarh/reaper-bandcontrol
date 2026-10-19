@@ -11,6 +11,7 @@ on:
       - android/app/src/androidTest/**/ScreenshotTest.kt
       - crates/*/src/**
       - tests/fixtures/**
+      - examples/**
       - docs/features.toml
       - scripts/docs-screenshots.sh
   workflow_dispatch:
@@ -70,7 +71,7 @@ jobs:
           profile: medium_phone
           disable-animations: true
           script: scripts/docs-screenshots.sh app
-      - run: python3 scripts/build-docs.py readme
+      - run: python3 scripts/build-docs.py readme && python3 scripts/build-docs.py fastlane
       - name: Generate GitHub token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: generate-token
@@ -88,5 +89,6 @@ jobs:
           labels: docs
           add-paths: |
             docs/screenshots
+            fastlane
             README.md
           delete-branch: true

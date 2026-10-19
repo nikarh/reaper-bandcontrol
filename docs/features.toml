@@ -2,6 +2,22 @@
 # `scripts/build-docs.py`. `screenshot` names a file in docs/screenshots without extension; app screenshots are
 # taken by android/app/src/androidTest/.../ScreenshotTest.kt, REAPER screenshots by scripts/docs-screenshots.sh.
 # Adding a feature: add an entry here, a screenshot if it is visible, then `mise run docs`.
+#
+# [app] is the app store listing (F-Droid reads fastlane/metadata/android, which `mise run docs` generates from it
+# and the features): the short description has at most 80 characters and no trailing dot.
+
+[app]
+intro = """
+BandControl puts the band's REAPER on every band member's phone: playback and the setlist, input and front of house
+levels, and a personal in-ear mix for each musician. Phones connect to the computer over Bluetooth, so there is no
+Wi-Fi, no hotspot and no IP address to type, and only phones paired with the computer can control it.
+"""
+needs = """
+The app controls REAPER through the free BandControl extension for REAPER {min} or newer on Windows, macOS or Linux:
+{website}
+"""
+short = "Control REAPER from your band's phones over Bluetooth: setlist, levels, in-ears"
+title = "BandControl"
 
 [[feature]]
 id = "playback"

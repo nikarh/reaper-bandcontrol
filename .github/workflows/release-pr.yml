@@ -44,6 +44,8 @@ jobs:
           git cliff --tag "v${{ steps.bump.outputs.version }}" -o CHANGELOG.md
           git cliff --tag "v${{ steps.bump.outputs.version }}" --unreleased --strip all -o "$RUNNER_TEMP/notes.md"
           python3 scripts/build-docs.py readme
+          # The F-Droid listing, with what's new in this version (changelogs/<versionCode>.txt).
+          python3 scripts/build-docs.py fastlane
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:

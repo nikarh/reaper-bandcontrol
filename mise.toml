@@ -113,8 +113,9 @@ description = "Regenerate CHANGELOG.md from the conventional commits"
 run         = "git cliff -o CHANGELOG.md"
 
 [tasks.docs]
-description = "Regenerate the README feature section and build the website into target/site"
-run         = ["python3 scripts/build-docs.py readme", "python3 scripts/build-docs.py site target/site"]
+description = "Regenerate the README feature section and the F-Droid listing (fastlane/), build the website into target/site"
+# One command: taplo sorts arrays, and the order matters.
+run = "python3 scripts/build-docs.py readme && python3 scripts/build-docs.py fastlane && python3 scripts/build-docs.py site target/site"
 
 [tasks."docs:serve"]
 description = "Build the website and serve it on http://localhost:8000"

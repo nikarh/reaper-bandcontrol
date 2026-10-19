@@ -5,6 +5,7 @@
     build-docs.py check       fail if the README is outdated or a referenced screenshot is missing
     build-docs.py site DIR    build the website (site/ + docs/screenshots + changelog) into DIR
     build-docs.py icon        regenerate the website's icons from the app's launcher icon (needs ImageMagick)
+    build-docs.py fastlane    write fastlane/metadata/android (the F-Droid listing) from features.toml and screenshots
 """
 
 import html
@@ -163,8 +164,83 @@ def app_icon_svg(rounded: bool = True) -> str:
     )
 
 
+FASTLANE = ROOT / "fastlane" / "metadata" / "android" / "en-US"
+WEBSITE = "https://bandcontrol.arhipov.net/"
+
+
+def app_listing() -> dict:
+    return tomllib.loads((ROOT / "docs" / "features.toml").read_text())["app"]
+
+
+def android_version_code() -> int:
+    text = (ROOT / "Cargo.toml").read_text()
+    return int(re.search(r"^version-code\s*=\s*(\d+)", text, re.M).group(1))
+
+
+def fastlane_texts() -> dict[str, str]:
+    """The text files of the listing, by path relative to FASTLANE."""
+    app = app_listing()
+    short = app["short"].strip()
+    assert len(short) <= 80 and not short.endswith("."), f"short description: at most 80 characters, no dot: {short!r}"
+    needs = paragraph(app["needs"]).format(min=reaper("min"), website=WEBSITE)
+    parts = [paragraph(app["intro"]), needs]
+    for f in features():
+        parts.append(f"{f['title']}\n{paragraph(f['text'])}")
+    full = "\n\n".join(parts) + "\n"
+    assert len(full) <= 4000, f"full description: {len(full)} characters, at most 4000"
+    texts = {"title.txt": app["title"] + "\n", "short_description.txt": short + "\n", "full_description.txt": full}
+    # What's new in this version, from its section of CHANGELOG.md (once released).
+    changelog = (ROOT / "CHANGELOG.md").read_text() if (ROOT / "CHANGELOG.md").exists() else ""
+    section = re.search(rf"^## \[{re.escape(version())}\][^\n]*\n(.*?)(?=^## |\Z)", changelog, re.M | re.S)
+    if section:
+        items = [re.sub(r"\s*\(\[[0-9a-f]{7,}\]\([^)]*\)\)", "", l[2:]) for l in section.group(1).splitlines() if l.startswith("- ")]
+        notes = ""
+        for item in items:
+            line = f"• {item}\n"
+            if len(notes) + len(line) > 500:
+                break
+            notes += line
+        texts[f"changelogs/{android_version_code()}.txt"] = notes
+    return texts
+
+
+def fastlane_screenshots() -> list[tuple[Path, str]]:
+    """(source, name) of the phone screenshots, in the order of the features."""
+    shots = [f["screenshot"] for f in features() if f.get("screenshot") and is_app_screenshot(f["screenshot"])]
+    return [(SCREENSHOTS / f"{s}.png", f"{i}_{s}.png") for i, s in enumerate(shots, 1)]
+
+
+def build_fastlane() -> None:
+    for name, text in fastlane_texts().items():
+        (FASTLANE / name).parent.mkdir(parents=True, exist_ok=True)
+        (FASTLANE / name).write_text(text)
+    phones = FASTLANE / "images" / "phoneScreenshots"
+    if phones.exists():
+        shutil.rmtree(phones)
+    phones.mkdir(parents=True)
+    for src, name in fastlane_screenshots():
+        shutil.copyfile(src, phones / name)
+    print(f"fastlane metadata written to {FASTLANE.relative_to(ROOT)}")
+
+
+def fastlane_problems() -> list[str]:
+    problems = []
+    for name, text in fastlane_texts().items():
+        if not (FASTLANE / name).exists() or (FASTLANE / name).read_text() != text:
+            problems.append(f"fastlane/…/{name} is outdated, run `mise run docs`")
+    phones = FASTLANE / "images" / "phoneScreenshots"
+    expected = {name: src for src, name in fastlane_screenshots()}
+    present = {p.name for p in phones.glob("*.png")} if phones.exists() else set()
+    if present != set(expected) or any((phones / n).read_bytes() != s.read_bytes() for n, s in expected.items()):
+        problems.append("fastlane phone screenshots differ from docs/screenshots, run `mise run docs`")
+    if not (FASTLANE / "images" / "icon.png").exists():
+        problems.append("fastlane icon missing, run `python3 scripts/build-docs.py icon`")
+    return problems
+
+
 def build_icons() -> None:
-    """site/app-icon.svg and its PNGs: apple-touch-icon.png (square, 180 px) and favicon-32.png."""
+    """site/app-icon.svg and its PNGs: apple-touch-icon.png (square, 180 px) and favicon-32.png; the 512 px store
+    icon of the F-Droid listing."""
     import subprocess
     import tempfile
 
@@ -173,9 +249,14 @@ def build_icons() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         square = Path(tmp) / "square.svg"
         square.write_text(app_icon_svg(rounded=False))
-        for src, size, name in [(square, 180, "apple-touch-icon.png"), (APP_ICON, 32, "favicon-32.png")]:
+        (FASTLANE / "images").mkdir(parents=True, exist_ok=True)
+        for src, size, out in [
+            (square, 180, ROOT / "site" / "apple-touch-icon.png"),
+            (APP_ICON, 32, ROOT / "site" / "favicon-32.png"),
+            (square, 512, FASTLANE / "images" / "icon.png"),
+        ]:
             subprocess.run([magick, "-background", "none", "-density", "600", str(src), "-resize", f"{size}x{size}",
-                            "-strip", str(ROOT / "site" / name)], check=True)
+                            "-strip", str(out)], check=True)
     print("icons written to site/")
 
 
@@ -225,6 +306,7 @@ def main() -> int:
         problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
         site = (ROOT / "site" / "index.html").read_text()
         problems += readme_reaper_versions()
+        problems += fastlane_problems()
         if not APP_ICON.exists() or APP_ICON.read_text() != app_icon_svg():
             problems.append("site/app-icon.svg differs from the app's launcher icon, run `python3 scripts/build-docs.py icon`")
         problems += [f"missing icon site/icons/{n}.svg" for n in sorted(set(ICON.findall(site))) if not (ICONS / f"{n}.svg").exists()]
@@ -235,6 +317,8 @@ def main() -> int:
         return 1 if problems else 0
     elif command == "icon":
         build_icons()
+    elif command == "fastlane":
+        build_fastlane()
     elif command == "site" and len(sys.argv) == 3:
         build_site(Path(sys.argv[2]))
     else:

@@ -1,0 +1,36 @@
+# Draft of the F-Droid build recipe (metadata/dev.nikarh.bandcontrol.yml in https://gitlab.com/fdroid/fdroiddata),
+# kept here so it can be tested before submitting; see docs/FDROID.md. Before submitting: set the commit of the
+# first release tag, and AllowedAPKSigningKeys to the SHA-256 of the release key's certificate.
+Categories:
+  - Multimedia
+License: MIT
+AuthorName: Nikolay Arhipov
+WebSite: https://bandcontrol.arhipov.net/
+SourceCode: https://github.com/nikarh/reaper-bandcontrol
+IssueTracker: https://github.com/nikarh/reaper-bandcontrol/issues
+Changelog: https://github.com/nikarh/reaper-bandcontrol/blob/HEAD/CHANGELOG.md
+
+AutoName: BandControl
+
+RepoType: git
+Repo: https://github.com/nikarh/reaper-bandcontrol.git
+# Reproducible builds: F-Droid publishes the APK of the GitHub release (signed with the release key) when its own
+# build of the same commit is identical apart from the signature.
+Binaries: https://github.com/nikarh/reaper-bandcontrol/releases/download/v%v/bandcontrol.apk
+
+Builds:
+  - versionName: 0.1.0
+    versionCode: 100
+    commit: v0.1.0
+    subdir: android/app
+    gradle:
+      - yes
+
+AllowedAPKSigningKeys: 0000000000000000000000000000000000000000000000000000000000000000
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9.]+$
+# The version and the versionCode live in Cargo.toml, the single version of the extension and the app.
+UpdateCheckData: Cargo.toml|version-code\s*=\s*(\d+)|.|\[workspace\.package\][^\[]*?\nversion\s*=\s*"([^"]+)"
+CurrentVersion: 0.1.0
+CurrentVersionCode: 100
