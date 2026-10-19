@@ -109,34 +109,34 @@ designed to be broadcast-safe on every OS:
 
 ### 0. Repo & tooling
 - [x] git init, plan
-- [ ] `mise.toml`: rust, java (temurin 21), gradle, android-sdk, cargo-deny, cargo-nextest, taplo;
+- [x] `mise.toml`: rust, java (temurin 21), gradle, android-sdk, cargo-deny, cargo-nextest, taplo;
       project-local `ANDROID_HOME`
-- [ ] Rust workspace with strict lints (from `gravity/broker2`), `deny.toml`, `rustfmt.toml`, `clippy.toml`, `.taplo.toml`
-- [ ] mise tasks: `check`, `test`, `lint`, `deny`, `fmt`
+- [x] Rust workspace with strict lints (from `gravity/broker2`), `deny.toml`, `rustfmt.toml`, `clippy.toml`, `.taplo.toml`
+- [x] mise tasks: `test`, `lint`, `fmt`, `android:sdk`
 
 ### 1. Protocol crate
-- [ ] `.proto` schema + prost codegen via protox
-- [ ] packet framing / fragmentation + reassembly (+ proptests)
-- [ ] handshake + session crypto (server & client state machines)
+- [x] `.proto` schema + prost codegen via protox
+- [x] packet framing / fragmentation + reassembly (+ proptests)
+- [x] handshake + session crypto (server & client state machines)
 - [ ] golden test vectors (JSON) for Kotlin cross-check
 
 ### 2. Core engine
-- [ ] model + `Daw` trait + commands
-- [ ] `FakeDaw` (in-memory project, built from Mother Project-like fixture; can play/advance)
-- [ ] `Engine`: initial state, gain delta diffing, transport ticks, structure debounce
-- [ ] unit tests with fake clock
+- [x] model + `Daw` trait + commands
+- [x] `FakeDaw` (in-memory project, built from Mother Project-like fixture; can play/advance)
+- [x] `Engine`: initial state, gain delta diffing, transport ticks, structure debounce
+- [x] unit tests with fake clock
 
 ### 3. Server
-- [ ] session manager (handshake timeout, multi-client, broadcast vs unicast, MTU)
-- [ ] TCP transport (length-prefixed packets, configurable fake MTU)
-- [ ] BLE transport — Linux (bluer): advertising, rx write, tx notify, MTU, disconnect detection
+- [x] session manager (handshake timeout, multi-client, broadcast vs unicast, MTU)
+- [x] TCP transport (length-prefixed packets, configurable fake MTU)
+- [x] BLE transport — Linux (bluer): advertising, rx write, tx notify, MTU, disconnect detection
 - [ ] BLE transport — macOS (CoreBluetooth) / Windows (WinRT), compile-checked via clippy for those targets
-- [ ] integration tests: server + TCP + Rust client + FakeDaw
+- [x] integration tests: server + TCP + Rust client + FakeDaw
 
 ### 4. bandctl
-- [ ] `sim` (FakeDaw, TCP and/or BLE, scripted activity: playback, fader moves, structure changes)
-- [ ] `client` (connect over TCP, print/apply)
-- [ ] `pair-url` / QR rendering
+- [x] `sim` (FakeDaw, TCP and/or BLE, scripted activity: playback, fader moves, structure changes)
+- [x] `client` (connect over TCP, print/apply)
+- [x] `pair` (URL + terminal QR)
 
 ### 5. REAPER extension
 - [ ] FFI (plugin entry, GetFunc table, timer, actions)
@@ -174,3 +174,8 @@ designed to be broadcast-safe on every OS:
 - REAPER 7.82 at `/usr/lib/REAPER`. `cage` + Xwayland available for headless runs (no Xvfb, no sudo).
 - `ble-peripheral-rust` rejected: one notify writer per characteristic (single client only) and spawns a task per
   notification (no ordering) → own BLE layer.
+- BlueZ 5.87 here: `AcquireWrite`/`AcquireNotify` sockets are per device (checked in `gatt-database.c`), so the BlueZ
+  transport is true unicast; the broadcast-safe protocol still matters for other stacks.
+- mise `android-sdk` (vfox) plugin is broken (`semver` lua module) → cmdline-tools via mise `http:` backend.
+- bluer dispatches each D-Bus `WriteValue` in its own task (no ordering) → IO (socket) methods for both characteristics.
+- `bandctl sim --ble` advertises fine without root.
