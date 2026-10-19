@@ -13,7 +13,6 @@ version      = "0.1.0"
 [profile.release]
 codegen-units = 1
 lto           = "fat"
-panic         = "abort"
 strip         = true
 
 [workspace.dependencies]

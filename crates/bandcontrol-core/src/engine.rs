@@ -105,6 +105,12 @@ impl Engine {
         for input in inputs {
             match input {
                 Input::Joined(s) => {
+                    if self.sessions.is_empty() {
+                        // The host may stop ticking while nobody is connected: start from a fresh snapshot.
+                        self.published = None;
+                        self.pending = None;
+                        self.last_transport = None;
+                    }
                     self.sessions.insert(s);
                     joined.push(s);
                 }

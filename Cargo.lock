@@ -1233,6 +1233,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "reaper-bandcontrol"
+version = "0.1.0"
+dependencies = [
+ "bandcontrol-core",
+ "bandcontrol-proto",
+ "bandcontrol-server",
+ "parking_lot",
+ "pretty_assertions",
+ "qrcode",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"

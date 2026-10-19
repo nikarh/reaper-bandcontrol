@@ -39,7 +39,7 @@ impl Command {
     }
 }
 
-#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+#[derive(Debug, Clone, thiserror::Error, PartialEq, Eq)]
 pub enum CommandError {
     #[error("unknown track {0}")]
     UnknownTrack(TrackId),
