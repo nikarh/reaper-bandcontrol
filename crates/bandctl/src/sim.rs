@@ -44,18 +44,22 @@ pub struct SimArgs {
     /// Simulate activity: playback, fader moves, mutes and renames.
     #[arg(long)]
     activity: bool,
-    /// REAPER project to simulate instead of the Mother Project, `band` for the bundled band layout.
+    /// REAPER project to simulate instead of the Mother Project: a file, `band` for the bundled band layout or
+    /// `example` for the downloadable example project.
     #[arg(long)]
     project: Option<PathBuf>,
 }
 
 /// A project shaped like a real band's: input, IEM output and PA output folders.
 const BAND_PROJECT: &str = include_str!("../../../tests/fixtures/Band Project.RPP");
+/// The smallest project laid out the way the app expects, offered for download.
+const EXAMPLE_PROJECT: &str = include_str!("../../../examples/BandControl-Example.RPP");
 
 fn load(project: Option<&str>) -> anyhow::Result<FakeDaw> {
     Ok(match project {
         None | Some("mother") => FakeDaw::mother_project(),
         Some("band") => rpp::parse(BAND_PROJECT)?,
+        Some("example") => rpp::parse(EXAMPLE_PROJECT)?,
         Some(path) => rpp::parse(&std::fs::read_to_string(path)?)?,
     })
 }

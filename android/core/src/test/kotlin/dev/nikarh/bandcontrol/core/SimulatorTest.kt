@@ -81,6 +81,18 @@ class SimulatorTest {
         Connection(scope, TcpConnector("127.0.0.1", tcpPort, maxPacket = 64), secret, "JVM test").also { it.start() }
 
     @Test
+    fun exampleProjectFillsEveryTab() {
+        assertEquals("ok", control("reset example"))
+        val c = connection()
+        val state = c.state.await { s -> s.loaded && s.tracks.any { it.name == "Drummer" } }
+        val groups = state.groups()
+        assertEquals(listOf("Drums", "Bass", "Guitar", "Vocals"), groups.inputs.map { it.name })
+        assertEquals(listOf("PA Backtrack", "PA Instruments", "PA Vocals"), groups.paOutputs.map { it.name })
+        assertEquals(listOf("Drummer", "Bassist", "Guitarist", "Singer"), groups.iemOutputs.map { it.name })
+        assertEquals(listOf("Spring", "Summer", "Autumn", "Winter"), state.regions.map { it.name })
+    }
+
+    @Test
     fun fullSession() {
         val c = connection()
         val status = c.status.await { it is ConnectionStatus.Connected } as ConnectionStatus.Connected
