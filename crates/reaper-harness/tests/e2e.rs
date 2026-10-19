@@ -357,3 +357,56 @@ async fn band_project_in_reaper() {
         .unwrap();
     assert!(env.reaper.web("TRACK/6").unwrap().contains("\t0.500000\t"));
 }
+
+/// The QR code on screen and the side length of its finder pattern square, in pixels.
+fn find_qr(reaper: &Reaper) -> Option<(String, i32)> {
+    let image = reaper.screenshot_gray().unwrap();
+    let mut prepared = rqrr::PreparedImage::prepare_from_greyscale(image.width, image.height, |x, y| {
+        image.pixels.get(y * image.width + x).copied().unwrap_or(0)
+    });
+    prepared.detect_grids().into_iter().find_map(|grid| {
+        let (_, text) = grid.decode().ok()?;
+        let [a, b, ..] = grid.bounds;
+        Some((text, (b.x - a.x).abs().max((b.y - a.y).abs())))
+    })
+}
+
+fn eventually_qr(reaper: &Reaper, longer_than: i32) -> (String, i32) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    loop {
+        if let Some(found) = find_qr(reaper).filter(|(_, size)| *size > longer_than) {
+            return found;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "no QR code larger than {longer_than} px on screen"
+        );
+        std::thread::sleep(Duration::from_millis(300));
+    }
+}
+
+#[test]
+#[ignore = "needs REAPER and cage, run with `mise run e2e:reaper`"]
+fn pairing_window_shows_the_code_and_scales() {
+    let env = start("pairing-window");
+    env.reaper.web("_BANDCONTROL_SHOW_PAIRING").unwrap();
+    let expected = bandcontrol_proto::pairing::PairingInfo {
+        secret: secret(),
+        name: "E2E".into(),
+    }
+    .to_url();
+    let (url, size) = eventually_qr(&env.reaper, 0);
+    assert_eq!(url, expected);
+
+    // Running the action again keeps the one window.
+    env.reaper.web("_BANDCONTROL_SHOW_PAIRING").unwrap();
+    assert_eq!(eventually_qr(&env.reaper, 0).0, expected);
+
+    if env.reaper.can_resize_windows() {
+        env.reaper.resize_window("^BandControl pairing$", 900, 1050).unwrap();
+        let (url, larger) = eventually_qr(&env.reaper, size * 3 / 2);
+        assert_eq!(url, expected);
+        assert!(larger > size, "{larger} > {size}");
+    }
+    assert!(!env.reaper.log().contains("pairing window is not available"));
+}

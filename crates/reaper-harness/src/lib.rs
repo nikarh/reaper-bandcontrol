@@ -36,6 +36,60 @@ pub enum Error {
     NotHeadless,
     #[error("the screenshot tool failed with {0}")]
     Screenshot(std::process::ExitStatus),
+    #[error("unreadable screenshot")]
+    Image,
+    #[error("finding and resizing windows needs REAPER under Xvfb (xdotool)")]
+    NoWindowControl,
+}
+
+/// An 8 bit grayscale image.
+#[derive(Debug, Clone)]
+pub struct Gray {
+    pub width: usize,
+    pub height: usize,
+    pub pixels: Vec<u8>,
+}
+
+impl Gray {
+    /// Parses a binary PPM (`P6`, 8 bit), as written by `grim -t ppm` and `import`.
+    fn from_ppm(data: &[u8]) -> Option<Self> {
+        let mut fields = Vec::new();
+        let mut pos = 0;
+        while fields.len() < 4 {
+            while data.get(pos).is_some_and(u8::is_ascii_whitespace) {
+                pos += 1;
+            }
+            if data.get(pos) == Some(&b'#') {
+                while data.get(pos).is_some_and(|b| *b != b'\n') {
+                    pos += 1;
+                }
+                continue;
+            }
+            let start = pos;
+            while data.get(pos).is_some_and(|b| !b.is_ascii_whitespace()) {
+                pos += 1;
+            }
+            fields.push(std::str::from_utf8(data.get(start..pos)?).ok()?.to_owned());
+        }
+        let [magic, width, height, max] = fields.as_slice() else {
+            return None;
+        };
+        let (width, height): (usize, usize) = (width.parse().ok()?, height.parse().ok()?);
+        if magic != "P6" || max != "255" {
+            return None;
+        }
+        let rgb = data.get(pos + 1..pos + 1 + width * height * 3)?;
+        let pixels = rgb
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .map(|[r, g, b]| {
+                u8::try_from((u32::from(*r) * 299 + u32::from(*g) * 587 + u32::from(*b) * 114) / 1000)
+                    .unwrap_or(u8::MAX)
+            })
+            .collect();
+        Some(Self { width, height, pixels })
+    }
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -384,14 +438,16 @@ impl Reaper {
                     .map(|e| e.file_name().to_string_lossy().into_owned())
                     .find(|n| n.starts_with("wayland-") && Path::new(n).extension().is_none())
                     .ok_or(Error::NotHeadless)?;
+                let ppm = path.extension().is_some_and(|e| e == "ppm");
                 Command::new("grim")
                     .env("XDG_RUNTIME_DIR", runtime)
                     .env("WAYLAND_DISPLAY", socket)
+                    .args(if ppm { &["-t", "ppm"][..] } else { &[] })
                     .arg(path)
                     .status()?
             }
             Display::Xvfb { display, .. } => Command::new("import")
-                .args(["-display", display, "-window", "root"])
+                .args(["-display", display, "-window", "root", "-depth", "8"])
                 .arg(path)
                 .status()?,
             Display::Windowed => return Err(Error::NotHeadless),
@@ -401,6 +457,82 @@ impl Reaper {
         } else {
             Err(Error::Screenshot(status))
         }
+    }
+
+    /// A grayscale screenshot of the headless REAPER screen.
+    ///
+    /// # Errors
+    /// See [`Self::screenshot`].
+    pub fn screenshot_gray(&self) -> Result<Gray> {
+        let path = self.dir.join("screenshot.ppm");
+        self.screenshot(&path)?;
+        Gray::from_ppm(&std::fs::read(&path)?).ok_or(Error::Image)
+    }
+
+    /// Resizes the window whose title matches `title` (a regular expression) to `width` x `height`.
+    ///
+    /// # Errors
+    /// When REAPER doesn't run under Xvfb, or the window isn't found.
+    pub fn resize_window(&self, title: &str, width: u32, height: u32) -> Result<()> {
+        let Display::Xvfb { display, .. } = &self.display else {
+            return Err(Error::NoWindowControl);
+        };
+        let status = Command::new("xdotool")
+            .env("DISPLAY", display)
+            .args([
+                "search",
+                "--sync",
+                "--onlyvisible",
+                "--name",
+                title,
+                "windowsize",
+                "--sync",
+                "%1",
+            ])
+            .args([width.to_string(), height.to_string()])
+            .status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(Error::Timeout(format!("window {title:?}")))
+        }
+    }
+
+    /// Saves a PNG of the window whose title matches `title` (a regular expression).
+    ///
+    /// # Errors
+    /// When REAPER doesn't run under Xvfb, or the window isn't found.
+    pub fn screenshot_window(&self, title: &str, path: &Path) -> Result<()> {
+        let Display::Xvfb { display, .. } = &self.display else {
+            return Err(Error::NoWindowControl);
+        };
+        let found = Command::new("xdotool")
+            .env("DISPLAY", display)
+            .args(["search", "--onlyvisible", "--name", title])
+            .output()?;
+        let id = String::from_utf8_lossy(&found.stdout)
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .to_owned();
+        if id.is_empty() {
+            return Err(Error::Timeout(format!("window {title:?}")));
+        }
+        let status = Command::new("import")
+            .args(["-display", display, "-window", &id])
+            .arg(path)
+            .status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(Error::Screenshot(status))
+        }
+    }
+
+    /// Whether [`Self::resize_window`] works here.
+    #[must_use]
+    pub fn can_resize_windows(&self) -> bool {
+        matches!(self.display, Display::Xvfb { .. })
     }
 
     /// Runs a REAPER action by command id.
