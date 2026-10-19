@@ -22,15 +22,96 @@ jobs:
     if: github.repository_owner == 'nikarh'
     uses: ./.github/workflows/build.yml
 
+  windows-installers:
+    name: Windows installers
+    needs: [build]
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - run: sudo apt-get update -q && sudo apt-get install -yq nsis osslsigncode
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dist-windows-*
+          merge-multiple: true
+          path: dist
+      - name: Package and sign
+        env:
+          CERTIFICATE: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PASSWORD: ${{ secrets.WINDOWS_SIGN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          # Without a certificate the installers are built unsigned, like in the Check workflow.
+          if [[ -n $CERTIFICATE ]]; then
+            echo "$CERTIFICATE" | base64 -d > "$RUNNER_TEMP/sign.pfx"
+            export WINDOWS_SIGN_PFX=$RUNNER_TEMP/sign.pfx
+            # The raw libraries get the same signature as the ones inside the installers.
+            for dll in dist/*.dll; do scripts/sign-windows.sh "$dll"; done
+          fi
+          scripts/package-windows.sh x64 dist/reaper_bandcontrol-windows-x86_64.dll dist
+          scripts/package-windows.sh arm64 dist/reaper_bandcontrol-windows-arm64ec.dll dist
+          rm -f "$RUNNER_TEMP/sign.pfx"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-windows
+          path: dist/*
+          if-no-files-found: error
+
+  macos-installer:
+    name: macOS installer
+    needs: [build]
+    runs-on: macos-15
+    environment: release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-macos-universal
+          path: dist
+      - name: Import the signing certificates
+        env:
+          MACOS_CERTIFICATES_P12_BASE64: ${{ secrets.MACOS_CERTIFICATES_P12_BASE64 }}
+          MACOS_CERTIFICATES_PASSWORD: ${{ secrets.MACOS_CERTIFICATES_PASSWORD }}
+        run: if [[ -n $MACOS_CERTIFICATES_P12_BASE64 ]]; then scripts/macos-keychain.sh; fi
+      - name: Package, sign and notarize
+        env:
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          MACOS_INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
+          MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+          MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          lib=dist/reaper_bandcontrol-macos-universal.dylib
+          if [[ -n $MACOS_SIGN_IDENTITY ]]; then
+            codesign --force --timestamp --options runtime --sign "$MACOS_SIGN_IDENTITY" "$lib"
+          fi
+          scripts/package-macos.sh "$lib" dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-macos
+          path: dist/*
+          if-no-files-found: error
+
   upload:
     name: Sign and upload
-    needs: [build]
+    needs: [build, windows-installers, macos-installer]
     runs-on: ubuntu-24.04
     environment: release
     steps:
       - uses: actions/download-artifact@v8
         with:
           pattern: dist-*
+          merge-multiple: true
+          path: dist
+      # Signed libraries and installers replace the unsigned libraries from the build.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: signed-*
           merge-multiple: true
           path: dist
       - name: Sign the APK with the release key

@@ -1,6 +1,7 @@
 name: Build
 
-# Builds every release artifact; used by the Check and Publish workflows. Publish signs the APK with the release key.
+# Builds every release artifact; used by the Check and Publish workflows. The installers built here are unsigned:
+# Publish builds them again with the signing certificates (and signs the APK with the release key).
 on:
   workflow_call:
 
@@ -36,6 +37,12 @@ jobs:
             targets: x86_64-pc-windows-msvc
             file: reaper_bandcontrol.dll
             ext: dll
+          # REAPER for Windows on ARM is an ARM64EC build, so are its plugins.
+          - name: windows-arm64ec
+            os: windows-2025
+            targets: arm64ec-pc-windows-msvc
+            file: reaper_bandcontrol.dll
+            ext: dll
     steps:
       - uses: actions/checkout@v7
       - name: Install BlueZ headers
@@ -68,6 +75,45 @@ jobs:
         with:
           name: dist-${{ matrix.name }}
           path: dist/*
+          if-no-files-found: error
+
+  windows-installers:
+    name: Windows installers (unsigned)
+    needs: [extension]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -q && sudo apt-get install -yq nsis
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: dist-windows-*
+          merge-multiple: true
+          path: dist
+      - name: Package
+        run: |
+          scripts/package-windows.sh x64 dist/reaper_bandcontrol-windows-x86_64.dll installers
+          scripts/package-windows.sh arm64 dist/reaper_bandcontrol-windows-arm64ec.dll installers
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-windows
+          path: installers/*
+          if-no-files-found: error
+
+  macos-installer:
+    name: macOS installer (unsigned)
+    needs: [extension]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-macos-universal
+          path: dist
+      - run: scripts/package-macos.sh dist/reaper_bandcontrol-macos-universal.dylib installers
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-macos
+          path: installers/*
           if-no-files-found: error
 
   apk:
