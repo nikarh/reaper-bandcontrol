@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes examples/BandControl-Example.RPP: the smallest project laid out the way BandControl expects.
 
-    Click, Backtrack          sources at the top level
+    Click, Backtrack          sources; their place is free, the top level is just this example's choice
     INPUTS/                   the musicians' inputs: the Inputs tab (levels and gain)
     FOH OUT/                  front of house: feeds to the house desk or the PA, one hardware output each: the FOH tab
     IEM OUT/                  one in-ear mix per musician, a hardware output receiving the sources: the IEM tab

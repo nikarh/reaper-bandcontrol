@@ -203,16 +203,18 @@ shows the details, including why Bluetooth doesn't work if it doesn't.
 folders, named the way it expects, decide what shows up in which tab:
 
 ```text
-Click, Backtrack      sources, at the top level
 INPUTS/               -> Inputs tab: one track per input (Drums, Bass, Guitar, Vocals)
 FOH OUT/              -> FOH tab: front of house, the feeds to the house desk or the PA, each a hardware output
                          receiving its sources
 IEM OUT/              -> IEM tab: one mix per musician, a hardware output receiving everything they want to hear
 ```
 
-Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware output
-and receives. Nothing else needs to change and there is nothing to install in the project; the
-[example project](#example-project) has exactly this layout.
+Everything else is up to you: the click, backtracks, buses, effect returns and any other tracks can live anywhere
+and be organized however you like, as long as they don't land in these folders: a direct child of the Inputs or FOH
+folder shows up in that tab, and a track with a hardware output and receives inside the IEM folder is listed as a
+mix. Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a
+hardware output and receives. There is nothing to install in the project; the [example project](#example-project)
+shows one way to lay it out.
 
 The rules:
 
@@ -239,7 +241,7 @@ works as it is.
 (*right click → Save link as*): the smallest project laid out this way, to open and look at, or to start from. It
 opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are taken from it.
 
-- **Click** (a click plays during every song) and **Backtrack** at the top level.
+- **Click** (a click plays during every song) and **Backtrack**, at the top level in this example.
 - **INPUTS**: Drums, Bass, Guitar and Vocals on hardware inputs 1 to 4.
 - **FOH OUT**: FOH Backtrack, FOH Instruments and FOH Vocals on hardware outputs 9 to 11, each receiving its sources.
 - **IEM OUT**: Drummer, Bassist, Guitarist and Singer on output pairs 1/2 to 7/8, each receiving all six sources.
