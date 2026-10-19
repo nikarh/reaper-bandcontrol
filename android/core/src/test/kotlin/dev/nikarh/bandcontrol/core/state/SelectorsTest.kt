@@ -1,6 +1,10 @@
 package dev.nikarh.bandcontrol.core.state
 
+import dev.nikarh.bandcontrol.proto.Marker
+import dev.nikarh.bandcontrol.proto.Region
 import dev.nikarh.bandcontrol.proto.RegionOrder
+import dev.nikarh.bandcontrol.proto.ServerMessage
+import dev.nikarh.bandcontrol.proto.State
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -75,5 +79,36 @@ class SelectorsTest {
         val rows = state.receivesOf(output)
         assertEquals(listOf("Click", "Drum mic [1]"), rows.map { it.source.name })
         assertEquals(listOf(false, true), rows.map { it.mute })
+    }
+
+    @Test
+    fun songsThatFollowEachOtherDirectly() {
+        val regions =
+            listOf(
+                Region(id = 5, name = "Copper Sky", start_ms = 462_077, end_ms = 572_077),
+                Region(id = 6, name = "Static Bloom", start_ms = 572_077, end_ms = 690_141),
+            )
+        val markers =
+            listOf(
+                Marker(id = 39, name = "Outro", pos_ms = 560_000),
+                Marker(id = 40, name = "Intro", pos_ms = 572_077),
+                Marker(id = 41, name = "Chorus", pos_ms = 587_560),
+            )
+        val s =
+            BandState().apply(
+                ServerMessage(
+                    state = State(regions = regions, markers = markers, region_order = listOf(5, 6).map { RegionOrder(id = it) }),
+                ),
+                0,
+            )
+        assertEquals("Copper Sky", s.currentRegion(572_000)?.name)
+        assertEquals("Static Bloom", s.currentRegion(572_077)?.name)
+        assertEquals("Static Bloom", s.currentRegion(572_500)?.name)
+        assertEquals(listOf(39), s.markersIn(regions[0]).map { it.id })
+        assertEquals(listOf(40, 41), s.markersIn(regions[1]).map { it.id })
+        assertEquals("Intro", s.currentMarker(572_077)?.name)
+        // From the outro of the first song, next goes to the start of the second.
+        assertEquals(572_077, s.nextTarget(565_000)?.posMs)
+        assertEquals(6, s.nextTarget(565_000)?.region?.id)
     }
 }

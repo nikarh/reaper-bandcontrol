@@ -230,7 +230,7 @@ fun problemText(
         Problem.BluetoothUnavailable -> "This phone has no Bluetooth"
         Problem.BluetoothOff -> "Bluetooth is off"
         Problem.PermissionMissing -> "Allow access to nearby devices to connect"
-        Problem.NotFound -> "$name not found nearby. Is REAPER running? Still looking…"
+        Problem.NotFound -> "$name not found nearby. Is REAPER running and paired with this phone? Still looking…"
         Problem.Unreachable -> "Can't connect to $name. Trying again…"
         Problem.NoAnswer -> "$name doesn't answer. Trying again…"
         Problem.Lost -> "Connection to $name lost. Reconnecting…"

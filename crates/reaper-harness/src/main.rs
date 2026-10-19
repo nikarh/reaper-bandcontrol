@@ -3,8 +3,8 @@
 //! Lines other than `q` are sent to the REAPER web interface and the response is printed, e.g.
 //! `SET/TRACK/13/VOL/0.5;TRACK/13`.
 //!
-//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT]`; `BANDCONTROL_*` variables are passed
-//! to REAPER.
+//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT]` (default project: the band fixture);
+//! `BANDCONTROL_*` variables are passed to REAPER.
 
 use std::{
     io::{BufRead as _, Write as _},
@@ -12,11 +12,11 @@ use std::{
     time::Duration,
 };
 
-use reaper_harness::{Options, Reaper, build_plugin, mother_project, workspace_root};
+use reaper_harness::{Options, Reaper, band_project, build_plugin, workspace_root};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut release = false;
-    let mut project = mother_project();
+    let mut project = band_project();
     let mut web_port = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {

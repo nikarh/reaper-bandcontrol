@@ -93,7 +93,7 @@ fun MixScreen(
             }
             MainMix(selected, meters, enabled, send)
         }
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize().testTag("receives")) {
             items(state.receivesOf(selected), key = { "${selected.id}-${it.index}-${it.source.id}" }) { row ->
                 ReceiveRow(selected, row, enabled, send)
                 HorizontalDivider(color = Palette.gray800)
