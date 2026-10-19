@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -240,7 +241,7 @@ private fun NavigationRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(56.dp)
             .clip(RoundedCornerShape(6.dp)),
     ) {
         NavButton(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "previous", previous, enabled, send)
@@ -248,7 +249,8 @@ private fun NavigationRow(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Palette.gray700),
+                .background(Palette.gray700)
+                .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -259,20 +261,34 @@ private fun NavigationRow(
                 Text(
                     region.name,
                     color = textOn(bg),
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier =
                         Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(bg ?: Color.Transparent)
-                            .padding(horizontal = 4.dp)
+                            .padding(horizontal = 6.dp)
                             .testTag("current-region"),
                 )
             }
             if (marker != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
                     MarkerChip(marker)
-                    if (marker.name.isNotEmpty()) Text(" ${marker.name}", color = Palette.gray400, fontSize = 11.sp)
+                    if (marker.name.isNotEmpty()) {
+                        Text(
+                            marker.name,
+                            color = Palette.gray300,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 4.dp).testTag("current-marker"),
+                        )
+                    }
                 }
             }
         }
@@ -305,16 +321,17 @@ private fun NavButton(
 @Composable
 private fun MarkerChip(marker: Marker) {
     val bg = rgb(marker.color) ?: Palette.red600
-    Text(
-        marker.id.toString(),
-        color = textOn(bg),
-        fontSize = 10.sp,
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(bg)
-                .padding(horizontal = 4.dp),
-    )
+    Box(
+        Modifier
+            .height(16.dp)
+            .defaultMinSize(minWidth = 16.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(bg)
+            .padding(horizontal = 3.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(marker.id.toString(), color = textOn(bg), fontSize = 10.sp, lineHeight = 10.sp, maxLines = 1)
+    }
 }
 
 private fun formatTime(ms: Long): String {

@@ -20,7 +20,10 @@ object Palette {
     val blue500 = Color(0xFF3B82F6)
     val emerald300 = Color(0xFF6EE7B7)
     val emerald400 = Color(0xFF34D399)
+    val yellow300 = Color(0xFFFDE047)
+    val yellow400 = Color(0xFFFACC15)
     val yellow600 = Color(0xFFCA8A04)
+    val green500 = Color(0xFF22C55E)
     val slate200 = Color(0xFFE2E8F0)
 }
 

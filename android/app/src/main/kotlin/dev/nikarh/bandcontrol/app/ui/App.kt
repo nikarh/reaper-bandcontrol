@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -27,14 +29,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,8 +47,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
+import dev.nikarh.bandcontrol.core.state.groups
 
-enum class Tab { Mix, Control }
+enum class Tab(
+    val label: String,
+    val icon: ImageVector,
+) {
+    Control("Control", Icons.Default.PlayCircle),
+    Mix("Mix", Icons.Default.Tune),
+    Inputs("Inputs", Icons.Default.Mic),
+    Pa("PA", Icons.Default.Speaker),
+}
 
 @Composable
 fun BandControlApp(
@@ -55,7 +69,29 @@ fun BandControlApp(
     val state by model.state.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Control) }
+    var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
     var repairing by remember { mutableStateOf(false) }
+    // Keeps each tab's scroll positions and selections while another tab is shown.
+    val tabStates = rememberSaveableStateHolder()
+    val groups = remember(state.tracks) { state.groups() }
+    val tabs =
+        Tab.entries.filter {
+            when (it) {
+                Tab.Inputs -> groups.inputs.isNotEmpty()
+                Tab.Pa -> groups.paOutputs.isNotEmpty()
+                else -> true
+            }
+        }
+    val shown = if (tab in tabs || !state.loaded) tab else Tab.Control
+    val output = groups.iemOutputs.find { it.id == selectedOutput } ?: groups.iemOutputs.firstOrNull()
+    val metered =
+        when (shown) {
+            Tab.Control -> emptyList()
+            Tab.Mix -> listOfNotNull(output?.id)
+            Tab.Inputs -> groups.inputs.map { it.id }
+            Tab.Pa -> groups.paOutputs.map { it.id }
+        }
+    LaunchedEffect(metered, pairing, repairing) { model.meter(if (pairing == null || repairing) emptyList() else metered) }
 
     val info = pairing
     if (info == null || repairing) {
@@ -92,22 +128,16 @@ fun BandControlApp(
                         unselectedIconColor = Palette.gray400,
                         unselectedTextColor = Palette.gray400,
                     )
-                NavigationBarItem(
-                    selected = tab == Tab.Mix,
-                    onClick = { tab = Tab.Mix },
-                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                    label = { Text("Mix") },
-                    colors = colors,
-                    modifier = Modifier.testTag("tab-mix"),
-                )
-                NavigationBarItem(
-                    selected = tab == Tab.Control,
-                    onClick = { tab = Tab.Control },
-                    icon = { Icon(Icons.Default.PlayCircle, contentDescription = null) },
-                    label = { Text("Control") },
-                    colors = colors,
-                    modifier = Modifier.testTag("tab-control"),
-                )
+                for (t in tabs) {
+                    NavigationBarItem(
+                        selected = shown == t,
+                        onClick = { tab = t },
+                        icon = { Icon(t.icon, contentDescription = null) },
+                        label = { Text(t.label) },
+                        colors = colors,
+                        modifier = Modifier.testTag("tab-${t.name.lowercase()}"),
+                    )
+                }
             }
         },
     ) { padding ->
@@ -119,9 +149,40 @@ fun BandControlApp(
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
-                when (tab) {
-                    Tab.Control -> ControlScreen(state, enabled = connected, send = model::send)
-                    Tab.Mix -> MixScreen(state, enabled = connected, send = model::send)
+                tabStates.SaveableStateProvider(shown.name) {
+                    when (shown) {
+                        Tab.Control -> {
+                            ControlScreen(state, enabled = connected, send = model::send)
+                        }
+
+                        Tab.Mix -> {
+                            MixScreen(
+                                state = state,
+                                outputs = groups.iemOutputs,
+                                selected = output,
+                                onSelect = { selectedOutput = it },
+                                meters = model.meters,
+                                enabled = connected,
+                                send = model::send,
+                            )
+                        }
+
+                        Tab.Inputs -> {
+                            LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
+                        }
+
+                        Tab.Pa -> {
+                            LevelsScreen(
+                                "PA outputs",
+                                groups.paOutputs,
+                                model.meters,
+                                model.peaks,
+                                model::resetPeaks,
+                                connected,
+                                model::send,
+                            )
+                        }
+                    }
                 }
             }
         }

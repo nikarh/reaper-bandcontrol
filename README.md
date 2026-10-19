@@ -6,7 +6,8 @@ A REAPER extension (Rust) turns the computer into a Bluetooth LE peripheral. An 
 offers the same two tabs as [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui):
 
 - **Control**: transport, previous/next marker, song (region) list with markers and progress, song order editor
-- **Mix**: each band member's IEM mix, i.e. the receive levels and mutes of their output track
+- **Mix**: each band member's IEM mix: the mix level on top, the receive levels and mutes of their output track below
+- **Inputs** and **PA**: gain and live level of every input and PA output, with peak hold and clip indicator
 
 ## Install
 
@@ -34,7 +35,10 @@ The same rules as for reaper-remote-bandui (see `Mother Project.RPP` there):
 
 1. Songs are named regions that don't overlap. Markers inside a region are the song's parts.
 2. An output (a band member's IEM mix) is a track with a hardware output and at least one receive. The Mix tab
-   changes the volume and mute of those receives.
+   changes the volume and mute of those receives. If the mixes are in a folder named like "IEM" or "Monitor", only
+   those are listed.
+3. Optional: direct children of a top level folder named like "Inputs" show in the Inputs tab, direct children of a
+   top level folder with "PA" in its name in the PA tab. Gain there is the track volume, levels are post-fader.
 
 The song order and disabled songs are stored in the project (`BANDUI/regions` project state), compatible with
 reaper-remote-bandui.
@@ -73,12 +77,14 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 Manual tools:
 
 - `cargo run -p bandctl -- sim --ble --activity` runs a simulated REAPER (the Mother Project) as a Bluetooth peripheral
-  and moves faders and the playhead; `bandctl sim --tcp 127.0.0.1:47011` serves TCP instead. `bandctl pair` prints a
+  and moves faders and the playhead; `bandctl sim --tcp 127.0.0.1:47011` serves TCP instead. `--project FILE.RPP`
+  simulates a real project (tracks, folders, receives, regions), `--project band` a bundled band layout. `bandctl pair` prints a
   pairing code and QR, `bandctl client` connects and prints what it receives.
 - `mise run reaper` starts an isolated headless REAPER with the extension (fresh resource directory under
   `target/reaper-harness`) and sends lines typed on stdin to REAPER's web API, e.g. `SET/TRACK/13/VOL/0.5`.
   `BANDCONTROL_*` variables are passed through; `REAPER_HEADLESS=0` shows the window.
-- `mise run android:deploy [pairing-url]` installs and starts the app on the phone. A pairing URL with
+- `mise run android:deploy [pairing-url]` installs and starts the app on the phone; `scripts/android-tap.sh <tag>`
+  taps an element by test tag, `scripts/android-screenshot.sh` saves a screenshot. A pairing URL with
   `&t=127.0.0.1:PORT` makes debug builds connect over TCP through `adb reverse` instead of Bluetooth.
 
 Extension environment variables: `BANDCONTROL_SECRET` (pairing code), `BANDCONTROL_TCP` (also listen on TCP),

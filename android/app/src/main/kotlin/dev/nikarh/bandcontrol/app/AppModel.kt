@@ -15,6 +15,7 @@ import dev.nikarh.bandcontrol.core.protocol.Crypto
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.PeakHolds
 import dev.nikarh.bandcontrol.proto.ClientMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppModel(
@@ -45,6 +49,29 @@ class AppModel(
         connection
             .flatMapLatest { it?.state ?: flowOf(BandState()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, BandState())
+
+    /** Latest peak per metered track in dBFS, null for silence. */
+    val meters: StateFlow<Map<Int, Float?>> =
+        connection
+            .flatMapLatest { it?.meters ?: flowOf(emptyMap()) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private val mutablePeaks = MutableStateFlow(PeakHolds())
+    val peaks: StateFlow<PeakHolds> = mutablePeaks.asStateFlow()
+
+    private var meterTracks: List<Int> = emptyList()
+
+    init {
+        meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
+    }
+
+    /** The tracks currently shown with meters, kept across reconnects. */
+    fun meter(tracks: List<Int>) {
+        meterTracks = tracks
+        connection.value?.meter(tracks)
+    }
+
+    fun resetPeaks(tracks: Collection<Int>) = mutablePeaks.update { it.reset(tracks) }
 
     private var started = false
     private val mutablePermitted = MutableStateFlow(false)
@@ -85,7 +112,10 @@ class AppModel(
         val connector = info?.let(::connector)
         connection.value =
             if (started && connector != null) {
-                Connection(viewModelScope, connector, info.secret, Build.MODEL).also { it.start() }
+                Connection(viewModelScope, connector, info.secret, Build.MODEL).also {
+                    it.meter(meterTracks)
+                    it.start()
+                }
             } else {
                 null
             }
