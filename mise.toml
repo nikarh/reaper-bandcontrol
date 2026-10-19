@@ -2,12 +2,14 @@
 actionlint                        = "1.7.12"
 git-cliff                         = "2.14.2"
 "github:EmbarkStudios/cargo-deny" = "0.20.2"
-gradle                            = "9.8.1"
-"http:android-cmdline-tools"      = { version = "16111833", url = "https://dl.google.com/android/repository/commandlinetools-linux-{{version}}_latest.zip", bin_path = "cmdline-tools/bin" }
-java                              = "temurin-21.0.12+8.0.LTS"
-rust                              = { version = "1.99.1", components = "rustfmt,clippy", targets = "x86_64-pc-windows-msvc,arm64ec-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin" }
-shellcheck                        = "0.11.0"
-taplo                             = "0.10.0"
+# GitHub CLI: repository setup, releases and secrets (SETUP.local.md, docs/RELEASING.md).
+gh                           = "2.102.0"
+gradle                       = "9.8.1"
+"http:android-cmdline-tools" = { version = "16111833", url = "https://dl.google.com/android/repository/commandlinetools-linux-{{version}}_latest.zip", bin_path = "cmdline-tools/bin" }
+java                         = "temurin-21.0.12+8.0.LTS"
+rust                         = { version = "1.99.1", components = "rustfmt,clippy", targets = "x86_64-pc-windows-msvc,arm64ec-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin" }
+shellcheck                   = "0.11.0"
+taplo                        = "0.10.0"
 
 [env]
 ANDROID_HOME     = "{{config_root}}/.android-sdk"
