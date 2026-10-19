@@ -166,10 +166,23 @@ designed to be broadcast-safe on every OS:
 - [ ] GitHub Actions: Rust lint/test (linux), extension builds (linux/macos/windows), APK build
 - [x] README (install, pairing, project layout requirements, testing); `mise run install` for the extension
 - [x] in-app QR scanning (Google Play services code scanner, no camera permission)
-- [ ] meters (optional subscription for visible tracks)
 - [ ] release-build smoke test on the phone (R8 broke ML Kit once; only debug builds are instrumented)
 
 ---
+
+### 9. Band project feedback (real project: inputs, IEM and PA folders)
+- [x] fader: dB law (-60..+12 dB, 0 dB at ~72 %), relative horizontal drag only (taps and vertical swipes don't
+      change levels, reaper-remote-bandui#26), 0 dB mark + detent + haptic tick; no more clamping to 0 dB
+- [x] Mix tab: flat rows instead of cards, the mix's own level emphasised on top with its meter
+- [x] tabs Control, Mix, Inputs, PA (empty ones hidden); each tab keeps selection and scroll position
+- [x] Control tab: region / marker box sized so the marker chip fits
+- [x] protocol: all tracks with parent folder; per-session meter subscriptions (peak since last frame, 10 Hz, 1 byte)
+- [x] track roles from folders: "Input(s)" folder children, "PA" folder children, outputs in an "IEM"/"Monitor"
+      folder (falls back to all outputs outside PA)
+- [x] Inputs / PA tabs: gain (track volume), live meter, peak hold with clip latch, reset
+- [x] `bandctl sim --project FILE|band` reads .RPP files; anonymised band layout in `tests/fixtures/Band Project.RPP`
+- [x] tests: Rust engine/parser, REAPER e2e meters, Kotlin groups/fader law/sim meters, phone e2e for faders, tab
+      state, inputs and PA (TCP, BLE, real REAPER)
 
 ## Log / notes
 
@@ -201,3 +214,8 @@ designed to be broadcast-safe on every OS:
   central from the peripheral side: `Disconnect` forgets it, unsubscribing from TX counts as a disconnect.
 - R8 full mode (AGP 9 default) breaks ML Kit's reflective component wiring (NPE in `GmsBarcodeScanning.getClient`);
   keep rules in `proguard-rules.pro`. Debug builds were fine, so only a manual release check caught it.
+- Meters: the engine samples `Track_GetPeakInfo` (post-fader, highest channel) every tick and sends the maximum
+  per 100 ms; silent frames are sent once. The phone animates the fall and latches peaks. An endless frame loop
+  in a composable keeps Compose busy and breaks Espresso, so meters only animate while falling.
+- REAPER reports the custom-color flag without a color (`0x1000000`) for some tracks; treated as no color.
+- Fixture colors in .RPP: PEAKCOL is stored BGR, marker colors RGB (both checked against REAPER via the parser test).

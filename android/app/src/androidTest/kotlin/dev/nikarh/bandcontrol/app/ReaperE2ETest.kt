@@ -2,7 +2,9 @@ package dev.nikarh.bandcontrol.app
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isOff
@@ -82,7 +84,7 @@ class ReaperE2ETest {
 
     @Before
     fun launch() {
-        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/13/VOL/0.42")
+        web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/13/VOL/0.42;SET/TRACK/7/VOL/1")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=REAPER" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
@@ -144,7 +146,19 @@ class ReaperE2ETest {
         eventually { trackVolume(13) < 0.3 }
 
         web("SET/TRACK/13/VOL/0.25")
-        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.04 dB"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.0 dB"), 5_000)
+    }
+
+    @Test
+    fun inputGain() {
+        compose.onNodeWithTag("tab-inputs").performClick()
+        compose.onNodeWithTag("gain-7").performTouchInput { swipeLeft() }
+        eventually { trackVolume(7) < 0.5 }
+        web("SET/TRACK/7/VOL/1")
+        compose.waitUntilAtLeastOneExists(
+            hasTestTag("gain-7") and SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "0.0 dB"),
+            5_000,
+        )
     }
 
     private companion object {

@@ -2,19 +2,26 @@ package dev.nikarh.bandcontrol.app
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -124,8 +131,80 @@ class SimulatorE2ETest {
 
         // Changes made in REAPER show up on the phone.
         control("volume 13 0.25")
-        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.04 dB"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("db") and hasText("-12.0 dB"), 5_000)
         control("rename 2 Klick")
         compose.waitUntilAtLeastOneExists(hasText("Klick"), 5_000)
+    }
+
+    private fun receiveVolume(
+        output: Int,
+        index: Int,
+    ) = track(output).getJSONArray("receives").getJSONObject(index).getDouble("volume")
+
+    @Test
+    fun faderIgnoresTapsAndVerticalSwipes() {
+        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("output-13").performClick()
+        val before = receiveVolume(13, 3)
+        compose.onNodeWithTag("receive-7").performClick()
+        compose.onNodeWithTag("receive-7").performTouchInput { swipeUp() }
+        compose.onNodeWithTag("receive-7").performTouchInput { swipeDown() }
+        Thread.sleep(1_000)
+        assertEquals(before, receiveVolume(13, 3), 1e-6)
+
+        // A short horizontal drag nudges the level instead of jumping to the touched position.
+        compose.onNodeWithTag("receive-7").performTouchInput {
+            swipe(center, center + Offset(width * 0.05f, 0f), 300)
+        }
+        eventually { receiveVolume(13, 3) > before }
+        val after = receiveVolume(13, 3)
+        assertTrue("$before -> $after", after < before * 1.6)
+    }
+
+    @Test
+    fun tabsKeepTheirState() {
+        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("output-15").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Guitar [7+8]"), 5_000)
+        compose.onNodeWithTag("tab-control").performClick()
+        compose.onNodeWithTag("region-3").assertExists()
+        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("mix-title").assertTextEquals("Guitar [7+8]")
+    }
+
+    @Test
+    fun inputLevelsAndGain() {
+        control("meter 7 1.5")
+        control("meter 8 -6")
+        compose.onNodeWithTag("tab-inputs").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-7") and hasText("CLIP +1.5"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-8") and hasText("-6.0"), 5_000)
+
+        // Peaks hold until reset.
+        control("meter 7 off")
+        Thread.sleep(500)
+        compose.onNodeWithTag("peak-7").assertTextEquals("CLIP +1.5")
+        compose.onNodeWithTag("peak-7").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-7") and hasText("-"), 5_000)
+
+        compose.onNodeWithTag("gain-8").performTouchInput { swipeLeft() }
+        eventually { track(8).getDouble("volume") < 0.5 }
+        control("meter 8 off")
+    }
+
+    @Test
+    fun paOutputsOfABandProject() {
+        control("reset band")
+        compose.waitUntilAtLeastOneExists(hasTestTag("tab-pa"), 10_000)
+        compose.onNodeWithTag("tab-pa").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("level-30"), 10_000)
+        control("meter 35 -9")
+        compose.waitUntilAtLeastOneExists(hasTestTag("peak-35") and hasText("-9.0"), 5_000)
+
+        // The Mix tab only lists the monitor mixes, not the PA outputs or the debug mix.
+        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("output-40").assertExists()
+        compose.onNodeWithTag("output-30").assertDoesNotExist()
+        compose.onNodeWithTag("output-45").assertDoesNotExist()
     }
 }

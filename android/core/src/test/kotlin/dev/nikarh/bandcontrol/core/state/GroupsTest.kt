@@ -22,8 +22,7 @@ class GroupsTest {
         receives = if (output) listOf(Receive(src = 2)) else emptyList(),
     )
 
-    private fun groups(vararg tracks: Track) =
-        BandState().apply(ServerMessage(state = State(tracks = tracks.toList())), 0).groups()
+    private fun groups(vararg tracks: Track) = BandState().apply(ServerMessage(state = State(tracks = tracks.toList())), 0).groups()
 
     private fun List<Track>.ids() = map { it.id }
 
