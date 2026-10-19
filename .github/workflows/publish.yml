@@ -123,7 +123,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/release.keystore"
-          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          # apksigner from build-tools 34: newer ones write signatures that F-Droid's apksigcopier can't verify, which
+          # breaks reproducible builds (https://f-droid.org/docs/Reproducible_Builds/).
+          tools=$ANDROID_HOME/build-tools/34.0.0
+          if [[ ! -x $tools/apksigner ]]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0" > /dev/null
+          fi
           "$tools/apksigner" sign --ks "$RUNNER_TEMP/release.keystore" --ks-key-alias "$KEY_ALIAS" \
             --ks-pass env:KEYSTORE_PASSWORD --key-pass env:KEY_PASSWORD dist/bandcontrol.apk
           "$tools/apksigner" verify --print-certs dist/bandcontrol.apk

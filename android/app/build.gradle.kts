@@ -17,10 +17,25 @@ fun workspacePackage(key: String): String =
 
 val appVersion: String = workspacePackage("version")
 val repository: String = workspacePackage("repository")
-val appVersionCode: Int = appVersion.split('.').map(String::toInt).let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+// Written out in Cargo.toml for F-Droid, which reads it with a regular expression; it must follow the version.
+val appVersionCode: Int =
+    rootProject
+        .file("../Cargo.toml")
+        .readLines()
+        .first { it.trim().startsWith("version-code") }
+        .substringAfter('=')
+        .trim()
+        .toInt()
+        .also { code ->
+            val expected = appVersion.split('.').map(String::toInt).let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+            require(code == expected) { "version-code $code in Cargo.toml doesn't match version $appVersion (expected $expected)" }
+        }
 
-// Release signing comes from the environment (the release workflow); local builds fall back to the debug key.
+// Release builds are signed with the release key when it is in the environment, unsigned with -Punsigned (CI: the
+// Publish workflow signs them once, with apksigner, which keeps them verifiable for F-Droid's reproducible builds),
+// and with the debug key otherwise, so local release builds install.
 val releaseKeystore: String? = System.getenv("ANDROID_KEYSTORE")?.takeIf { it.isNotEmpty() }
+val unsigned: Boolean = providers.gradleProperty("unsigned").isPresent
 
 android {
     namespace = "dev.nikarh.bandcontrol.app"
@@ -52,8 +67,20 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
+            signingConfig =
+                when {
+                    releaseKeystore != null -> signingConfigs.getByName("release")
+                    unsigned -> null
+                    else -> signingConfigs.getByName("debug")
+                }
         }
+    }
+
+    // No Google-encrypted dependency list in the APK signing block: F-Droid rejects it, and it gets in the way of
+    // reproducible builds.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     compileOptions {

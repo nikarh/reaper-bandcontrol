@@ -10,6 +10,11 @@ repository   = "https://github.com/nikarh/reaper-bandcontrol"
 rust-version = "1.99"
 version      = "0.1.0"
 
+# The Android app's versionCode, written out (major * 10000 + minor * 100 + patch of the version above) because
+# F-Droid reads it with a regular expression; scripts/bump-version.sh updates it and the Gradle build checks it.
+[workspace.metadata.android]
+version-code = 100
+
 # The oldest REAPER the extension supports and the newest it is tested with. The extension, CI (the e2e tests run
 # against both on every change), the scripts and the docs read them from here: raising either is one edit.
 [workspace.metadata.reaper]

@@ -133,9 +133,10 @@ jobs:
       - name: Build
         working-directory: android
         run: |
-          ./gradlew --console=plain :app:assembleRelease
+          # Unsigned: Publish signs it with the release key (once, with apksigner).
+          ./gradlew --console=plain :app:assembleRelease -Punsigned
           mkdir -p ../dist
-          cp app/build/outputs/apk/release/app-release.apk ../dist/bandcontrol.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk ../dist/bandcontrol.apk
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist-android

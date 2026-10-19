@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bumps the version everything uses (the workspace version in Cargo.toml; the Android app reads it from there) and
-# prints the new version.
+# the Android versionCode next to it, and prints the new version.
 #
 #   scripts/bump-version.sh patch|minor|major|X.Y.Z
 set -euo pipefail
@@ -17,5 +17,7 @@ case "${1:?usage: bump-version.sh patch|minor|major|X.Y.Z}" in
 esac
 
 sed -i "/^\[workspace.package\]/,/^\[/s/^version\( *\)= *\"$current\"/version\1= \"$next\"/" Cargo.toml
+IFS=. read -r major minor patch <<< "$next"
+sed -i "s/^version-code\( *\)= *[0-9]*/version-code\1= $((major * 10000 + minor * 100 + patch))/" Cargo.toml
 cargo update -q --workspace --offline 2> /dev/null || cargo update -q --workspace
 echo "$next"
