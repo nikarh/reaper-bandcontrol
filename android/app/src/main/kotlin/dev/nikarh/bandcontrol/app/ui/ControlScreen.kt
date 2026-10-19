@@ -318,14 +318,18 @@ private fun NavButton(
     }
 }
 
+/** Marker number; as a [flag] it is square on the pole side, like a "P". */
 @Composable
-private fun MarkerChip(marker: Marker) {
+private fun MarkerChip(
+    marker: Marker,
+    flag: Boolean = false,
+) {
     val bg = rgb(marker.color) ?: Palette.red600
     Box(
         Modifier
             .height(16.dp)
             .defaultMinSize(minWidth = 16.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .clip(if (flag) RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp) else RoundedCornerShape(4.dp))
             .background(bg)
             .padding(horizontal = 3.dp),
         contentAlignment = Alignment.Center,
@@ -406,9 +410,9 @@ private fun RegionRow(
                     .offset(x = x)
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(color.copy(alpha = 0.6f)),
+                    .background(color),
             )
-            Box(Modifier.offset(x = x)) { MarkerChip(marker) }
+            Box(Modifier.offset(x = x)) { MarkerChip(marker, flag = true) }
         }
         Text(
             "${region.id}. ${region.name}",
