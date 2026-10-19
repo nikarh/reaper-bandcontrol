@@ -44,10 +44,10 @@ json                        = { module = "org.json:json", version.ref = "json" }
 junit                       = { module = "junit:junit", version.ref = "junit" }
 lifecycle-runtime-compose   = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+reorderable                 = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 uiautomator                 = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 wire-runtime                = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 zxing-core                  = { module = "com.google.zxing:core", version.ref = "zxing" }
-reorderable                 = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
