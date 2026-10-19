@@ -23,11 +23,12 @@
       <a class="button" href="#setup">{{icon:wrench}}Set up in 5 minutes</a>
       <a class="button ghost" href="{{repo}}">{{icon:github}}Source on GitHub</a>
     </div>
-    <div class="phones">
-      <img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy">
-      <img src="screenshots/iem.png" alt="IEM tab: a band member's in-ear mix" loading="lazy">
-      <img src="screenshots/inputs.png" alt="Inputs tab: meters, peaks and gain of every input" loading="lazy">
+    <div class="phones" id="phones">
+      <a class="zoom" href="screenshots/playback.png"><img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy"></a>
+      <a class="zoom" href="screenshots/iem.png"><img src="screenshots/iem.png" alt="IEM tab: a band member's in-ear mix" loading="lazy"></a>
+      <a class="zoom" href="screenshots/inputs.png"><img src="screenshots/inputs.png" alt="Inputs tab: meters, peaks and gain of every input" loading="lazy"></a>
     </div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
   </div>
 </header>
 
@@ -151,7 +152,7 @@
     </div>
     <div class="pairing" id="pairing">
     <h3>Pairing, names and where they are saved</h3>
-    <figure class="shots narrow"><img src="screenshots/reaper-pairing.png" alt="The pairing window in REAPER" loading="lazy"><figcaption>The pairing window in REAPER: make it bigger and the QR code grows with it.</figcaption></figure>
+    <figure class="shots narrow"><a class="zoom" href="screenshots/reaper-pairing.png"><img src="screenshots/reaper-pairing.png" alt="The pairing window in REAPER" loading="lazy"></a><figcaption>The pairing window in REAPER: make it bigger and the QR code grows with it.</figcaption></figure>
     <ul>
       <li><strong>On the computer</strong>, the pairing code belongs to the REAPER installation: it is saved in
         REAPER's settings (its resource folder), so it is the same for every project and survives restarts.
@@ -209,7 +210,7 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
         </div>
         <a class="button primary" href="examples/BandControl-Example.RPP" download>{{icon:download}}Download .RPP</a>
       </div>
-      <figure class="shots"><img src="screenshots/reaper-project.png" alt="REAPER: the example project with its folders" loading="lazy"><figcaption>The example project in REAPER: the INPUTS, FOH OUT and IEM OUT folders and the four songs.</figcaption></figure>
+      <figure class="shots"><a class="zoom" href="screenshots/reaper-project.png"><img src="screenshots/reaper-project.png" alt="REAPER: the example project with its folders" loading="lazy"></a><figcaption>The example project in REAPER: the INPUTS, FOH OUT and IEM OUT folders and the four songs.</figcaption></figure>
     </div>
   </section>
 
@@ -247,5 +248,15 @@ sha256sum --ignore-missing -c SHA256SUMS</pre>
 <footer>
   <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a></div>
 </footer>
+<dialog id="zoom" aria-label="Screenshot">
+  <figure>
+    <img alt="">
+    <figcaption></figcaption>
+  </figure>
+  <button class="close" type="button" aria-label="Close">{{icon:x}}</button>
+  <button class="prev" type="button" aria-label="Previous screenshot">{{icon:chevron-left}}</button>
+  <button class="next" type="button" aria-label="Next screenshot">{{icon:chevron-right}}</button>
+</dialog>
+<script src="script.js" defer></script>
 </body>
 </html>

@@ -130,7 +130,10 @@ def features_html() -> str:
         image = ""
         if shot:
             cls = "" if is_app_screenshot(shot) else ' class="wide"'
-            image = f'<img src="screenshots/{shot}.png" alt="{html.escape(f["title"])}"{cls} loading="lazy">'
+            src = f"screenshots/{shot}.png"
+            image = (
+                f'<a class="zoom" href="{src}"><img src="{src}" alt="{html.escape(f["title"])}"{cls} loading="lazy"></a>'
+            )
         out.append(
             f'<article class="feature" id="{f["id"]}"><div class="text"><h3>{html.escape(f["title"])}</h3>'
             f"<p>{inline(paragraph(f['text']))}</p></div>{image}</article>"
