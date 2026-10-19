@@ -163,7 +163,8 @@ designed to be broadcast-safe on every OS:
 - [x] full e2e: phone ↔ BLE ↔ real REAPER (`mise run android:e2e:reaper [tcp]`, observed through REAPER's web API)
 
 ### 8. Polish
-- [ ] GitHub Actions: Rust lint/test (linux), extension builds (linux/macos/windows), APK build
+- [x] GitHub Actions: Check (lint, test, REAPER e2e, Android, builds), release PR / release / publish with the release
+      bot, GPG-signed checksums and a signed APK, Site (Pages) and Docs (screenshots PR), dependabot auto-merge
 - [x] README (install, pairing, project layout requirements, testing); `mise run install` for the extension
 - [x] phone to phone pairing: a paired phone shows the pairing QR (menu → Share pairing)
 - [x] in-app QR scanning with CameraX + ZXing (no Google Play services, works on de-Googled phones)
@@ -187,6 +188,16 @@ designed to be broadcast-safe on every OS:
       checked against real REAPER; README screenshots in `docs/screenshots/`
 - [x] tests: Rust engine/parser, REAPER e2e meters, Kotlin groups/fader law/sim meters, phone e2e for faders, tab
       state, inputs and PA (TCP, BLE, real REAPER)
+
+### 10. Publishing
+- [x] single version source (workspace version; Android derives versionName/versionCode), `scripts/bump-version.sh`
+- [x] git-cliff changelog (`cliff.toml`, `CHANGELOG.md`), release notes in the release PR
+- [x] README rewritten as the manual; features in `docs/features.toml` rendered into README and website
+- [x] landing page (`site/`), built by `scripts/build-docs.py`, deployed by the Site workflow
+- [x] generated screenshots: `ScreenshotTest` (phone or emulator) and headless REAPER (cage or Xvfb)
+- [x] AGENTS.md conventions, docs/RELEASING.md one-time setup
+- [ ] first release once the repository is on GitHub and the secrets exist
+- [ ] find out why parallel REAPER instances under Xvfb interfere (tests run serially for now)
 
 ## Log / notes
 
@@ -231,3 +242,9 @@ designed to be broadcast-safe on every OS:
 - REAPER names unnamed tracks "Track N"; the .RPP reader does the same.
 - Phone tests that change a level in REAPER right after a drag must wait for the drag to finish, otherwise the drag's
   last command lands after the REAPER change (last writer wins, which is the intended behaviour).
+- Never shell out to `kill -KILL -PGID`: procps' kill (Ubuntu) turns it into kill(-1, SIGKILL) and kills every process
+  of the user (found rehearsing CI in a container). The harness uses killpg.
+- CI runs REAPER unlicensed under Xvfb (Ubuntu's cage segfaults headless); the harness closes the evaluation
+  reminder with xdotool because it is modal and stops REAPER's timers. REAPER needs libasound even with dummy audio.
+- History was rewritten once to remove real band data from early fixtures; the pre-rewrite history is the local
+  branch `main-old`, which must never be pushed.
