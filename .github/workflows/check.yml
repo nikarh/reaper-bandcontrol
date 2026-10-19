@@ -1,0 +1,95 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  REAPER_VERSION: "7.82"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust cargo-deny taplo shellcheck actionlint
+      - uses: Swatinem/rust-cache@v2
+      # fmt, clippy for Linux, macOS and Windows, cargo-deny, taplo, shellcheck, actionlint, docs up to date.
+      - run: mise run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+      - run: mise run test
+
+  reaper:
+    name: REAPER e2e
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install REAPER and a virtual display
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
+            libgtk-3-0t64 libasound2t64 libxml2
+          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "$REAPER_VERSION")" >> "$GITHUB_ENV"
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@v2
+      - run: mise run e2e:reaper
+        env:
+          REAPER_HEADLESS: xvfb
+          # Unlicensed (evaluation) REAPER is enough for tests.
+          REAPER_LICENSE: ""
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reaper-e2e-logs
+          path: target/reaper-e2e/**/*.log
+
+  android:
+    name: Android
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - uses: jdx/mise-action@v5
+        with:
+          install_args: rust java gradle http:android-cmdline-tools
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/cache@v5
+        with:
+          path: .android-sdk
+          key: android-sdk-${{ hashFiles('mise.toml') }}
+      - run: mise run android:sdk
+      - uses: gradle/actions/setup-gradle@v6
+      # ktlint and Android lint.
+      - run: mise run android:lint
+      # Kotlin protocol and state tests, the Kotlin client against the Rust simulator.
+      - run: mise run android:test
+
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
