@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
+import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.state.groups
 
 enum class Tab(
@@ -72,13 +73,20 @@ fun BandControlApp(
     onEnableBluetooth: () -> Unit,
 ) {
     val pairing by model.pairing.collectAsStateWithLifecycle()
+    val computers by model.computers.collectAsStateWithLifecycle()
+    val choices by model.choices.collectAsStateWithLifecycle()
+    val notice by model.notice.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val state by model.state.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
     var repairing by remember { mutableStateOf(false) }
+
+    // Pairing again replaces the computer that rejected this phone instead of adding a stale entry.
+    var replacing by remember { mutableStateOf<PairingInfo?>(null) }
     var sharing by rememberSaveable { mutableStateOf(false) }
+    var chooserDismissed by remember { mutableStateOf(false) }
     // Keeps each tab's scroll positions and selections while another tab is shown.
     val tabStates = rememberSaveableStateHolder()
     val groups = remember(state.tracks) { state.groups() }
@@ -102,37 +110,62 @@ fun BandControlApp(
     LaunchedEffect(metered, pairing, repairing) { model.meter(if (pairing == null || repairing) emptyList() else metered) }
 
     val info = pairing
-    if (info == null || repairing) {
+    if (computers.isEmpty() || repairing) {
         PairScreen(
             onPair = {
                 repairing = false
-                model.pair(it)
+                model.pair(it, replacing)
+                replacing = null
             },
-            onCancel = if (info != null) ({ repairing = false }) else null,
+            onCancel =
+                if (computers.isNotEmpty()) {
+                    {
+                        repairing = false
+                        replacing = null
+                    }
+                } else {
+                    null
+                },
         )
         return
     }
 
-    if (sharing) {
+    if (sharing && info != null) {
         val name = info.name.ifEmpty { (status as? ConnectionStatus.Connected)?.serverName ?: "" }
         ShareScreen(info.copy(name = name), onClose = { sharing = false })
         return
+    }
+
+    LaunchedEffect(choices.isEmpty()) { chooserDismissed = false }
+    if (choices.isNotEmpty() && !chooserDismissed) {
+        ComputerChooser(choices, onPick = model::use, onDismiss = { chooserDismissed = true })
     }
 
     val connected = status is ConnectionStatus.Connected
     Scaffold(
         containerColor = Palette.gray900,
         topBar = {
-            StatusBar(
-                status = status,
-                pairedName = info.name,
-                needsPermission = !permitted && info.tcp == null,
-                onRequestPermissions = onRequestPermissions,
-                onEnableBluetooth = onEnableBluetooth,
-                onRepair = { repairing = true },
-                onShare = { sharing = true },
-                onUnpair = model::unpair,
-            )
+            Column {
+                StatusBar(
+                    status = status,
+                    current = info,
+                    others = computers.filter { it.secret != info?.secret },
+                    choosing = choices.isNotEmpty(),
+                    needsPermission = !permitted && (info ?: computers.first()).tcp == null,
+                    onRequestPermissions = onRequestPermissions,
+                    onEnableBluetooth = onEnableBluetooth,
+                    onChoose = { chooserDismissed = false },
+                    onRepair = {
+                        replacing = info
+                        repairing = true
+                    },
+                    onPairAnother = { repairing = true },
+                    onSwitch = model::use,
+                    onShare = { sharing = true },
+                    onForget = model::forget,
+                )
+                notice?.let { NearbyNotice(it, onSwitch = { model.use(it) }, onDismiss = model::dismissNotice) }
+            }
         },
         bottomBar = {
             CompactTabBar(tabs, shown) { tab = it }
@@ -141,7 +174,7 @@ fun BandControlApp(
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (!state.loaded) {
                 Text(
-                    "Waiting for REAPER…",
+                    if (info == null) "Pick a computer to control" else "Waiting for REAPER…",
                     color = Palette.gray400,
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -243,36 +276,33 @@ fun problemText(
 @Composable
 private fun StatusBar(
     status: ConnectionStatus,
-    pairedName: String,
+    current: PairingInfo?,
+    others: List<PairingInfo>,
+    choosing: Boolean,
     needsPermission: Boolean,
     onRequestPermissions: () -> Unit,
     onEnableBluetooth: () -> Unit,
+    onChoose: () -> Unit,
     onRepair: () -> Unit,
+    onPairAnother: () -> Unit,
+    onSwitch: (PairingInfo) -> Unit,
     onShare: () -> Unit,
-    onUnpair: () -> Unit,
+    onForget: (PairingInfo) -> Unit,
 ) {
-    val name = pairedName.ifEmpty { "REAPER" }
+    val name = current?.label() ?: "REAPER"
     val (color, text) =
-        when (status) {
-            is ConnectionStatus.Connected -> {
-                Palette.emerald400 to status.serverName
-            }
-
-            ConnectionStatus.Connecting -> {
-                Palette.yellow600 to "Looking for $name…"
-            }
-
-            ConnectionStatus.Authenticating -> {
-                Palette.yellow600 to "Connecting to $name…"
-            }
-
-            is ConnectionStatus.Disconnected -> {
-                Palette.red500 to problemText(status.problem, name)
-            }
-
-            ConnectionStatus.Idle -> {
+        when {
+            current == null -> {
                 Palette.gray500 to
-                    if (needsPermission) "Allow access to nearby devices to connect" else "Not connected"
+                    when {
+                        needsPermission -> "Allow access to nearby devices to connect"
+                        choosing -> "Several paired computers are nearby"
+                        else -> "Looking for ${others.joinToString(" or ") { it.label() }}…"
+                    }
+            }
+
+            else -> {
+                statusText(status, name, needsPermission)
             }
         }
     val problem = (status as? ConnectionStatus.Disconnected)?.problem
@@ -303,6 +333,10 @@ private fun StatusBar(
                 TextButton(onClick = onRequestPermissions) { Text("Allow", color = Palette.blue500) }
             }
 
+            current == null && choosing -> {
+                TextButton(onClick = onChoose) { Text("Choose", color = Palette.blue500) }
+            }
+
             problem == Problem.BluetoothOff -> {
                 TextButton(onClick = onEnableBluetooth) { Text("Turn on", color = Palette.blue500) }
             }
@@ -312,23 +346,69 @@ private fun StatusBar(
             }
         }
         Box {
-            IconButton(onClick = { menu = true }) {
+            IconButton(onClick = { menu = true }, modifier = Modifier.testTag("menu")) {
                 Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Palette.gray400)
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(text = { Text("Share pairing with another phone") }, onClick = {
-                    menu = false
-                    onShare()
-                })
+                for (other in others) {
+                    DropdownMenuItem(
+                        text = { Text("Switch to ${other.label()}") },
+                        onClick = {
+                            menu = false
+                            onSwitch(other)
+                        },
+                        modifier = Modifier.testTag("switch-${other.label()}"),
+                    )
+                }
+                if (current != null) {
+                    DropdownMenuItem(text = { Text("Share pairing with another phone") }, onClick = {
+                        menu = false
+                        onShare()
+                    })
+                }
                 DropdownMenuItem(text = { Text("Pair with another computer") }, onClick = {
                     menu = false
-                    onRepair()
+                    onPairAnother()
                 })
-                DropdownMenuItem(text = { Text("Forget pairing", color = Color(0xFFF87171)) }, onClick = {
-                    menu = false
-                    onUnpair()
-                })
+                if (current != null) {
+                    DropdownMenuItem(
+                        text = { Text("Forget ${current.label()}", color = Color(0xFFF87171)) },
+                        onClick = {
+                            menu = false
+                            onForget(current)
+                        },
+                        modifier = Modifier.testTag("forget"),
+                    )
+                }
             }
         }
     }
 }
+
+private fun statusText(
+    status: ConnectionStatus,
+    name: String,
+    needsPermission: Boolean,
+): Pair<Color, String> =
+    when (status) {
+        is ConnectionStatus.Connected -> {
+            Palette.emerald400 to status.serverName
+        }
+
+        ConnectionStatus.Connecting -> {
+            Palette.yellow600 to "Looking for $name…"
+        }
+
+        ConnectionStatus.Authenticating -> {
+            Palette.yellow600 to "Connecting to $name…"
+        }
+
+        is ConnectionStatus.Disconnected -> {
+            Palette.red500 to problemText(status.problem, name)
+        }
+
+        ConnectionStatus.Idle -> {
+            Palette.gray500 to
+                if (needsPermission) "Allow access to nearby devices to connect" else "Not connected"
+        }
+    }
