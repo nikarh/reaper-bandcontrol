@@ -1,16 +1,21 @@
 package dev.nikarh.bandcontrol.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
@@ -20,11 +25,9 @@ import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -119,26 +124,7 @@ fun BandControlApp(
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = Palette.gray700) {
-                val colors =
-                    NavigationBarItemDefaults.colors(
-                        selectedIconColor = Palette.blue500,
-                        selectedTextColor = Palette.blue500,
-                        indicatorColor = Palette.gray800,
-                        unselectedIconColor = Palette.gray400,
-                        unselectedTextColor = Palette.gray400,
-                    )
-                for (t in tabs) {
-                    NavigationBarItem(
-                        selected = shown == t,
-                        onClick = { tab = t },
-                        icon = { Icon(t.icon, contentDescription = null) },
-                        label = { Text(t.label) },
-                        colors = colors,
-                        modifier = Modifier.testTag("tab-${t.name.lowercase()}"),
-                    )
-                }
-            }
+            CompactTabBar(tabs, shown) { tab = it }
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
@@ -183,6 +169,41 @@ fun BandControlApp(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** A low tab bar (icon over a small label, no indicator pill) instead of Material's 80 dp one. */
+@Composable
+private fun CompactTabBar(
+    tabs: List<Tab>,
+    selected: Tab,
+    onSelect: (Tab) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().background(Palette.gray800)) {
+        HorizontalDivider(color = Palette.gray700)
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().height(52.dp)) {
+            for (t in tabs) {
+                val color = if (t == selected) Color.White else Palette.gray400
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .selectable(selected = t == selected, role = Role.Tab) { onSelect(t) }
+                        .testTag("tab-${t.name.lowercase()}"),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Icon(t.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+                    Text(
+                        t.label,
+                        color = color,
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = if (t == selected) FontWeight.SemiBold else FontWeight.Normal,
+                    )
                 }
             }
         }
