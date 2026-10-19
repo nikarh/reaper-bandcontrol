@@ -2,6 +2,7 @@ package dev.nikarh.bandcontrol.core.protocol
 
 import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
+import java.util.Locale
 
 /** The shared secret every paired phone knows, see `crates/bandcontrol-proto/src/pairing.rs`. */
 class PairingSecret(
@@ -85,7 +86,7 @@ data class PairingInfo(
                     if (c < 128 && (c.toChar().isLetterOrDigit() || c.toChar() in "-._~")) {
                         append(c.toChar())
                     } else {
-                        append('%').append("%02X".format(c))
+                        append('%').append("%02X".format(Locale.ROOT, c))
                     }
                 }
             }
