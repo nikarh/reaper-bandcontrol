@@ -238,7 +238,7 @@ works as it is.
 ### Example project
 
 [**Download `BandControl-Example.RPP`**](https://raw.githubusercontent.com/nikarh/reaper-bandcontrol/main/examples/BandControl-Example.RPP)
-(*right click → Save link as*): the smallest project laid out this way, to open and look at, or to start from. It
+(*right click → Save link as*): a small project laid out this way, to open and look at, or to start from. It
 opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are taken from it.
 
 - **Click** (a click plays during every song) and **Backtrack**, at the top level in this example.

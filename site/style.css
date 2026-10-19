@@ -113,10 +113,7 @@ h2 .version, h3 .version { font-size: 0.55em; color: var(--green); vertical-alig
 }
 .example-icon .icon { width: 40px; height: 40px; color: var(--green); }
 .example-text { flex: 1; }
-.example-text p { margin: 4px 0 8px; color: var(--muted); }
-.facts { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; }
-.facts li { font-size: 0.85em; color: var(--text); background: var(--bg); border: 1px solid var(--line);
-  border-radius: 999px; padding: 2px 10px; }
+.example-text p { margin: 4px 0 0; color: var(--muted); }
 .example .button { white-space: nowrap; }
 pre.tree { overflow-x: auto; }
 details.manual { margin: 16px 0 28px; }

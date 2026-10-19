@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes examples/BandControl-Example.RPP: the smallest project laid out the way BandControl expects.
+"""Writes examples/BandControl-Example.RPP: a small project laid out the way BandControl expects.
 
     Click, Backtrack          sources; their place is free, the top level is just this example's choice
     INPUTS/                   the musicians' inputs: the Inputs tab (levels and gain)
