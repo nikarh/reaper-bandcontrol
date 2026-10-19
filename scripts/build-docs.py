@@ -30,6 +30,27 @@ def version() -> str:
     return re.search(r'^version\s*=\s*"([^"]+)"', section, re.M).group(1)
 
 
+def reaper(key: str) -> str:
+    """`min` or `tested` from [workspace.metadata.reaper] in Cargo.toml."""
+    text = (ROOT / "Cargo.toml").read_text()
+    section = text.split("[workspace.metadata.reaper]", 1)[1].split("\n[", 1)[0]
+    return re.search(rf'^{key}\s*=\s*"([^"]+)"', section, re.M).group(1)
+
+
+def readme_reaper_versions() -> list[str]:
+    """Problems with the REAPER versions the README names: they must be the ones in Cargo.toml."""
+    allowed = {reaper("min"), reaper("tested")}
+    found = set()
+    for line in README.read_text().splitlines():
+        if "REAPER" in line:
+            found |= set(re.findall(r"(?<![\d.])[4-9]\.\d{1,2}\b", line))
+    problems = [f"README names REAPER {v}, Cargo.toml says min {reaper('min')}, tested {reaper('tested')}"
+                for v in sorted(found - allowed)]
+    problems += [f"README doesn't name REAPER {v} ([workspace.metadata.reaper] in Cargo.toml)"
+                 for v in sorted(allowed - found)]
+    return problems
+
+
 def is_app_screenshot(name: str) -> bool:
     return not name.startswith("reaper-")
 
@@ -138,6 +159,8 @@ def build_site(out: Path) -> None:
         "features": features_html(),
         "changelog": changelog_html(),
         "version": version(),
+        "reaper_min": reaper("min"),
+        "reaper_tested": reaper("tested"),
         "repo": REPO,
     }.items():
         page = page.replace("{{" + key + "}}", value)
@@ -159,6 +182,7 @@ def main() -> int:
     elif command == "check":
         problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
         site = (ROOT / "site" / "index.html").read_text()
+        problems += readme_reaper_versions()
         problems += [f"missing icon site/icons/{n}.svg" for n in sorted(set(ICON.findall(site))) if not (ICONS / f"{n}.svg").exists()]
         if README.read_text() != render_readme():
             problems.append("README.md feature section is outdated, run `mise run docs`")

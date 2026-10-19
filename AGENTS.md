@@ -35,6 +35,15 @@ Icons on the website: `{{icon:NAME}}` in `site/index.html` inlines `site/icons/N
 Platform logos come from [Simple Icons](https://simpleicons.org) (CC0), everything else from
 [Lucide](https://lucide.dev) (ISC); keep their markup, minus titles, comments and fixed sizes.
 
+## REAPER versions
+
+The oldest supported and the newest tested REAPER are `min` and `tested` in `[workspace.metadata.reaper]` in
+`Cargo.toml`. The extension (load-time warning), CI (the e2e tests against both on every change), the scripts and the
+website read them; `mise run lint` fails when the README names other versions. To support a new REAPER: raise
+`tested` (the weekly *Newest REAPER* workflow opens an issue when a newer release passes), update the README, and run
+`mise run e2e:reaper-versions` for the whole range. A REAPER API function newer than `min` must be optional (looked up
+separately in `ffi.rs`, with a fallback), or `min` has to go up.
+
 ## Checks before pushing
 
 ```sh
