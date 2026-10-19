@@ -67,29 +67,7 @@ fun ShareScreen(
                 color = Palette.gray400,
                 textAlign = TextAlign.Center,
             )
-            Canvas(
-                Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 360.dp)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White)
-                    .testTag("share-qr"),
-            ) {
-                val module = size.width / (matrix.size + 2 * QUIET_ZONE)
-                for (y in 0 until matrix.size) {
-                    for (x in 0 until matrix.size) {
-                        if (matrix[x, y]) {
-                            drawRect(
-                                Color.Black,
-                                Offset((x + QUIET_ZONE) * module, (y + QUIET_ZONE) * module),
-                                // Slight overlap so no hairlines appear between modules.
-                                Size(module + 0.5f, module + 0.5f),
-                            )
-                        }
-                    }
-                }
-            }
+            QrCode(matrix, Modifier.testTag("share-qr"))
             if (info.name.isNotEmpty()) Text(info.name, color = Palette.gray200, fontSize = 16.sp)
             val groups = info.secret.toDisplayCode().split('-')
             Text(
@@ -108,9 +86,39 @@ fun ShareScreen(
     }
 }
 
+/** A QR code on white with its quiet zone, as wide as allowed up to 360 dp. */
+@Composable
+fun QrCode(
+    matrix: QrMatrix,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(
+        modifier
+            .fillMaxWidth()
+            .widthIn(max = 360.dp)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White),
+    ) {
+        val module = size.width / (matrix.size + 2 * QUIET_ZONE)
+        for (y in 0 until matrix.size) {
+            for (x in 0 until matrix.size) {
+                if (matrix[x, y]) {
+                    drawRect(
+                        Color.Black,
+                        Offset((x + QUIET_ZONE) * module, (y + QUIET_ZONE) * module),
+                        // Slight overlap so no hairlines appear between modules.
+                        Size(module + 0.5f, module + 0.5f),
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** Raises the screen brightness while shown, so cameras read the code easily. */
 @Composable
-private fun FullBrightness() {
+fun FullBrightness() {
     val activity = LocalActivity.current ?: return
     DisposableEffect(activity) {
         val window = activity.window

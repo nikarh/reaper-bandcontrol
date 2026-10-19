@@ -368,18 +368,32 @@ class SimulatorE2ETest {
         }
     }
 
-    @Test
-    fun sharedPairingQrScans() {
-        compose.onNodeWithContentDescription("Menu").performClick()
-        compose.onNodeWithText("Share pairing with another phone").performClick()
-        val image = compose.onNodeWithTag("share-qr").captureToImage().toPixelMap()
+/** Decodes the QR code shown in the node tagged [tag]. */
+    private fun qrText(tag: String): String? {
+        val image = compose.onNodeWithTag(tag).captureToImage().toPixelMap()
         val luminance =
             ByteArray(image.width * image.height) { i ->
                 val c = image[i % image.width, i / image.width]
                 ((c.red * 0.299f + c.green * 0.587f + c.blue * 0.114f) * 255).toInt().toByte()
             }
-        val url = QrDecoder().decode(luminance, image.width, image.height)
-        val info = PairingInfo.fromUrl(url ?: "")
+        return QrDecoder().decode(luminance, image.width, image.height)
+    }
+
+    @Test
+    fun aboutShowsTheDownloadQr() {
+        compose.onNodeWithTag("menu").performClick()
+        compose.onNodeWithTag("about").performClick()
+        assertEquals("https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/bandcontrol.apk", qrText("about-qr"))
+        compose.onNodeWithTag("about-version").assertTextEquals("BandControl ${BuildConfig.VERSION_NAME} · free software (MIT)")
+        compose.onNodeWithTag("about-close").performClick()
+        compose.onNodeWithTag("region-1").assertExists()
+    }
+
+    @Test
+    fun sharedPairingQrScans() {
+        compose.onNodeWithContentDescription("Menu").performClick()
+        compose.onNodeWithText("Share pairing with another phone").performClick()
+        val info = PairingInfo.fromUrl(qrText("share-qr") ?: "")
         assertEquals(secret, info?.secret?.toCode())
         assertEquals("Simulator", info?.name)
         assertEquals(null, info?.tcp)
