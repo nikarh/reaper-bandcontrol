@@ -19,7 +19,8 @@ more:
 3. In REAPER, run the action **BandControl: Show pairing QR code**. It opens a page with a QR code and the pairing
    code. Scan the QR code with the phone or type the code into the app.
 
-All phones use the same pairing code. **BandControl: Reset pairing key** creates a new one and unpairs every phone.
+All phones use the same pairing code. A paired phone can pair the others without the computer: menu →
+**Share pairing with another phone** shows the QR code for them to scan. **BandControl: Reset pairing key** creates a new one and unpairs every phone.
 **BandControl: Show status** shows whether Bluetooth is up and how many phones are connected.
 
 ### Platform notes

@@ -165,6 +165,7 @@ designed to be broadcast-safe on every OS:
 ### 8. Polish
 - [ ] GitHub Actions: Rust lint/test (linux), extension builds (linux/macos/windows), APK build
 - [x] README (install, pairing, project layout requirements, testing); `mise run install` for the extension
+- [x] phone to phone pairing: a paired phone shows the pairing QR (menu → Share pairing)
 - [x] in-app QR scanning with CameraX + ZXing (no Google Play services, works on de-Googled phones)
 - [ ] release-build smoke test on the phone (R8 broke ML Kit once; only debug builds are instrumented)
 
