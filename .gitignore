@@ -1,0 +1,11 @@
+/target
+/.android-sdk
+/.reaper-test
+/tmp
+*.log
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/

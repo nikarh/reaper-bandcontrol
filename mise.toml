@@ -1,0 +1,37 @@
+[tools]
+"github:EmbarkStudios/cargo-deny" = "0.20.2"
+gradle                            = "9.8.1"
+"http:android-cmdline-tools"      = { version = "16111833", url = "https://dl.google.com/android/repository/commandlinetools-linux-{{version}}_latest.zip", bin_path = "cmdline-tools/bin" }
+java                              = "temurin-21.0.12+8.0.LTS"
+rust                              = { version = "1.99.1", components = "rustfmt,clippy", targets = "x86_64-pc-windows-msvc,aarch64-apple-darwin,x86_64-apple-darwin" }
+taplo                             = "0.10.0"
+
+[env]
+ANDROID_HOME     = "{{config_root}}/.android-sdk"
+ANDROID_SDK_ROOT = "{{config_root}}/.android-sdk"
+
+[tasks."android:sdk"]
+description = "Install pinned Android SDK packages into .android-sdk"
+run = """
+yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses > /dev/null
+sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+"""
+
+[tasks.fmt]
+description = "Format everything"
+run         = ["cargo fmt --all", "taplo fmt"]
+
+[tasks.lint]
+description = "Formatting, clippy (all desktop targets), cargo-deny"
+run = [
+  "cargo clippy --workspace --all-targets",
+  "cargo clippy --workspace --target aarch64-apple-darwin",
+  "cargo clippy --workspace --target x86_64-pc-windows-msvc",
+  "cargo deny check",
+  "cargo fmt --all --check",
+  "taplo fmt --check",
+]
+
+[tasks.test]
+description = "Rust unit and integration tests (no Bluetooth, no REAPER)"
+run         = "cargo test --workspace"
