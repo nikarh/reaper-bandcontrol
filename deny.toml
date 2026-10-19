@@ -1,0 +1,44 @@
+[graph]
+all-features = false
+no-default-features = false
+targets = [
+  "aarch64-apple-darwin",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+]
+
+[output]
+feature-depth = 1
+
+[advisories]
+ignore  = []
+version = 2
+yanked  = "deny"
+
+[licenses]
+allow                = ["Apache-2.0 WITH LLVM-exception", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MIT", "Unicode-3.0"]
+confidence-threshold = 0.93
+exceptions           = [{ allow = ["Zlib"], crate = "foldhash" }]
+version              = 2
+
+[licenses.private]
+ignore = true
+
+[bans]
+allow-wildcard-paths       = true
+external-default-features  = "allow"
+highlight                  = "simplest-path"
+multiple-versions          = "deny"
+wildcards                  = "deny"
+workspace-default-features = "allow"
+
+skip = [
+  { name = "hashbrown", version = "0.15.5", reason = "petgraph via prost-build (build only)" },
+  { name = "syn", version = "2.0.119", reason = "logos-codegen via protox (build only)" },
+]
+
+[sources]
+unknown-git      = "deny"
+unknown-registry = "deny"
