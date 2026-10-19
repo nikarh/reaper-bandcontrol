@@ -219,6 +219,8 @@ designed to be broadcast-safe on every OS:
 - [x] `examples/BandControl-Example.RPP` (`scripts/make-example-project.py`): Click, Backtrack, INPUTS, PA OUT,
       IEM OUT, four songs at 120 BPM; the screenshots use it, the tests keep the band fixture
 - [x] README and landing: requirements, installers first and plain libraries second, the naming convention
+- [x] the PA tab is the FOH tab (front of house, the counterpart of the in-ear monitors); folders named "FOH" or
+      "PA" both fill it, the example project uses FOH OUT, the band fixture keeps PA OUT
 
 ### 11. Several computers
 - [x] REAPER action to set the name phones show (ExtState, env `BANDCONTROL_NAME` overrides); app follows renames
