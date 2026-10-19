@@ -125,7 +125,8 @@ Google Play services are not needed; it runs on de-Googled phones like LineageOS
 1. In REAPER, run the action **BandControl: Show pairing QR code** (*Actions → Show action list*, or give it a
    toolbar button). A window opens with the QR code, the code to type, the name phones will see and whether
    Bluetooth is up. Make the window bigger and the QR code grows with it, which helps phones on the far side of
-   the room.
+   the room. Its size and text follow REAPER's scaling preferences (*Preferences → General → Advanced UI/system
+   tweaks*).
 2. In the app, tap **Scan QR code**, or type the code.
 3. Pair the other phones from the first one: menu (⋮) → **Share pairing with another phone** shows the same QR code.
 
