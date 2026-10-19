@@ -85,6 +85,11 @@ class ScreenshotTest {
         for ((track, db) in levels) control("meter $track $db")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Band%20PC&t=$tcp")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context
+            .getSharedPreferences("bandcontrol", 0)
+            .edit()
+            .clear()
+            .commit()
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
         compose.waitUntilAtLeastOneExists(hasTestTag("current-region") and hasText("Paper Lions"), 20_000)
     }

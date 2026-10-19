@@ -96,6 +96,11 @@ class ReaperE2ETest {
         web("$STOP;SET/POS/0;SET/PROJEXTSTATE/BANDUI/regions/$INITIAL_ORDER;SET/TRACK/27/VOL/0.251189;SET/TRACK/7/VOL/1")
         val uri = Uri.parse("bandcontrol://pair?s=$secret&n=REAPER" + (tcp?.let { "&t=$it" } ?: ""))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context
+            .getSharedPreferences("bandcontrol", 0)
+            .edit()
+            .clear()
+            .commit()
         scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
         compose.waitUntilAtLeastOneExists(hasTestTag("region-1"), 30_000)
     }

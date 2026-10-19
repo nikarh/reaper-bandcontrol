@@ -31,6 +31,7 @@ import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -56,8 +57,11 @@ class SimulatorE2ETest {
     private val secret = args.getString("secret") ?: "AAAAAAAAAAAAAAAAAAAAAAAAAA"
     private lateinit var scenario: ActivityScenario<MainActivity>
 
-    private fun control(command: String): String {
-        val (host, port) = controlAddress.split(':')
+    private fun control(
+        command: String,
+        address: String = controlAddress,
+    ): String {
+        val (host, port) = address.split(':')
         return Socket().use { s ->
             s.connect(InetSocketAddress(host, port.toInt()), 5_000)
             s.getOutputStream().write("$command\n".toByteArray())
@@ -83,12 +87,25 @@ class SimulatorE2ETest {
         condition: () -> Boolean,
     ) = compose.waitUntil(timeoutMs) { runCatching(condition).getOrDefault(false) }
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun pairingIntent(
+        secret: String,
+        name: String,
+        tcp: String?,
+    ) = Intent(Intent.ACTION_VIEW, Uri.parse("bandcontrol://pair?s=$secret&n=${Uri.encode(name)}" + (tcp?.let { "&t=$it" } ?: "")))
+        .setPackage(context.packageName)
+
     @Before
     fun launch() {
         control("reset")
-        val uri = Uri.parse("bandcontrol://pair?s=$secret&n=Simulator" + (tcp?.let { "&t=$it" } ?: ""))
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        scenario = ActivityScenario.launch(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName))
+        // Every test starts with only the simulator paired.
+        context
+            .getSharedPreferences("bandcontrol", 0)
+            .edit()
+            .clear()
+            .commit()
+        scenario = ActivityScenario.launch(pairingIntent(secret, "Simulator", tcp))
         compose.waitUntilAtLeastOneExists(hasTestTag("region-1"), 20_000)
     }
 
@@ -259,12 +276,62 @@ class SimulatorE2ETest {
         compose.onNodeWithTag("pair-code").assertExists()
     }
 
+    private fun status(text: String) = hasTestTag("status") and hasText(text)
+
+    /** A second simulator, "Stage PC", reached over TCP; it can go offline as if the computer left. */
+    @Test
+    fun severalComputers() {
+        val stageTcp = args.getString("stageTcp")
+        val stageControl = args.getString("stageControl")
+        val stageSecret = args.getString("stageSecret")
+        assumeTrue("needs the second simulator over TCP", tcp != null && stageTcp != null && stageControl != null)
+        val stage = { command: String -> control(command, stageControl!!) }
+        try {
+            // A new pairing is used right away, and the computer paired before is announced as nearby.
+            scenario.onActivity { it.startActivity(pairingIntent(stageSecret!!, "Stage PC", stageTcp)) }
+            compose.waitUntilAtLeastOneExists(status("Stage PC"), 20_000)
+            compose.waitUntilAtLeastOneExists(hasTestTag("notice") and hasText("Simulator is nearby"), 20_000)
+            compose.onNodeWithTag("notice-switch").performClick()
+            compose.waitUntilAtLeastOneExists(status("Simulator"), 20_000)
+            compose.onNodeWithTag("notice").assertDoesNotExist()
+
+            // Opening the app with both in range asks which one.
+            scenario.close()
+            scenario = ActivityScenario.launch(MainActivity::class.java)
+            compose.waitUntilAtLeastOneExists(hasTestTag("choose-Simulator"), 20_000)
+            compose.onNodeWithTag("choose-Stage PC").performClick()
+            compose.waitUntilAtLeastOneExists(status("Stage PC"), 20_000)
+            compose.onNodeWithTag("chooser").assertDoesNotExist()
+
+            // With only one in range it connects without asking, and announces the other when it shows up.
+            stage("offline")
+            scenario.close()
+            scenario = ActivityScenario.launch(MainActivity::class.java)
+            compose.waitUntilAtLeastOneExists(status("Simulator"), 20_000)
+            compose.onNodeWithTag("chooser").assertDoesNotExist()
+            stage("online")
+            compose.waitUntilAtLeastOneExists(hasTestTag("notice") and hasText("Stage PC is nearby"), 30_000)
+            compose.onNodeWithTag("notice-dismiss").performClick()
+            compose.onNodeWithTag("notice").assertDoesNotExist()
+
+            // The menu switches between paired computers and forgets them.
+            compose.onNodeWithTag("menu").performClick()
+            compose.onNodeWithTag("switch-Stage PC").performClick()
+            compose.waitUntilAtLeastOneExists(status("Stage PC"), 20_000)
+            compose.onNodeWithTag("menu").performClick()
+            compose.onNodeWithTag("forget").performClick()
+            compose.waitUntilAtLeastOneExists(status("Simulator"), 20_000)
+            compose.onNodeWithTag("menu").performClick()
+            compose.onNodeWithTag("switch-Stage PC").assertDoesNotExist()
+        } finally {
+            stage("online")
+        }
+    }
+
     @Test
     fun rejectedPairingIsExplained() {
         val wrong = "EEEEEEEEEEEEEEEEEEEEEEEEEE"
-        val uri = Uri.parse("bandcontrol://pair?s=$wrong&n=Studio" + (tcp?.let { "&t=$it" } ?: ""))
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        scenario.onActivity { it.startActivity(Intent(Intent.ACTION_VIEW, uri).setPackage(context.packageName)) }
+        scenario.onActivity { it.startActivity(pairingIntent(wrong, "Studio", tcp)) }
         if (tcp == null) {
             // Over Bluetooth the pairing code also selects which computer to look for.
             compose.waitUntilAtLeastOneExists(hasTestTag("status") and hasText("Studio not found nearby", substring = true), 30_000)
