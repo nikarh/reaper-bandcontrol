@@ -5,6 +5,20 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// One version for everything: the workspace version in the root Cargo.toml.
+val appVersion: String =
+    rootProject
+        .file("../Cargo.toml")
+        .readLines()
+        .dropWhile { it.trim() != "[workspace.package]" }
+        .first { it.trim().startsWith("version") }
+        .substringAfter('"')
+        .substringBefore('"')
+val appVersionCode: Int = appVersion.split('.').map(String::toInt).let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }
+
+// Release signing comes from the environment (the release workflow); local builds fall back to the debug key.
+val releaseKeystore: String? = System.getenv("ANDROID_KEYSTORE")?.takeIf { it.isNotEmpty() }
+
 android {
     namespace = "dev.nikarh.bandcontrol.app"
     compileSdk = 37
@@ -13,9 +27,20 @@ android {
         applicationId = "dev.nikarh.bandcontrol"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersion
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -23,8 +48,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Sideloaded only for now.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 
