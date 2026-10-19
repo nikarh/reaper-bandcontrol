@@ -31,6 +31,9 @@ reaper() {
 }
 
 app() {
+  # shellcheck source=scripts/android-device.sh
+  source scripts/android-device.sh
+  pick_android_device
   local tcp=47021 control=47022 secret=AAAAAAAAAAAAAAAAAAAAAAAAAA apk=android/app/build/outputs/apk
   local files=/sdcard/Android/data/dev.nikarh.bandcontrol/files/screenshots
   cargo build -q -p bandctl

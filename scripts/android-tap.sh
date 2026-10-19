@@ -2,6 +2,9 @@
 # Taps the app element with the given test tag on the connected phone, e.g. `scripts/android-tap.sh tab-mix`.
 set -euo pipefail
 tag=${1:?usage: android-tap.sh <test tag>}
+# shellcheck source=scripts/android-device.sh
+source "$(dirname "$0")/android-device.sh"
+pick_android_device
 
 adb shell uiautomator dump /sdcard/ui.xml > /dev/null
 point=$(adb shell cat /sdcard/ui.xml | python3 -c '
