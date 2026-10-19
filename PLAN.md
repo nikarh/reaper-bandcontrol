@@ -174,7 +174,7 @@ designed to be broadcast-safe on every OS:
 - [x] fader: dB law (-60..+12 dB, 0 dB at ~72 %), relative horizontal drag only (taps and vertical swipes don't
       change levels, reaper-remote-bandui#26), 0 dB mark + detent + haptic tick; no more clamping to 0 dB
 - [x] Mix tab: flat rows instead of cards, the mix's own level emphasised on top with its meter
-- [x] tabs Control, Mix, Inputs, PA (empty ones hidden); each tab keeps selection and scroll position
+- [x] tabs Playback, Inputs, PA, IEM (empty ones hidden); each tab keeps selection and scroll position
 - [x] Control tab: region / marker box sized so the marker chip fits
 - [x] protocol: all tracks with parent folder; per-session meter subscriptions (peak since last frame, 10 Hz, 1 byte)
 - [x] track roles from folders: "Input(s)" folder children, "PA" folder children, outputs in an "IEM"/"Monitor"

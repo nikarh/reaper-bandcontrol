@@ -133,7 +133,7 @@ class ReaperE2ETest {
 
     @Test
     fun mixFollowsBothSides() {
-        compose.onNodeWithTag("tab-mix").performClick()
+        compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-13").performClick()
 
         // The mute button only shows what REAPER reports back, so this round-trips through REAPER.
