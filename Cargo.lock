@@ -85,7 +85,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "bandcontrol-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bandcontrol-proto",
  "pretty_assertions",
@@ -95,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "bandcontrol-proto"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chacha20poly1305",
  "data-encoding",
@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "bandcontrol-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bandcontrol-core",
  "bandcontrol-proto",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "bandctl"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "bandcontrol-core",
@@ -1383,7 +1383,7 @@ dependencies = [
 
 [[package]]
 name = "reaper-bandcontrol"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bandcontrol-core",
  "bandcontrol-proto",
@@ -1399,7 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "reaper-harness"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bandcontrol-core",
  "bandcontrol-proto",
