@@ -99,6 +99,8 @@ api! {
 pub struct Reaper {
     f: Functions,
     register: RegisterFn,
+    /// REAPER's main window (`HWND`), as an address so the bindings can be shared.
+    main_window: usize,
 }
 
 impl std::fmt::Debug for Reaper {
@@ -142,13 +144,23 @@ pub unsafe fn init(info: *const PluginInfo) -> Result<&'static Reaper, String> {
     };
     // SAFETY: `get_func` comes from REAPER and the declared signatures match the SDK headers.
     let f = unsafe { Functions::load(get_func) }.map_err(|name| format!("missing REAPER API function {name}"))?;
-    Ok(REAPER.get_or_init(|| Reaper { f, register }))
+    let main_window = info.hwnd_main as usize;
+    Ok(REAPER.get_or_init(|| Reaper {
+        f,
+        register,
+        main_window,
+    }))
 }
 
 impl Reaper {
     /// The instance initialized by [`init`].
     pub fn get() -> Option<&'static Self> {
         REAPER.get()
+    }
+
+    /// REAPER's main window, the owner of the extension's windows.
+    pub fn main_window(&self) -> *mut c_void {
+        self.main_window as *mut c_void
     }
 
     /// `plugin_register` with a function pointer as info struct (`timer`, `hookcommand2`, `-timer`, ...).
