@@ -353,6 +353,41 @@ impl Reaper {
         })
     }
 
+    /// [`Self::launch`] and [`Self::wait_ready`], made reliable: REAPER under Xvfb now and then dies while starting or
+    /// just after (an X error in GDK), so an instance that doesn't come up, or doesn't stay up for a moment, is
+    /// replaced by a fresh one, up to three times.
+    ///
+    /// # Errors
+    /// The last start's error when every attempt failed.
+    pub fn start(options: &Options, timeout: Duration) -> Result<Self> {
+        const ATTEMPTS: u32 = 3;
+        let mut attempt = 1;
+        loop {
+            let mut reaper = Self::launch(options)?;
+            match reaper.wait_ready(timeout).and_then(|()| reaper.settle()) {
+                Ok(()) => return Ok(reaper),
+                Err(e) if attempt < ATTEMPTS => {
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "REAPER didn't start ({e}), attempt {attempt} of {ATTEMPTS}"
+                    );
+                    attempt += 1;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    /// Still running and answering a moment after it was ready.
+    fn settle(&mut self) -> Result<()> {
+        std::thread::sleep(Duration::from_secs(2));
+        if let Some(status) = self.child.try_wait()? {
+            return Err(Error::Exited(status, self.dir.clone()));
+        }
+        TcpStream::connect_timeout(&self.web, Duration::from_secs(2))?;
+        Ok(())
+    }
+
     /// Waits until REAPER has loaded the project and the web interface is up.
     ///
     /// # Errors

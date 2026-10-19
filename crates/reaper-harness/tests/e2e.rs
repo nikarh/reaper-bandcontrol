@@ -30,22 +30,24 @@ fn start(name: &str) -> Env {
 
 fn start_project(name: &str, project: std::path::PathBuf) -> Env {
     let tcp = SocketAddr::from(([127, 0, 0, 1], free_port().unwrap()));
-    let mut reaper = Reaper::launch(&Options {
-        dir: workspace_root().join("target/reaper-e2e").join(name),
-        project,
-        plugin: build_plugin(false).unwrap(),
-        env: vec![
-            ("BANDCONTROL_TCP".into(), tcp.to_string()),
-            ("BANDCONTROL_SECRET".into(), secret().to_code()),
-            ("BANDCONTROL_BLE".into(), "0".into()),
-            ("BANDCONTROL_NAME".into(), "E2E".into()),
-            ("BANDCONTROL_LOG".into(), "debug".into()),
-        ],
-        web_port: None,
-        ini: Vec::new(),
-    })
+    let reaper = Reaper::start(
+        &Options {
+            dir: workspace_root().join("target/reaper-e2e").join(name),
+            project,
+            plugin: build_plugin(false).unwrap(),
+            env: vec![
+                ("BANDCONTROL_TCP".into(), tcp.to_string()),
+                ("BANDCONTROL_SECRET".into(), secret().to_code()),
+                ("BANDCONTROL_BLE".into(), "0".into()),
+                ("BANDCONTROL_NAME".into(), "E2E".into()),
+                ("BANDCONTROL_LOG".into(), "debug".into()),
+            ],
+            web_port: None,
+            ini: Vec::new(),
+        },
+        Duration::from_secs(60),
+    )
     .unwrap();
-    reaper.wait_ready(Duration::from_secs(60)).unwrap();
     wait_for_port(tcp, Duration::from_secs(10)).unwrap_or_else(|e| panic!("{e}\n{}", reaper.log()));
     Env { reaper, tcp }
 }
