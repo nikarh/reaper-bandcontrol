@@ -130,7 +130,8 @@ designed to be broadcast-safe on every OS:
 - [x] session manager (handshake timeout, multi-client, broadcast vs unicast, MTU)
 - [x] TCP transport (length-prefixed packets, configurable fake MTU)
 - [x] BLE transport — Linux (bluer): advertising, rx write, tx notify, MTU, disconnect detection
-- [ ] BLE transport — macOS (CoreBluetooth) / Windows (WinRT), compile-checked via clippy for those targets
+- [x] BLE transport — macOS (CoreBluetooth) / Windows (WinRT `GattServiceProvider`), compile-checked via clippy for
+      those targets; **not yet run on real hardware**
 - [x] integration tests: server + TCP + Rust client + FakeDaw
 
 ### 4. bandctl
@@ -192,3 +193,7 @@ designed to be broadcast-safe on every OS:
   Found by the phone ↔ REAPER e2e.
 - REAPER's web API can't read receives (`TRACK/n/SEND/-k` returns nothing); the mute button only renders server
   state, so asserting its toggle state proves the REAPER round trip.
+- macOS kills processes that touch Bluetooth without `NSBluetoothAlwaysUsageDescription` in their Info.plist, so the
+  CoreBluetooth backend checks the main bundle first and reports a clear error instead. Unknown whether REAPER.app has
+  the key; `bandctl` embeds its own Info.plist (`crates/bandctl/build.rs`). Neither macOS nor Windows can drop a
+  central from the peripheral side: `Disconnect` forgets it, unsubscribing from TX counts as a disconnect.

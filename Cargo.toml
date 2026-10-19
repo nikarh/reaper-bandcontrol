@@ -16,34 +16,71 @@ lto           = "fat"
 strip         = true
 
 [workspace.dependencies]
-anyhow             = "1.0.104"
-bandcontrol-core   = { path = "crates/bandcontrol-core" }
-bandcontrol-proto  = { path = "crates/bandcontrol-proto" }
+anyhow = "1.0.104"
+bandcontrol-core = { path = "crates/bandcontrol-core" }
+bandcontrol-proto = { path = "crates/bandcontrol-proto" }
 bandcontrol-server = { path = "crates/bandcontrol-server" }
-bluer              = { version = "0.17.4", default-features = false, features = ["bluetoothd"] }
-chacha20poly1305   = "0.11.0"
-clap               = { version = "4.6.7", features = ["derive", "env"] }
-data-encoding      = "2.11.1"
-futures            = "0.3.34"
-getrandom          = "0.4.3"
-hkdf               = "0.13.0"
-hmac               = "0.13.0"
-parking_lot        = "0.12.5"
-pretty_assertions  = "1.4.1"
-proptest           = "1.12.0"
-prost              = "0.14.4"
-prost-build        = "0.14.4"
-protox             = "0.10.0"
-qrcode             = { version = "0.14.1", default-features = false, features = ["svg"] }
-reaper-harness     = { path = "crates/reaper-harness" }
-serde              = { version = "1.0.229", features = ["derive"] }
-serde_json         = "1.0.154"
-sha2               = "0.11.1"
-thiserror          = "2.0.21"
-tokio              = { version = "1.53.3", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
-tracing            = "0.1.44"
+block2 = "0.6.2"
+bluer = { version = "0.17.4", default-features = false, features = ["bluetoothd"] }
+chacha20poly1305 = "0.11.0"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+data-encoding = "2.11.1"
+dispatch2 = { version = "0.3.1", default-features = false, features = ["alloc", "objc2"] }
+futures = "0.3.34"
+getrandom = "0.4.3"
+hkdf = "0.13.0"
+hmac = "0.13.0"
+objc2 = "0.6.5"
+objc2-core-bluetooth = { version = "0.3.2", default-features = false, features = [
+  "CBATTRequest",
+  "CBAdvertisementData",
+  "CBAttribute",
+  "CBCentral",
+  "CBCharacteristic",
+  "CBDescriptor",
+  "CBError",
+  "CBManager",
+  "CBPeer",
+  "CBPeripheralManager",
+  "CBService",
+  "CBUUID",
+  "dispatch2",
+  "std",
+] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "NSArray",
+  "NSBundle",
+  "NSData",
+  "NSDictionary",
+  "NSError",
+  "NSString",
+  "NSUUID",
+  "NSValue",
+  "std",
+] }
+parking_lot = "0.12.5"
+pretty_assertions = "1.4.1"
+proptest = "1.12.0"
+prost = "0.14.4"
+prost-build = "0.14.4"
+protox = "0.10.0"
+qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+reaper-harness = { path = "crates/reaper-harness" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+thiserror = "2.0.21"
+tokio = { version = "1.53.3", features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
-uuid               = "1.28.0"
+uuid = "1.28.0"
+windows = { version = "0.62.2", features = [
+  "Devices_Bluetooth",
+  "Devices_Bluetooth_GenericAttributeProfile",
+  "Foundation",
+  "Foundation_Collections",
+  "Storage_Streams",
+] }
 
 [workspace.lints.rust]
 missing_debug_implementations = "warn"

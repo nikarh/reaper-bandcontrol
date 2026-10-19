@@ -24,6 +24,16 @@ uuid              = { workspace = true }
 [target.'cfg(target_os = "linux")'.dependencies]
 bluer = { workspace = true }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+block2               = { workspace = true }
+dispatch2            = { workspace = true }
+objc2                = { workspace = true }
+objc2-core-bluetooth = { workspace = true }
+objc2-foundation     = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { workspace = true }
+
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 
