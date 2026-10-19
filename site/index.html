@@ -175,8 +175,7 @@
       <h2>Organizing the REAPER project</h2>
       <p><strong>BandControl finds its way around your project by a naming convention</strong>, not by guessing from
         the routing. Three folders, named the way it expects, decide what shows up in which tab:</p>
-      <pre class="tree">Click, Backtrack    sources, at the top level
-INPUTS/             → Inputs tab: one track per input
+      <pre class="tree">INPUTS/             → Inputs tab: one track per input
 FOH OUT/            → FOH tab: front of house, feeds to the house desk or the PA
 IEM OUT/            → IEM tab: one mix per musician, a hardware output receiving what they want to hear</pre>
       <ul>
@@ -190,7 +189,10 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
           or <em>Monitor</em> in its name. The IEM tab sets the mix's volume and the volume and mute of every
           receive.</li>
       </ul>
-      <p>Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware
+      <p>Everything else is up to you: the click, backtracks, buses and any other tracks can live anywhere, organized
+        however you like, as long as they don't land in these folders: a direct child of the Inputs or FOH folder shows
+        up in that tab, and a track with a hardware output and receives inside the IEM folder is listed as a mix.
+        Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware
         output and receives. There is nothing to install in the project.</p>
       <p><a class="button primary" href="examples/BandControl-Example.RPP" download>{{icon:file-down}}Download the example project</a>
         &nbsp;The smallest project with this layout: Click and Backtrack, four inputs, three FOH feeds and an in-ear mix
