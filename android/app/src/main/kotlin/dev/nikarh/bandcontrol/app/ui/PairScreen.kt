@@ -1,6 +1,5 @@
 package dev.nikarh.bandcontrol.app.ui
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,39 +20,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import dev.nikarh.bandcontrol.app.BuildConfig
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
-
-/** Scans with the Google Play services scanner, which needs no camera permission. */
-private fun scanPairingCode(
-    context: Context,
-    onPair: (PairingInfo) -> Unit,
-    onError: (String) -> Unit,
-) {
-    val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
-    GmsBarcodeScanning
-        .getClient(context, options)
-        .startScan()
-        .addOnSuccessListener { barcode ->
-            val info = barcode.rawValue?.let(PairingInfo::fromUrl)
-            when {
-                info == null -> onError("This QR code is not a BandControl pairing code.")
-                BuildConfig.DEBUG -> onPair(info)
-                else -> onPair(info.copy(tcp = null))
-            }
-        }.addOnFailureListener { onError("Scanning failed: ${it.message}") }
-}
 
 @Composable
 fun PairScreen(
@@ -64,7 +39,22 @@ fun PairScreen(
     var name by rememberSaveable { mutableStateOf("") }
     var scanError by rememberSaveable { mutableStateOf<String?>(null) }
     val secret = PairingSecret.fromCode(code)
-    val context = LocalContext.current
+    var scanning by rememberSaveable { mutableStateOf(false) }
+    if (scanning) {
+        QrScanner(
+            onResult = { text ->
+                scanning = false
+                val info = PairingInfo.fromUrl(text)
+                when {
+                    info == null -> scanError = "This QR code is not a BandControl pairing code."
+                    BuildConfig.DEBUG -> onPair(info)
+                    else -> onPair(info.copy(tcp = null))
+                }
+            },
+            onClose = { scanning = false },
+        )
+        return
+    }
 
     Column(
         Modifier
@@ -83,7 +73,7 @@ fun PairScreen(
         )
         Button(onClick = {
             scanError = null
-            scanPairingCode(context, onPair) { scanError = it }
+            scanning = true
         }, modifier = Modifier.testTag("scan-button")) { Text("Scan QR code") }
         scanError?.let { Text(it, color = Palette.red500) }
         OutlinedTextField(
