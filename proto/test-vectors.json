@@ -1,0 +1,202 @@
+{
+  "aead": {
+    "broadcast": [
+      {
+        "counter": 0,
+        "frame": "005966e42b2ffca7a261c2bb8e333e418aabf05509",
+        "plaintext": "00000000"
+      },
+      {
+        "counter": 1,
+        "frame": "0127c082441beba7af3f26dcab47cd7332eeb01038",
+        "plaintext": "01000000"
+      },
+      {
+        "counter": 127,
+        "frame": "7f76b14ba637f398fabcd76ab2a88f6584aaa519ed",
+        "plaintext": "7f000000"
+      },
+      {
+        "counter": 128,
+        "frame": "8001f8e0c0a037e77d517498ec9def933a12f42e206b",
+        "plaintext": "80000000"
+      },
+      {
+        "counter": 129,
+        "frame": "81010642e0c9629e7c782ee629fe2bc1f4efee98fb7c",
+        "plaintext": "81000000"
+      }
+    ],
+    "key": "4242424242424242424242424242424242424242424242424242424242424242",
+    "unicast": [
+      {
+        "ciphertext": "4be5fe96d8b3a2726e4a7669d001bb80",
+        "plaintext": ""
+      },
+      {
+        "ciphertext": "4ea5ee28aeb0b1c0e8d650970103dba8b85c2ab5af",
+        "plaintext": "68656c6c6f"
+      },
+      {
+        "ciphertext": "9a1aff4f75d96d38ad55b810c9422958b689bcc13c6212ba7555166e441f36169cac5c75ba45d724ce69b39d3e6aaf61349d1ea77161df0e1af1a57887fe40188df61dcb8b87f18de7339de46d3ed6f26c8c0214684599145f60a6299e52c137c36d0475d6e8706e1e3fa3cc3751fee7989391b8b41dd91e7524a386d05f05dc102e5277e9f7d3b1223d65b694ae870f243fb14949be9b040ef8758b3551308b26f63b1b316c1a25e1ec4a98ad8be330d3ce0140c647be906ca9f19ce3c6364239f3e055ca0e171463997f14cee710e5d6743414d0300f96aacdc549111bdd4d027242233ab7e0a47d4dddebd7f75fb843ca139e8b53df1f4950101bde103b933d4bb00faed2a240aef7f169af976e794f522ed76f0ed41ba025a9332659862341892c368ee12223d5f229d21635308dc2f361425cbcabb06f5ddcaf",
+        "plaintext": "abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab"
+      }
+    ]
+  },
+  "framing": [
+    {
+      "channel": 1,
+      "max_packet": 20,
+      "message": "",
+      "packets": [
+        "01"
+      ]
+    },
+    {
+      "channel": 3,
+      "max_packet": 20,
+      "message": "000102030405060708090a0b0c0d0e0f101112",
+      "packets": [
+        "03000102030405060708090a0b0c0d0e0f101112"
+      ]
+    },
+    {
+      "channel": 126,
+      "max_packet": 100,
+      "message": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+      "packets": [
+        "fe000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162",
+        "fe636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5",
+        "7ec6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+      ]
+    },
+    {
+      "channel": 0,
+      "max_packet": 20,
+      "message": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425",
+      "packets": [
+        "80000102030405060708090a0b0c0d0e0f101112",
+        "00131415161718191a1b1c1d1e1f202122232425"
+      ]
+    },
+    {
+      "channel": 127,
+      "max_packet": 512,
+      "message": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfe",
+      "packets": [
+        "7f000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfe"
+      ]
+    }
+  ],
+  "pairing": [
+    {
+      "code": "AAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "display_code": "AAAA-AAAA-AAAA-AAAA-AAAA-AAAA-AA",
+      "name": "REAPER",
+      "secret": "00000000000000000000000000000000",
+      "service_uuid": "2b913f5d-851f-8dd7-8be2-5f5707a0ec5c",
+      "url": "bandcontrol://pair?s=AAAAAAAAAAAAAAAAAAAAAAAAAA&n=REAPER"
+    },
+    {
+      "code": "AMKCKNSHLBUXVC44VW7M7YHRAI",
+      "display_code": "AMKC-KNSH-LBUX-VC44-VW7M-7YHR-AI",
+      "name": "Studio PC",
+      "secret": "031425364758697a8b9cadbecfe0f102",
+      "service_uuid": "7c991fe3-db07-8eb8-bb6b-9c0d19ae667f",
+      "url": "bandcontrol://pair?s=AMKCKNSHLBUXVC44VW7M7YHRAI&n=Studio%20PC"
+    },
+    {
+      "code": "77777777777777777777777774",
+      "display_code": "7777-7777-7777-7777-7777-7777-74",
+      "name": "Кухня & co/✓",
+      "secret": "ffffffffffffffffffffffffffffffff",
+      "service_uuid": "8cd55fa5-3710-8b2f-83d8-da7e61d276fb",
+      "url": "bandcontrol://pair?s=77777777777777777777777774&n=%D0%9A%D1%83%D1%85%D0%BD%D1%8F%20%26%20co%2F%E2%9C%93"
+    }
+  ],
+  "proofs": {
+    "c2s": "91359607669a7bf90dd6d29e976c25586ae98720004c0f85c335718496748a06",
+    "client_nonce": "11111111111111111111111111111111",
+    "client_proof": "db5cce6ae8db3e8d7cbdcd0f1a4dba6f419abd6ee94ae98c86c4b934f6eeabba",
+    "s2c": "a686ea68e08fb7a6aa772491c3dc7130e9a39886f4ba4ea1095213791c8d05be",
+    "secret": "031425364758697a8b9cadbecfe0f102",
+    "server_nonce": "22222222222222222222222222222222",
+    "server_proof": "f512276a857da50d75a4c89e761102924d621158f1ed62a94d7a4e88960bcb3d",
+    "session_id": 5
+  },
+  "session": {
+    "client_name": "Phone",
+    "client_nonce": "0102030405060708090a0b0c0d0e0f10",
+    "commands": [
+      {
+        "message": "1a07080d150000403f",
+        "packets": [
+          "01cce443e39dc0cde6db33d07df420f9859f6c255fef61fce65a"
+        ]
+      },
+      {
+        "message": "0801",
+        "packets": [
+          "014f3b88f915cc4f13774bf4ababa2d75417ca"
+        ]
+      },
+      {
+        "message": "2208080d100118052801",
+        "packets": [
+          "01c5580ae918cbe8daadae652fae3b06e8e6576fef6e7e96350d7e"
+        ]
+      },
+      {
+        "message": "120408031006",
+        "packets": [
+          "01f45863fd86e66649564e370c1cc9e4f88e785b965bfe"
+        ]
+      }
+    ],
+    "handshake": [
+      {
+        "client": [
+          "7f0a1d080112100102030405060708090a0b0c0d0e0f101828220550686f6e65"
+        ],
+        "events": [],
+        "server": [
+          "ff12540a100102030405060708090a0b0c0d0e0f1010011a108485868788898a8b8c8d8e8f909192",
+          "ff932220b38fe2381ac9086aaecfb348f223384a1a3e306a6e7a90c2bfcd8a5de3cff72b2a0a5374",
+          "7f7564696f20e29c93"
+        ]
+      },
+      {
+        "client": [
+          "7f1a220a20de8653d1295896fd1771ac61084e69c4bd837a68e5b900d5d52e8245e9620cf2"
+        ],
+        "events": [
+          {
+            "authenticated": {
+              "server_name": "Studio ✓",
+              "session": 1
+            }
+          }
+        ],
+        "server": [
+          "8125eac13667b0d5446d7d7a90e644f5b4d731f47d5566e92377be20e3b05fcace8250ae7507a4ec",
+          "0196316a1cb1e2cbc71839217621"
+        ]
+      }
+    ],
+    "max_packet": 40,
+    "messages": [
+      "126f0a15080210021a05436c69636b20ff85ec072d0000803f0a27080d100d1a0b4472756d73205b332b345d2d3d0ad73e30013a07080215a4707d3f3a040805180112130801120653756d6d657220c3a40f28a78eae041a0e080312064368726f757318968c0522020801220408041001",
+      "1a08080110c8b5161801",
+      "22140a07080d150000003f1209080d10011d0000803e"
+    ],
+    "secret": "031425364758697a8b9cadbecfe0f102",
+    "server_packets": [
+      "80000a3c61427bea1b407479a1fe45fbbe45673487e455a8425e87acd688196d074693583ba7d0fe",
+      "80d3477613551a4a666e10743af1c5b1142a765c87e4b31b014828709e77f169c0c144fb2a56287b",
+      "80bdc910f9da397ce8ef109c8a7bfc2b5ae3babd3f3717806424bc1d7608bdee4feefa3fced20cb4",
+      "008e96287996e63812bc7807355f",
+      "01950261b13e4180f46a2a47fdd42761efc4e58b5be436370e62d4",
+      "0001ea414fd51f974ba275105be76b126674e1d9abe0eb6b8786d8c6a8a1cd0528a85f654fac968c"
+    ]
+  }
+}

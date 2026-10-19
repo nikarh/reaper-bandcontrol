@@ -118,7 +118,7 @@ designed to be broadcast-safe on every OS:
 - [x] `.proto` schema + prost codegen via protox
 - [x] packet framing / fragmentation + reassembly (+ proptests)
 - [x] handshake + session crypto (server & client state machines)
-- [ ] golden test vectors (JSON) for Kotlin cross-check
+- [x] golden test vectors (`proto/test-vectors.json`, checked by `tests/vectors.rs`) for Kotlin cross-check
 
 ### 2. Core engine
 - [x] model + `Daw` trait + commands
