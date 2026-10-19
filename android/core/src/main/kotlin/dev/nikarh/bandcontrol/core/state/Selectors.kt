@@ -102,7 +102,8 @@ fun toggleRegion(
     index: Int,
 ): List<RegionOrder> = sorted.mapIndexed { i, r -> if (i == index) r.copy(disabled = !r.disabled) else r }.toOrder()
 
-private fun List<OrderedRegion>.toOrder() = map { RegionOrder(id = it.region.id, disabled = it.disabled) }
+/** The order to send for an edited list, e.g. after dragging. */
+fun List<OrderedRegion>.toOrder(): List<RegionOrder> = map { RegionOrder(id = it.region.id, disabled = it.disabled) }
 
 private const val UNORDERED = 10_000
 
