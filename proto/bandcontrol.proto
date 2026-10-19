@@ -1,0 +1,214 @@
+// Wire protocol between the REAPER extension (server) and phones (clients).
+//
+// Compatibility rules: never reuse or renumber fields, only add new optional fields / oneof variants.
+// Unknown fields and unknown oneof variants must be ignored by receivers.
+syntax = "proto3";
+
+package bandcontrol.v1;
+
+option java_package = "dev.nikarh.bandcontrol.proto";
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Handshake. Sent in plaintext on the handshake channel (127).
+// ---------------------------------------------------------------------------------------------------------------------
+
+message Handshake {
+  oneof msg {
+    Hello hello = 1;
+    Challenge challenge = 2;
+    Auth auth = 3;
+    AuthFailed failed = 4;
+  }
+}
+
+// Client -> server. First message after connecting.
+message Hello {
+  uint32 version = 1;
+  // 16 random bytes.
+  bytes client_nonce = 2;
+  // Usable ATT payload size for client -> server packets as seen by the client (negotiated MTU - 3).
+  uint32 max_packet = 3;
+  string client_name = 4;
+}
+
+// Server -> client. On broadcast-only transports every handshaking client sees this, `client_nonce` lets a client
+// recognize the reply to its own `Hello`.
+message Challenge {
+  bytes client_nonce = 1;
+  uint32 session_id = 2;
+  // 16 random bytes.
+  bytes server_nonce = 3;
+  // HMAC-SHA256(auth_key, "server" || client_nonce || server_nonce || session_id).
+  bytes server_proof = 4;
+  string server_name = 5;
+}
+
+// Client -> server, only sent after the client verified `server_proof`.
+message Auth {
+  // HMAC-SHA256(auth_key, "client" || client_nonce || server_nonce || session_id).
+  bytes client_proof = 1;
+}
+
+message AuthFailed {
+  bytes client_nonce = 1;
+  AuthFailure reason = 2;
+}
+
+enum AuthFailure {
+  AUTH_FAILURE_UNSPECIFIED = 0;
+  AUTH_FAILURE_BAD_PROOF = 1;
+  AUTH_FAILURE_UNSUPPORTED_VERSION = 2;
+  AUTH_FAILURE_TOO_MANY_CLIENTS = 3;
+  AUTH_FAILURE_RATE_LIMITED = 4;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Server -> client, encrypted.
+// ---------------------------------------------------------------------------------------------------------------------
+
+message ServerMessage {
+  oneof msg {
+    Welcome welcome = 1;
+    State state = 2;
+    Transport transport = 3;
+    GainDelta gains = 4;
+  }
+}
+
+// First encrypted message of a session (unicast).
+message Welcome {
+  // Key for broadcast frames (channel 0), 32 bytes.
+  bytes group_key = 1;
+}
+
+// Full snapshot of everything that changes rarely. Replaces the previous snapshot completely.
+message State {
+  // Tracks that are mixable outputs plus all tracks that feed them.
+  repeated Track tracks = 1;
+  repeated Region regions = 2;
+  repeated Marker markers = 3;
+  // User defined order of regions with a disabled flag. Regions missing here are appended in id order.
+  repeated RegionOrder region_order = 4;
+}
+
+message Track {
+  // Stable id assigned by the server (survives reordering).
+  uint32 id = 1;
+  // 1-based position in the REAPER track list, display only.
+  uint32 number = 2;
+  string name = 3;
+  // 0xRRGGBB, absent when the track uses the theme default.
+  optional uint32 color = 4;
+  // Linear gain, 1.0 = 0 dB.
+  float volume = 5;
+  // True when the track has a hardware output and at least one receive (an IEM mix).
+  bool output = 6;
+  // Receives of output tracks, the position in this list is the receive index.
+  repeated Receive receives = 7;
+}
+
+message Receive {
+  // Source track id.
+  uint32 src = 1;
+  float volume = 2;
+  bool mute = 3;
+}
+
+message Region {
+  uint32 id = 1;
+  string name = 2;
+  uint32 start_ms = 3;
+  uint32 end_ms = 4;
+  optional uint32 color = 5;
+}
+
+message Marker {
+  uint32 id = 1;
+  string name = 2;
+  uint32 pos_ms = 3;
+  optional uint32 color = 4;
+}
+
+message RegionOrder {
+  uint32 id = 1;
+  bool disabled = 2;
+}
+
+enum PlayState {
+  PLAY_STATE_STOPPED = 0;
+  PLAY_STATE_PLAYING = 1;
+  PLAY_STATE_PAUSED = 2;
+}
+
+// Sent every second while playing and immediately on any discontinuity.
+message Transport {
+  PlayState state = 1;
+  uint32 pos_ms = 2;
+  bool repeat = 3;
+  bool recording = 4;
+}
+
+// Only the gains that changed since the previous update.
+message GainDelta {
+  repeated TrackGain tracks = 1;
+  repeated ReceiveGain receives = 2;
+}
+
+message TrackGain {
+  uint32 track = 1;
+  float volume = 2;
+}
+
+message ReceiveGain {
+  uint32 track = 1;
+  uint32 index = 2;
+  float volume = 3;
+  bool mute = 4;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Client -> server, encrypted.
+// ---------------------------------------------------------------------------------------------------------------------
+
+message ClientMessage {
+  oneof msg {
+    TransportAction transport = 1;
+    Goto goto = 2;
+    SetTrackVolume set_track_volume = 3;
+    SetReceive set_receive = 4;
+    SetRegionOrder set_region_order = 5;
+  }
+}
+
+enum TransportAction {
+  TRANSPORT_ACTION_UNSPECIFIED = 0;
+  TRANSPORT_ACTION_PLAY = 1;
+  TRANSPORT_ACTION_PAUSE = 2;
+  TRANSPORT_ACTION_STOP = 3;
+  TRANSPORT_ACTION_RECORD = 4;
+  TRANSPORT_ACTION_TOGGLE_REPEAT = 5;
+}
+
+// Select a region (time selection = region bounds) and move the cursor to a marker inside it, or to the region start.
+message Goto {
+  uint32 region = 1;
+  optional uint32 marker = 2;
+}
+
+message SetTrackVolume {
+  uint32 track = 1;
+  float volume = 2;
+}
+
+// Receive `index` of track `track`. `src` must match the receive source, otherwise the command is ignored.
+message SetReceive {
+  uint32 track = 1;
+  uint32 index = 2;
+  uint32 src = 3;
+  optional float volume = 4;
+  optional bool mute = 5;
+}
+
+message SetRegionOrder {
+  repeated RegionOrder order = 1;
+}
