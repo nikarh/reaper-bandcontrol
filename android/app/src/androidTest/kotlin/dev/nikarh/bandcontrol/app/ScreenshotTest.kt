@@ -118,7 +118,7 @@ class ScreenshotTest {
         compose.waitUntilAtLeastOneExists(hasTestTag("level-9"), 5_000)
         shot("foh")
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("mix-title"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("output-volume"), 5_000)
         shot("iem")
         compose.onNodeWithContentDescription("Menu").performClick()
         compose.onNodeWithText("Share pairing with another phone").performClick()

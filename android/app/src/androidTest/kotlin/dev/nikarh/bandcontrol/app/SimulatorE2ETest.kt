@@ -5,11 +5,13 @@ import android.net.Uri
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasStateDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -193,7 +195,7 @@ class SimulatorE2ETest {
     fun mixFollowsBothSides() {
         compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-27").performClick()
-        compose.onNodeWithTag("mix-title").assertTextEquals("Drums")
+        compose.onNodeWithTag("output-27").assertIsSelected().assertTextEquals("Drums")
 
         // Drums input is receive 3 of the drums mix.
         scrollTo("receives", "mute-6")
@@ -237,11 +239,11 @@ class SimulatorE2ETest {
     fun tabsKeepTheirState() {
         compose.onNodeWithTag("tab-iem").performClick()
         compose.onNodeWithTag("output-29").performScrollTo().performClick()
-        compose.waitUntilAtLeastOneExists(hasTestTag("mix-title") and hasText("Right guitar"), 5_000)
+        compose.waitUntilAtLeastOneExists(hasTestTag("output-29") and isSelected() and hasText("Right guitar"), 5_000)
         compose.onNodeWithTag("tab-playback").performClick()
         compose.onNodeWithTag("region-1").assertExists()
         compose.onNodeWithTag("tab-iem").performClick()
-        compose.onNodeWithTag("mix-title").assertTextEquals("Right guitar")
+        compose.onNodeWithTag("output-29").assertIsSelected()
     }
 
     @Test

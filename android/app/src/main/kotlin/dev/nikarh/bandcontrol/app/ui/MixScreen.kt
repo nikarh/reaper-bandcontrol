@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,6 +88,7 @@ fun MixScreen(
                                 .background(if (isSelected) Palette.gray600 else Palette.gray700)
                                 .clickable { onSelect(o.id) }
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
+                                .semantics { this.selected = isSelected }
                                 .testTag("output-${o.id}"),
                     )
                 }
@@ -111,19 +113,7 @@ private fun MainMix(
 ) {
     val levels by meters.collectAsStateWithLifecycle()
     Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                output.name,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false).testTag("mix-title"),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text("mix level", color = Palette.gray400, fontSize = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
-        }
+        Text("Mix level", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         Fader(
             gain = output.volume,
