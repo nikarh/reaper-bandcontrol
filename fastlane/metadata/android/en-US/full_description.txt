@@ -1,4 +1,4 @@
-BandControl puts the band's REAPER on every band member's phone: playback and the setlist, input and front of house levels, and a personal in-ear mix for each musician. Phones connect to the computer over Bluetooth, so there is no Wi-Fi, no hotspot and no IP address to type, and only phones paired with the computer can control it.
+BandControl puts the band's REAPER on every band member's phone: playback and the setlist, input and front of house levels, and a personal in-ear mix for each musician. Phones connect to the computer directly over Bluetooth, without any network setup, and only phones paired with the computer can control it.
 
 The app controls REAPER through the free BandControl extension for REAPER 5.93 or newer on Windows, macOS or Linux: https://bandcontrol.arhipov.net/
 
@@ -20,8 +20,8 @@ Every band member picks their own mix and sets the level of each source: click, 
 Pair once, share by QR code
 REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows the same QR code to the next one, so the whole band is set up in a minute without touching the computer again. Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
 
-No Wi-Fi, no IP addresses
-Phones talk to the computer over Bluetooth Low Energy, wherever you play: no router, no tethering, no addresses to type. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
+Connectivity
+Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
 
 A project layout that explains itself
 BandControl relies on a simple naming convention instead of guessing: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with receives) live in an "IEM" folder. No plugins and no special routing; start from the example project or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.

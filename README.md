@@ -11,7 +11,7 @@
 [![Website](https://img.shields.io/badge/website-nikarh.github.io-informational)](https://nikarh.github.io/reaper-bandcontrol/)
 
 Control REAPER from the band's phones over Bluetooth: playback and setlist, input and front of house levels, and a personal
-in-ear mix for every band member. No Wi-Fi, no tethering, no IP addresses.
+in-ear mix for every band member.
 
 BandControl is two parts: a **REAPER extension** (Windows, macOS, Linux) that turns the computer into a Bluetooth
 Low Energy device, and an **Android app** that every band member installs.
@@ -95,9 +95,9 @@ REAPER shows a QR code; scan it with the app (no Google services needed) or type
 
 <br clear="right">
 
-### No Wi-Fi, no IP addresses
+### Connectivity
 
-Phones talk to the computer over Bluetooth Low Energy, wherever you play: no router, no tethering, no addresses to type. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
+Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
 
 ### A project layout that explains itself
 

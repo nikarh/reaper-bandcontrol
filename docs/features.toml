@@ -9,8 +9,8 @@
 [app]
 intro = """
 BandControl puts the band's REAPER on every band member's phone: playback and the setlist, input and front of house
-levels, and a personal in-ear mix for each musician. Phones connect to the computer over Bluetooth, so there is no
-Wi-Fi, no hotspot and no IP address to type, and only phones paired with the computer can control it.
+levels, and a personal in-ear mix for each musician. Phones connect to the computer directly over Bluetooth, without
+any network setup, and only phones paired with the computer can control it.
 """
 needs = """
 The app controls REAPER through the free BandControl extension for REAPER {min} or newer on Windows, macOS or Linux:
@@ -81,11 +81,11 @@ title = "Pair once, share by QR code"
 [[feature]]
 id = "bluetooth"
 text = """
-Phones talk to the computer over Bluetooth Low Energy, wherever you play: no router, no tethering, no addresses to
-type. Only paired phones can find the computer, and every session is encrypted. The app reconnects by itself and
-keeps the screen on while connected.
+Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones
+can find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while
+connected.
 """
-title = "No Wi-Fi, no IP addresses"
+title = "Connectivity"
 
 [[feature]]
 id = "project"
