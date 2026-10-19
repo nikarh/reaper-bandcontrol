@@ -9,3 +9,6 @@ local.properties
 .idea/
 *.iml
 .kotlin/
+# Never commit a REAPER license (the harness copies the user's into target/ at runtime).
+*.rk
+reaper-license*
