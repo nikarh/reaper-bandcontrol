@@ -72,6 +72,7 @@ import dev.nikarh.bandcontrol.core.Commands
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.NavTarget
 import dev.nikarh.bandcontrol.core.state.OrderedRegion
+import dev.nikarh.bandcontrol.core.state.PREVIOUS_GRACE_MS
 import dev.nikarh.bandcontrol.core.state.currentMarker
 import dev.nikarh.bandcontrol.core.state.currentRegion
 import dev.nikarh.bandcontrol.core.state.enabledRegions
@@ -94,6 +95,15 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 
 /** Longer than the server's 1 s structure debounce plus Bluetooth latency. */
 private const val LOCAL_ORDER_TIMEOUT_MS = 3_000L
+
+/** How long a jump is assumed to have happened before REAPER's next play position arrives (about once a second). */
+private const val LOCAL_JUMP_TIMEOUT_MS = 1_500L
+
+/** A jump sent to REAPER and not confirmed yet: to [posMs], at [atMs] (monotonic). */
+private data class Jump(
+    val posMs: Long,
+    val atMs: Long,
+)
 
 private fun monotonicMs() = System.nanoTime() / 1_000_000
 
@@ -128,7 +138,21 @@ fun ControlScreen(
     }
     val view = localOrder?.let { state.copy(regionOrder = it) } ?: state
     val onOrder = { order: List<RegionOrder> -> if (send(Commands.regionOrder(order))) localOrder = order }
-    val position = rememberPosition(state)
+    // After a jump the position is the jump target until REAPER reports where it is, so pressing previous twice in a
+    // row goes back twice instead of computing the second jump from the old position.
+    var jump by remember { mutableStateOf<Jump?>(null) }
+    LaunchedEffect(jump) {
+        if (jump != null) {
+            delay(LOCAL_JUMP_TIMEOUT_MS)
+            jump = null
+        }
+    }
+    val reported = rememberPosition(state)
+    val position =
+        jump?.let { if (state.playing) it.posMs + (monotonicMs() - it.atMs) else it.posMs } ?: reported
+    val goto = { message: ClientMessage, posMs: Int ->
+        if (send(message)) jump = Jump(posMs.toLong(), monotonicMs())
+    }
     var editing by rememberSaveable { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -139,7 +163,7 @@ fun ControlScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TransportRow(state, enabled, send)
-            NavigationRow(view, position, enabled, send)
+            NavigationRow(view, position, enabled, goto)
         }
         Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -164,7 +188,7 @@ fun ControlScreen(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp),
             )
         }
-        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, position, enabled, send)
+        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, position, enabled, goto)
     }
 }
 
@@ -266,9 +290,9 @@ private fun NavigationRow(
     state: BandState,
     position: Long,
     enabled: Boolean,
-    send: (ClientMessage) -> Boolean,
+    goto: (ClientMessage, Int) -> Unit,
 ) {
-    val previous = state.previousTarget(position)
+    val previous = state.previousTarget(position, if (state.playing) PREVIOUS_GRACE_MS else 100)
     val next = state.nextTarget(position)
     val region = state.currentRegion(position)
     val marker = state.currentMarker(position)
@@ -279,7 +303,7 @@ private fun NavigationRow(
             .clip(RoundedCornerShape(8.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        NavButton(Icons.Default.SkipPrevious, "previous", previous, enabled, send)
+        NavButton(Icons.Default.SkipPrevious, "previous", previous, enabled, goto)
         Column(
             Modifier
                 .weight(1f)
@@ -327,7 +351,7 @@ private fun NavigationRow(
                 }
             }
         }
-        NavButton(Icons.Default.SkipNext, "next", next, enabled, send)
+        NavButton(Icons.Default.SkipNext, "next", next, enabled, goto)
     }
 }
 
@@ -337,11 +361,11 @@ private fun NavButton(
     description: String,
     target: NavTarget?,
     enabled: Boolean,
-    send: (ClientMessage) -> Boolean,
+    goto: (ClientMessage, Int) -> Unit,
 ) {
     val active = enabled && target != null
     Surface(
-        onClick = { target?.let { send(Commands.goto(it)) } },
+        onClick = { target?.let { goto(Commands.goto(it), it.posMs) } },
         enabled = active,
         color = if (active) Palette.gray700 else Palette.gray700.copy(alpha = 0.4f),
         modifier =
@@ -392,7 +416,7 @@ private fun RegionList(
     state: BandState,
     position: Long,
     enabled: Boolean,
-    send: (ClientMessage) -> Boolean,
+    goto: (ClientMessage, Int) -> Unit,
 ) {
     val current = state.currentRegion(position)
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
@@ -404,7 +428,7 @@ private fun RegionList(
                 playState = state.transport.state,
                 position = position,
                 enabled = enabled,
-                onClick = { send(Commands.goto(region.id)) },
+                onClick = { goto(Commands.goto(region.id), region.start_ms) },
             )
         }
     }

@@ -47,6 +47,17 @@ class SelectorsTest {
     }
 
     @Test
+    fun previousRightAfterAStartGoesFurtherBack() {
+        // 1.5 s into marker 2 (at 46 087 ms, between 1 and 3): restart it, or with the grace go to marker 1.
+        val pos = state.previousTarget(50_000)!!.posMs + 1_500L
+        assertEquals(1 to 2, state.previousTarget(pos).ids())
+        assertEquals(1 to 1, state.previousTarget(pos, PREVIOUS_GRACE_MS).ids())
+        // Right after a song started, to the song before it in the band's order (3 before 2).
+        assertEquals(2 to null, state.previousTarget(333_913L + 1_000).ids())
+        assertEquals(3, state.previousTarget(333_913L + 1_000, PREVIOUS_GRACE_MS)?.region?.id)
+    }
+
+    @Test
     fun navigationAcrossRegionsFollowsUserOrder() {
         // Summer -> Spring (order 1, 4, 3, 2), Spring has no markers: its start.
         assertEquals(4 to null, state.nextTarget(100_000).ids())

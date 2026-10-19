@@ -61,9 +61,19 @@ private fun BandState.navigationTargets(region: Region): List<NavTarget> {
     return if (startsWithMarker) markers else listOf(NavTarget(region, null, region.start_ms)) + markers
 }
 
-fun BandState.previousTarget(posMs: Long): NavTarget? {
+/** While playing, "previous" this soon after a song or part started goes to the one before it, like music players. */
+const val PREVIOUS_GRACE_MS = 2_000L
+
+/**
+ * Where "previous" goes from [posMs]: the start of the current song or part, or the one before it within [graceMs] of
+ * that start.
+ */
+fun BandState.previousTarget(
+    posMs: Long,
+    graceMs: Long = 100,
+): NavTarget? {
     val current = currentRegion(posMs) ?: return null
-    navigationTargets(current).lastOrNull { posMs - it.posMs > 100 }?.let { return it }
+    navigationTargets(current).lastOrNull { posMs - it.posMs > graceMs }?.let { return it }
     val regions = enabledRegions()
     val previous = regions.getOrNull(regions.indexOfFirst { it.id == current.id } - 1) ?: return null
     return navigationTargets(previous).lastOrNull()
