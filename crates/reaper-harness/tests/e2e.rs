@@ -35,6 +35,7 @@ fn start(name: &str) -> Env {
             ("BANDCONTROL_NAME".into(), "E2E".into()),
             ("BANDCONTROL_LOG".into(), "debug".into()),
         ],
+        web_port: None,
     })
     .unwrap();
     reaper.wait_ready(Duration::from_secs(60)).unwrap();

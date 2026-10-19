@@ -3,7 +3,8 @@
 //! Lines other than `q` are sent to the REAPER web interface and the response is printed, e.g.
 //! `SET/TRACK/13/VOL/0.5;TRACK/13`.
 //!
-//! Usage: `reaper-harness [--release] [--project FILE]`; `BANDCONTROL_*` variables are passed to REAPER.
+//! Usage: `reaper-harness [--release] [--project FILE] [--web-port PORT]`; `BANDCONTROL_*` variables are passed
+//! to REAPER.
 
 use std::{
     io::{BufRead as _, Write as _},
@@ -16,11 +17,13 @@ use reaper_harness::{Options, Reaper, build_plugin, mother_project, workspace_ro
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut release = false;
     let mut project = mother_project();
+    let mut web_port = None;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--release" => release = true,
             "--project" => project = PathBuf::from(args.next().ok_or("--project needs a value")?),
+            "--web-port" => web_port = Some(args.next().ok_or("--web-port needs a value")?.parse()?),
             other => return Err(format!("unknown argument {other}").into()),
         }
     }
@@ -32,6 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         env: std::env::vars()
             .filter(|(k, _)| k.starts_with("BANDCONTROL_"))
             .collect(),
+        web_port,
     })?;
     reaper.wait_ready(Duration::from_secs(60))?;
     let mut out = std::io::stdout().lock();

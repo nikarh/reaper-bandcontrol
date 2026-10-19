@@ -138,6 +138,8 @@ pub struct Options {
     pub plugin: PathBuf,
     /// Extra environment for REAPER (the extension reads `BANDCONTROL_*`).
     pub env: Vec<(String, String)>,
+    /// Web interface port, a free one when `None`.
+    pub web_port: Option<u16>,
 }
 
 /// A running REAPER instance, killed on drop.
@@ -168,7 +170,7 @@ impl Reaper {
         let project = dir.join(options.project.file_name().unwrap_or("project.RPP".as_ref()));
         std::fs::copy(&options.project, &project)?;
 
-        let web_port = free_port()?;
+        let web_port = options.web_port.map_or_else(free_port, Ok)?;
         let ini = dir.join("reaper.ini");
         std::fs::write(&ini, reaper_ini(web_port))?;
 
