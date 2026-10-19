@@ -33,11 +33,13 @@ use parking_lot::Mutex;
 
 const EXT_SECTION: &CStr = c"bandcontrol";
 const EXT_SECRET: &CStr = c"secret";
+const EXT_NAME: &CStr = c"name";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Action {
     ShowPairing,
     ResetKey,
+    Rename,
     Status,
 }
 
@@ -85,6 +87,11 @@ impl Plugin {
                 "BandControl: Reset pairing key (unpairs all phones)",
                 Action::ResetKey,
             ),
+            (
+                "BANDCONTROL_RENAME",
+                "BandControl: Set the name shown on phones",
+                Action::Rename,
+            ),
             ("BANDCONTROL_STATUS", "BandControl: Show status", Action::Status),
         ]
         .into_iter()
@@ -98,7 +105,9 @@ impl Plugin {
             engine: Engine::new(EngineConfig::default()),
             server: None,
             secret,
-            name: env("BANDCONTROL_NAME").unwrap_or_else(pairing::hostname),
+            name: env("BANDCONTROL_NAME")
+                .or_else(|| reaper.ext_state(EXT_SECTION, EXT_NAME).filter(|n| !n.trim().is_empty()))
+                .unwrap_or_else(pairing::hostname),
             ble: env("BANDCONTROL_BLE").is_none_or(|v| v != "0"),
             tcp: env("BANDCONTROL_TCP").and_then(|a| a.parse().ok()),
             actions,
@@ -155,14 +164,28 @@ impl Plugin {
             Some(server) => {
                 let status = server.status();
                 format!(
-                    "Name: {}\nBluetooth: {}\nTCP: {}\nConnected phones: {}",
+                    "Name shown on phones: {}\nBluetooth: {}\nTCP: {}\nConnected phones: {}\n\n\
+                     The pairing code and the name are stored in this REAPER's settings (resource folder: {}), \
+                     so they are the same for every project.",
                     self.name,
                     describe(&status.ble),
                     describe(&status.tcp),
-                    status.sessions
+                    status.sessions,
+                    self.reaper.resource_path(),
                 )
             }
         }
+    }
+
+    fn rename(&mut self, name: &str) {
+        let name = name.trim();
+        if name.is_empty() || name == self.name {
+            return;
+        }
+        name.clone_into(&mut self.name);
+        self.reaper.set_ext_state(EXT_SECTION, EXT_NAME, name);
+        // Phones reconnect and get the new name in the handshake.
+        self.start_server();
     }
 
     fn reset_key(&mut self) {
@@ -208,6 +231,15 @@ fn run_action(action: Action) {
             if answer == 6 {
                 with_plugin(Plugin::reset_key);
                 run_action(Action::ShowPairing);
+            }
+        }
+        Action::Rename => {
+            let Some(current) = with_plugin(|p| p.name.clone()) else {
+                return;
+            };
+            let caption = "Name shown on phones:,extrawidth=150";
+            if let Some(name) = reaper.user_input("BandControl", caption, &current) {
+                with_plugin(|p| p.rename(&name));
             }
         }
         Action::Status => {
