@@ -411,36 +411,40 @@ impl Reaper {
     /// Unlicensed REAPER shows a modal "About" reminder that stops REAPER's timers (and so the extension). Under Xvfb
     /// nothing closes it, so it is closed here; it can take a while to appear when several instances start at once.
     ///
-    /// REAPER ignores close requests and Escape, so the window is destroyed, but only after its button's 5 second
-    /// countdown: until then REAPER repaints it every second, and REAPER 7 dies from an X error (`BadDrawable` in GDK)
-    /// in about one start in three when the window disappears during a repaint.
+    /// REAPER ignores close requests and Escape, so the window is destroyed. Its button counts down 5 seconds,
+    /// repainting the window every second, and REAPER 7 dies from an X error (`BadDrawable` in GDK) when the window
+    /// disappears during a repaint, so it is destroyed just after one: when it changes after a stable moment.
     fn close_evaluation_reminder(&self) {
-        const COUNTDOWN: Duration = Duration::from_secs(6);
         let Display::Xvfb { display, .. } = &self.display else {
             return;
         };
         if self.licensed {
             return;
         }
-        let xdotool = |action: Option<&str>| {
-            Command::new("xdotool")
+        let deadline = Instant::now() + Duration::from_secs(20);
+        let window = loop {
+            let found = Command::new("xdotool")
                 .env("DISPLAY", display)
                 .args(["search", "--onlyvisible", "--name", "^About REAPER"])
-                .args(action)
-                .stdout(Stdio::null())
                 .stderr(Stdio::null())
-                .status()
-                .is_ok_and(|s| s.success())
-        };
-        let deadline = Instant::now() + Duration::from_secs(20);
-        while Instant::now() < deadline {
-            if xdotool(None) {
-                std::thread::sleep(COUNTDOWN);
-                xdotool(Some("windowclose"));
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .and_then(|out| out.lines().next().map(str::to_owned));
+            if let Some(window) = found {
+                break window;
+            }
+            if Instant::now() > deadline {
                 return;
             }
-            std::thread::sleep(Duration::from_millis(200));
-        }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        wait_for_repaint(display, &window);
+        let _ = Command::new("xdotool")
+            .env("DISPLAY", display)
+            .args(["windowclose", &window])
+            .stderr(Stdio::null())
+            .status();
     }
 
     #[must_use]
@@ -609,6 +613,9 @@ impl Drop for Reaper {
             let _ = server.kill();
             let _ = server.wait();
         }
+        if self.licensed {
+            let _ = std::fs::remove_file(self.dir.join("reaper-license.rk"));
+        }
     }
 }
 
@@ -627,4 +634,39 @@ fn reaper_ini(web_port: u16) -> String {
          wnd_w=1920\n\
          wnd_h=1080\n"
     )
+}
+
+/// Returns just after `window` was repainted following a stable moment (a countdown tick of REAPER's evaluation
+/// reminder), or after 8 seconds without one, when the countdown is over and nothing repaints it anymore.
+fn wait_for_repaint(display: &str, window: &str) {
+    const STABLE: Duration = Duration::from_millis(300);
+    let capture = || {
+        Command::new("import")
+            .env("DISPLAY", display)
+            .args(["-window", window, "rgb:-"])
+            .stderr(Stdio::null())
+            .output()
+            .ok()
+            .map(|o| {
+                let mut hasher = std::hash::DefaultHasher::new();
+                std::hash::Hash::hash(&o.stdout, &mut hasher);
+                std::hash::Hasher::finish(&hasher)
+            })
+    };
+    let deadline = Instant::now() + Duration::from_secs(8);
+    let mut last = capture();
+    let mut stable_since = Instant::now();
+    while Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(30));
+        let current = capture();
+        if current != last {
+            if stable_since.elapsed() >= STABLE {
+                // Lets the repaint finish.
+                std::thread::sleep(Duration::from_millis(100));
+                return;
+            }
+            last = current;
+            stable_since = Instant::now();
+        }
+    }
 }
