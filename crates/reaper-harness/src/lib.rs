@@ -353,9 +353,8 @@ impl Reaper {
         })
     }
 
-    /// [`Self::launch`] and [`Self::wait_ready`], made reliable: REAPER under Xvfb now and then dies while starting or
-    /// just after (an X error in GDK), so an instance that doesn't come up, or doesn't stay up for a moment, is
-    /// replaced by a fresh one, up to three times.
+    /// [`Self::launch`] and [`Self::wait_ready`], with up to three attempts: an instance that doesn't come up, or
+    /// doesn't stay up for a moment, is replaced by a fresh one.
     ///
     /// # Errors
     /// The last start's error when every attempt failed.
@@ -411,23 +410,33 @@ impl Reaper {
 
     /// Unlicensed REAPER shows a modal "About" reminder that stops REAPER's timers (and so the extension). Under Xvfb
     /// nothing closes it, so it is closed here; it can take a while to appear when several instances start at once.
+    ///
+    /// REAPER ignores close requests and Escape, so the window is destroyed, but only after its button's 5 second
+    /// countdown: until then REAPER repaints it every second, and REAPER 7 dies from an X error (`BadDrawable` in GDK)
+    /// in about one start in three when the window disappears during a repaint.
     fn close_evaluation_reminder(&self) {
+        const COUNTDOWN: Duration = Duration::from_secs(6);
         let Display::Xvfb { display, .. } = &self.display else {
             return;
         };
         if self.licensed {
             return;
         }
-        let deadline = Instant::now() + Duration::from_secs(20);
-        while Instant::now() < deadline {
-            let closed = Command::new("xdotool")
+        let xdotool = |action: Option<&str>| {
+            Command::new("xdotool")
                 .env("DISPLAY", display)
-                .args(["search", "--onlyvisible", "--name", "^About REAPER", "windowclose"])
+                .args(["search", "--onlyvisible", "--name", "^About REAPER"])
+                .args(action)
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .status()
-                .is_ok_and(|s| s.success());
-            if closed {
+                .is_ok_and(|s| s.success())
+        };
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while Instant::now() < deadline {
+            if xdotool(None) {
+                std::thread::sleep(COUNTDOWN);
+                xdotool(Some("windowclose"));
                 return;
             }
             std::thread::sleep(Duration::from_millis(200));
