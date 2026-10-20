@@ -56,6 +56,22 @@ macOS Gatekeeper warn before opening them):
 | `MACOS_INSTALLER_IDENTITY` | `Developer ID Installer: Name (TEAMID)` |
 | `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, `MACOS_NOTARY_PASSWORD` | Apple ID, team ID and an [app-specific password](https://support.apple.com/102654) for notarization |
 
+### REAPER license for the e2e tests (optional)
+
+Without a license REAPER runs as an evaluation copy, whose reminder window the test harness has to close at every
+start. A repository secret (Settings → Secrets and variables → Actions, not the `release` environment) lets the
+Check and Newest REAPER workflows run a licensed REAPER instead:
+
+```sh
+base64 -w0 < ~/.config/REAPER/reaper-license.rk | gh secret set REAPER_LICENSE_BASE64 --repo nikarh/reaper-bandcontrol
+```
+
+`scripts/ci-reaper-license.sh` writes it to a file only the job can read and deletes it, and the test directories
+with copies of it, before the job ends; only `*.log` files are uploaded on failure. Pull requests from forks and from
+Dependabot get no secrets and test unlicensed. The Docs workflow never uses it: a licensed REAPER can show its owner's
+name, and its screenshots are published. Locally the harness uses the license of your own REAPER installation, if
+there is one (`REAPER_LICENSE=` tests unlicensed).
+
 ### Installers and signing, locally
 
 The same scripts run locally, through mise; every signing variable is optional and the result is unsigned without

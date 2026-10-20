@@ -55,6 +55,7 @@ jobs:
         run: scripts/docs-screenshots.sh reaper
         env:
           REAPER_HEADLESS: xvfb
+          # Always unlicensed: the screenshots are published, and a licensed REAPER can show its owner's name.
           REAPER_LICENSE: ""
       - name: Build the app and the simulator
         run: |
