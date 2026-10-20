@@ -21,9 +21,9 @@ Repo: https://github.com/nikarh/reaper-bandcontrol.git
 Binaries: https://github.com/nikarh/reaper-bandcontrol/releases/download/v%v/bandcontrol.apk
 
 Builds:
-  - versionName: 0.1.1
-    versionCode: 101
-    commit: v0.1.1
+  - versionName: 0.1.2
+    versionCode: 102
+    commit: v0.1.2
     subdir: android/app
     gradle:
       - yes
@@ -35,5 +35,5 @@ AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v[0-9.]+$
 # The version and the versionCode live in Cargo.toml, the single version of the extension and the app.
 UpdateCheckData: Cargo.toml|version-code\s*=\s*(\d+)|.|\[workspace\.package\][^\[]*?\nversion\s*=\s*"([^"]+)"
-CurrentVersion: 0.1.1
-CurrentVersionCode: 101
+CurrentVersion: 0.1.2
+CurrentVersionCode: 102

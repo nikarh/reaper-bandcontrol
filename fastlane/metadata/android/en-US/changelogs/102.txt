@@ -1,0 +1,5 @@
+• Previous / next and the transport controls look like buttons
+• The IEM mix level is labelled "Mix level", the mix is the highlighted button above
+• Every source in an IEM mix has a level meter again, at its level in the mix
+• Mute buttons in the IEM tab look like the other buttons
+• Pressing previous twice while playing goes back twice
