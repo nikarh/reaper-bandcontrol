@@ -38,7 +38,7 @@ workspace-default-features = "allow"
 skip = [
   { name = "foldhash", version = "0.1.5", reason = "hashbrown 0.15 via prost-build (build only)" },
   { name = "hashbrown", version = "0.15.5", reason = "petgraph via prost-build (build only)" },
-  { name = "syn", version = "2.0.119", reason = "logos-codegen via protox (build only)" },
+  { name = "syn", version = "2.0.119", reason = "custom_debug via bluer, logos-codegen via protox" },
 ]
 
 [sources]
