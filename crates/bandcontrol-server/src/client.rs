@@ -164,7 +164,7 @@ impl Mirror {
                 }
             }
             Some(Msg::Meters(m)) => self.meters = Some(m.clone()),
-            Some(Msg::Welcome(_)) | None => {}
+            Some(Msg::Welcome(_) | Msg::Goodbye(_)) | None => {}
         }
     }
 

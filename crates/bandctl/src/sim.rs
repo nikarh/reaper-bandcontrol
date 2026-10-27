@@ -73,10 +73,13 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         name: args.name.clone(),
         ble: args.ble,
         tcp: args.tcp,
+        helper: None,
     };
     let mut server = Some(Server::start(options())?);
     // Cleared by the `offline` control command to stop serving, as if the computer left.
     let online = Arc::new(AtomicBool::new(true));
+    // Set by the `goodbye` control command.
+    let goodbye = Arc::new(AtomicBool::new(false));
     let project = args.project.as_ref().map(|p| p.to_string_lossy().into_owned());
     let daw = Arc::new(Mutex::new(load(project.as_deref())?));
 
@@ -85,12 +88,14 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         tracing::info!(%addr, "control port listening");
         let daw = daw.clone();
         let online = online.clone();
+        let goodbye = goodbye.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
                 let daw = daw.clone();
                 let online = online.clone();
+                let goodbye = goodbye.clone();
                 let project = project.clone();
-                std::thread::spawn(move || control_connection(stream, &daw, &online, project.as_deref()));
+                std::thread::spawn(move || control_connection(stream, &daw, &online, &goodbye, project.as_deref()));
             }
         });
     }
@@ -126,6 +131,9 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         };
         last = now;
         server.send(outputs);
+        if goodbye.swap(false, Ordering::Relaxed) {
+            server.goodbye_all();
+        }
 
         let status = server.status();
         if last_status.as_ref() != Some(&status) {
@@ -188,7 +196,13 @@ fn activity(daw: &mut FakeDaw, step: u64) {
     }
 }
 
-fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>, online: &AtomicBool, project: Option<&str>) {
+fn control_connection(
+    stream: TcpStream,
+    daw: &Mutex<FakeDaw>,
+    online: &AtomicBool,
+    goodbye: &AtomicBool,
+    project: Option<&str>,
+) {
     let Ok(mut writer) = stream.try_clone() else { return };
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { return };
@@ -196,6 +210,11 @@ fn control_connection(stream: TcpStream, daw: &Mutex<FakeDaw>, online: &AtomicBo
         let reply = match line {
             "offline" | "online" => {
                 online.store(line == "online", Ordering::Relaxed);
+                Ok("ok".into())
+            }
+            // Ends every session as if the user disconnected the phones on the computer.
+            "goodbye" => {
+                goodbye.store(true, Ordering::Relaxed);
                 Ok("ok".into())
             }
             _ => control(line, &mut daw.lock(), project),

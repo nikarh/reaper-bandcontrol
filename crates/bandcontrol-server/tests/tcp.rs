@@ -28,6 +28,7 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 struct Host {
     addr: SocketAddr,
     daw: Arc<Mutex<FakeDaw>>,
+    goodbye: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -52,6 +53,7 @@ fn host() -> Host {
         name: "Test REAPER".into(),
         ble: false,
         tcp: Some("127.0.0.1:0".parse().unwrap()),
+        helper: None,
     })
     .unwrap();
     let addr = loop {
@@ -62,9 +64,11 @@ fn host() -> Host {
     };
     let daw = Arc::new(Mutex::new(FakeDaw::mother_project()));
     let stop = Arc::new(AtomicBool::new(false));
+    let goodbye = Arc::new(AtomicBool::new(false));
     let thread = {
         let daw = daw.clone();
         let stop = stop.clone();
+        let goodbye = goodbye.clone();
         std::thread::spawn(move || {
             let mut engine = Engine::new(EngineConfig::default());
             let mut last = Instant::now();
@@ -76,6 +80,9 @@ fn host() -> Host {
                 let outputs = engine.tick(&mut *daw, now, server.poll_inputs());
                 drop(daw);
                 server.send(outputs);
+                if goodbye.swap(false, Ordering::SeqCst) {
+                    server.goodbye_all();
+                }
                 std::thread::sleep(Duration::from_millis(33));
             }
         })
@@ -83,6 +90,7 @@ fn host() -> Host {
     Host {
         addr,
         daw,
+        goodbye,
         stop,
         thread: Some(thread),
     }
@@ -156,4 +164,21 @@ async fn wrong_secret_is_rejected() {
         .await
         .unwrap_err();
     assert!(matches!(err, TcpClientError::Session(_)), "{err:?}");
+}
+
+#[tokio::test]
+async fn goodbye_reaches_the_phone_before_the_connection_closes() {
+    let host = host();
+    let (mut client, _) = connected(&host, 512).await;
+    host.goodbye.store(true, Ordering::SeqCst);
+    loop {
+        let msg = client.next_timeout(TIMEOUT).await.unwrap();
+        if msg.msg == Some(pb::server_message::Msg::Goodbye(pb::Goodbye {})) {
+            break;
+        }
+    }
+    assert!(
+        client.next_timeout(TIMEOUT).await.is_err(),
+        "the session goes on after the goodbye"
+    );
 }

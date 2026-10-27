@@ -5,6 +5,9 @@
 //! * `BANDCONTROL_TCP` — also listen on this TCP address
 //! * `BANDCONTROL_BLE=0` — disable Bluetooth
 //! * `BANDCONTROL_NAME` — server name shown on phones
+//!
+//! On macOS Bluetooth goes through the BandControl app (`bandcontrol_server::helper`): REAPER's `Info.plist` doesn't
+//! declare Bluetooth use, so macOS doesn't let REAPER use it.
 
 mod daw;
 mod ffi;
@@ -28,7 +31,10 @@ use bandcontrol_proto::{
     pairing::{PairingInfo, PairingSecret},
     random::OsRandom,
 };
-use bandcontrol_server::{Server, ServerOptions, TransportStatus};
+use bandcontrol_server::{
+    Server, ServerOptions, TransportStatus,
+    helper::{HelperOptions, Request},
+};
 use daw::ReaperDaw;
 use ffi::{PluginInfo, Reaper};
 use parking_lot::Mutex;
@@ -129,6 +135,7 @@ impl Plugin {
             name: self.name.clone(),
             ble: self.ble,
             tcp: self.tcp,
+            helper: helper_options(),
         }) {
             Ok(s) => Some(s),
             Err(e) => {
@@ -146,6 +153,16 @@ impl Plugin {
             window::set_scaling(self.window_scaling());
         }
         let Some(server) = &mut self.server else { return };
+        let requests = server.poll_requests();
+        if !requests.is_empty() {
+            for request in requests {
+                match request {
+                    Request::Rename(name) => self.rename(&name),
+                    Request::ResetKey => self.reset_key(),
+                }
+            }
+            return;
+        }
         let inputs = server.poll_inputs();
         if inputs.is_empty() && self.engine.sessions() == 0 {
             return;
@@ -210,8 +227,13 @@ impl Plugin {
             None => "Server is not running, see bandcontrol.log in the REAPER resource folder.".into(),
             Some(server) => {
                 let status = server.status();
+                let via = if helper_options().is_some() {
+                    " (through the BandControl app)"
+                } else {
+                    ""
+                };
                 format!(
-                    "Name shown on phones: {}\nBluetooth: {}\nTCP: {}\nConnected phones: {}\nREAPER: {} (supported: {} and \
+                    "Name shown on phones: {}\nBluetooth{via}: {}\nTCP: {}\nConnected phones: {}\nREAPER: {} (supported: {} and \
                      newer)\n\n\
                      The pairing code and the name are stored in this REAPER's settings (resource folder: {}), \
                      so they are the same for every project.",
@@ -246,6 +268,17 @@ impl Plugin {
     }
 }
 
+/// macOS: Bluetooth through the BandControl app, started when it isn't running.
+#[cfg(target_os = "macos")]
+fn helper_options() -> Option<HelperOptions> {
+    bandcontrol_server::helper::default_socket().map(|socket| HelperOptions { socket, launch: true })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn helper_options() -> Option<HelperOptions> {
+    None
+}
+
 const WINDOW_STATUS_INTERVAL: Duration = Duration::from_millis(500);
 
 /// A button in the pairing window was clicked.
@@ -268,6 +301,10 @@ fn run_action(action: Action) {
     let Some(reaper) = Reaper::get() else { return };
     match action {
         Action::ShowPairing => {
+            // macOS: the BandControl app shows it.
+            if with_plugin(|p| p.server.as_ref().is_some_and(Server::show_pairing)) == Some(true) {
+                return;
+            }
             let Some((view, scaling, info, resource)) = with_plugin(|p| {
                 (
                     p.window_view(),

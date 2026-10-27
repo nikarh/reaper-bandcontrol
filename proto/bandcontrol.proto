@@ -73,8 +73,13 @@ message ServerMessage {
     Transport transport = 3;
     GainDelta gains = 4;
     Meters meters = 5;
+    Goodbye goodbye = 6;
   }
 }
+
+// The user disconnected this phone on the computer (the BandControl app on macOS). The session ends after it; the
+// phone should not reconnect to this computer by itself. Unicast.
+message Goodbye {}
 
 // First encrypted message of a session (unicast).
 message Welcome {

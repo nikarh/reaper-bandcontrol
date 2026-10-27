@@ -14,8 +14,11 @@ version.workspace      = true
 [dependencies]
 bandcontrol-core  = { workspace = true }
 bandcontrol-proto = { workspace = true }
+data-encoding     = { workspace = true }
 futures           = { workspace = true }
 parking_lot       = { workspace = true }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
 thiserror         = { workspace = true }
 tokio             = { workspace = true }
 tracing           = { workspace = true }

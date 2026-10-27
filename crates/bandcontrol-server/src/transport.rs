@@ -11,6 +11,8 @@ pub enum TransportEvent {
     Connected(LocalId),
     Packet(LocalId, Vec<u8>),
     Disconnected(LocalId),
+    /// The user disconnected this phone: end its session, telling the phone.
+    Goodbye(LocalId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
