@@ -322,8 +322,8 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
   band fits; a big ensemble may hit the adapter's limit.
 - **macOS.** macOS only lets an application use Bluetooth if its `Info.plist` declares it, and REAPER's doesn't,
   so the BandControl app does it for the extension (see [macOS](#macos)). The app needs no administrator rights and
-  quits a few seconds after REAPER. Until the releases are signed, macOS asks for the Bluetooth permission again
-  after an update. Like Windows, macOS can't drop a phone's Bluetooth connection: **Disconnect** in the app ends the
+  quits a few seconds after REAPER. It is signed with the project's own certificate, which macOS doesn't vouch for
+  (hence the warning when installing) but which keeps the Bluetooth permission across updates. Like Windows, macOS can't drop a phone's Bluetooth connection: **Disconnect** in the app ends the
   phone's session and ignores it from then on, and the phone shows that the computer disconnected it.
 - **Windows.** Needs Windows 10 1803 or newer and an adapter that supports the peripheral role. Windows can't drop a
   connection from the computer's side, so a rejected phone stays connected at the Bluetooth level until it leaves.

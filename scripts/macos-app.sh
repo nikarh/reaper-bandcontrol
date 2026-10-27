@@ -3,8 +3,10 @@
 #
 #   scripts/macos-app.sh BINARY OUTDIR
 #
-# Writes OUTDIR/BandControl.app. Signed with MACOS_SIGN_IDENTITY ("Developer ID Application: …") and the hardened
-# runtime when set, ad hoc otherwise (Apple silicon only runs signed code). Needs macOS (sips, iconutil, codesign).
+# Writes OUTDIR/BandControl.app. Signed with MACOS_SIGN_IDENTITY ("Developer ID Application: …") when set, otherwise
+# with MACOS_SELF_SIGNED_IDENTITY (the project's self-signed certificate, see scripts/macos-keychain.sh), otherwise ad
+# hoc (Apple silicon only runs signed code). macOS ties the Bluetooth permission to the signature: an ad-hoc one
+# changes with every build, so macOS asks again after each update. Needs macOS (sips, iconutil, codesign).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -45,6 +47,9 @@ iconutil -c icns "$iconset" -o "$app/Contents/Resources/AppIcon.icns"
 
 if [[ -n ${MACOS_SIGN_IDENTITY:-} ]]; then
   codesign --force --timestamp --options runtime --sign "$MACOS_SIGN_IDENTITY" "$app"
+elif [[ -n ${MACOS_SELF_SIGNED_IDENTITY:-} ]]; then
+  codesign --force --options runtime --sign "$MACOS_SELF_SIGNED_IDENTITY" "$app"
+  echo "BandControl.app is signed with the self-signed certificate" >&2
 else
   codesign --force --sign - "$app"
   echo "MACOS_SIGN_IDENTITY not set: BandControl.app is only ad-hoc signed" >&2

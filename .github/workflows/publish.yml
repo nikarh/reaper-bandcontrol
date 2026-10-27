@@ -80,7 +80,12 @@ jobs:
         env:
           MACOS_CERTIFICATES_P12_BASE64: ${{ secrets.MACOS_CERTIFICATES_P12_BASE64 }}
           MACOS_CERTIFICATES_PASSWORD: ${{ secrets.MACOS_CERTIFICATES_PASSWORD }}
-        run: if [[ -n $MACOS_CERTIFICATES_P12_BASE64 ]]; then scripts/macos-keychain.sh; fi
+          MACOS_SELF_SIGNED_P12_BASE64: ${{ secrets.MACOS_SELF_SIGNED_P12_BASE64 }}
+          MACOS_SELF_SIGNED_PASSWORD: ${{ secrets.MACOS_SELF_SIGNED_PASSWORD }}
+        run: |
+          if [[ -n $MACOS_CERTIFICATES_P12_BASE64 || -n $MACOS_SELF_SIGNED_P12_BASE64 ]]; then
+            scripts/macos-keychain.sh
+          fi
       - name: Package, sign and notarize
         env:
           MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
