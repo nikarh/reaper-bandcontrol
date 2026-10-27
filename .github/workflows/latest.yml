@@ -1,0 +1,75 @@
+name: Latest
+
+# Keeps the `latest` pre-release at the tip of main: on every push the tag moves to the new commit, the notes list the
+# unreleased changes, and Publish builds, signs and uploads the same files as for a release. GitHub never marks it as
+# the latest release, so releases/latest still means the newest vX.Y.Z.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: latest
+  cancel-in-progress: true
+
+jobs:
+  tag:
+    name: Move the latest tag
+    if: github.repository_owner == 'nikarh'
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          install_args: git-cliff
+      - name: Release notes
+        run: |
+          set -euo pipefail
+          {
+            echo "Built from \`main\` at ${GITHUB_SHA:0:7}, not released yet. Rebuilt on every change; for a stable"
+            echo "version, use the [latest release]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/latest)."
+            echo
+            git cliff --unreleased --strip all
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+      # Published with the app token: the tag and the release are written to the repository.
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: generate-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Move the tag and update the pre-release
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GH_REPO/git/ref/tags/latest" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/$GH_REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true > /dev/null
+          else
+            gh api "repos/$GH_REPO/git/refs" -f ref=refs/tags/latest -f sha="$GITHUB_SHA" > /dev/null
+          fi
+          title="Latest (unreleased, ${GITHUB_SHA:0:7})"
+          if gh release view latest > /dev/null 2>&1; then
+            gh release edit latest --prerelease --latest=false --title "$title" --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            # Publish skips the `published` event of this release; it runs below.
+            gh release create latest --verify-tag --prerelease --latest=false --title "$title" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+          fi
+
+  publish:
+    name: Publish
+    needs: tag
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: latest
+    secrets: inherit
