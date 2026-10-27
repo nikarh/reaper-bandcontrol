@@ -1,0 +1,5 @@
+[env]
+# The oldest macOS the extension and the BandControl app support (11 Big Sur, Intel and Apple silicon). Cargo builds
+# for it everywhere; scripts/macos-app.sh copies it into the app's LSMinimumSystemVersion and `mise run lint` checks
+# that the README names it.
+MACOSX_DEPLOYMENT_TARGET = "11.0"

@@ -76,6 +76,26 @@ jobs:
           name: dist-${{ matrix.name }}
           path: dist/*
           if-no-files-found: error
+      # macOS: the BandControl app, which gives the extension Bluetooth. Only its installer and zip are released, so
+      # the binary is not a dist-* artifact.
+      - name: Build the BandControl app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bins=()
+          for target in ${{ matrix.targets }}; do
+            cargo build --release --locked -p bandcontrol-app --target "$target"
+            bins+=("target/$target/release/BandControl")
+          done
+          mkdir -p app
+          lipo -create -output app/BandControl-macos-universal "${bins[@]}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: runner.os == 'macOS'
+        with:
+          name: app-macos-universal
+          path: app/*
+          if-no-files-found: error
 
   windows-installers:
     name: Windows installers (unsigned)
@@ -109,7 +129,13 @@ jobs:
         with:
           name: dist-macos-universal
           path: dist
-      - run: scripts/package-macos.sh dist/reaper_bandcontrol-macos-universal.dylib installers
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: app-macos-universal
+          path: app
+      - run: |
+          chmod +x app/BandControl-macos-universal
+          scripts/package-macos.sh dist/reaper_bandcontrol-macos-universal.dylib app/BandControl-macos-universal installers
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installers-macos

@@ -21,7 +21,8 @@ points at the newest file:
 | `reaper_bandcontrol-macos-universal.dylib` | REAPER extension for macOS, Apple Silicon and Intel |
 | `reaper_bandcontrol-windows-x86_64.dll`, `reaper_bandcontrol-windows-arm64ec.dll` | REAPER extension for Windows, x64 and ARM (REAPER's ARM64EC build) |
 | `bandcontrol-windows-x64-setup.exe`, `bandcontrol-windows-arm64-setup.exe` | Windows installers (NSIS), per user |
-| `bandcontrol-macos.pkg` | macOS installer, Apple Silicon and Intel, into the user's REAPER folder |
+| `bandcontrol-macos.pkg` | macOS installer, Apple Silicon and Intel: the extension into the user's REAPER folder, BandControl.app into `~/Applications` |
+| `BandControl-macos.zip` | BandControl.app alone, which gives the extension Bluetooth on macOS, for installing by hand |
 | `SHA256SUMS`, `SHA256SUMS.asc` | Checksums of all of the above and their detached GPG signature |
 
 ## One-time setup

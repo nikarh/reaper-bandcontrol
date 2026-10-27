@@ -11,13 +11,21 @@ cd "$(dirname "$0")/.."
 binary=$1
 out=$2
 version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)
+macos_min=$(sed -n 's/^MACOSX_DEPLOYMENT_TARGET *= *"\(.*\)"/\1/p' .cargo/config.toml)
+
+# The binary must run on every macOS the Info.plist promises, and every slice of a universal binary alike.
+minos=$(otool -l "$binary" | awk '/LC_BUILD_VERSION/ { b = 1 } b && /minos/ { print $2; b = 0 }' | sort -u)
+if [[ $minos != "$macos_min" ]]; then
+  echo "$binary is built for macOS ${minos//$'\n'/, }, the app promises $macos_min (.cargo/config.toml)" >&2
+  exit 1
+fi
 
 app="$out/BandControl.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$binary" "$app/Contents/MacOS/BandControl"
 chmod 755 "$app/Contents/MacOS/BandControl"
-sed "s/VERSION/$version/g" packaging/macos/Info.plist > "$app/Contents/Info.plist"
+sed -e "s/MACOS_MIN/$macos_min/" -e "s/VERSION/$version/g" packaging/macos/Info.plist > "$app/Contents/Info.plist"
 printf 'APPL????' > "$app/Contents/PkgInfo"
 
 # The app icon, from the Android app's.

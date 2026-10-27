@@ -1,8 +1,13 @@
 <!doctype html>
 <html><body style="font-family: -apple-system, sans-serif">
-<p>This installs the <b>BandControl</b> extension into REAPER, so phones can control playback and in-ear mixes over
-Bluetooth.</p>
-<p>It goes into <code>~/Library/Application Support/REAPER/UserPlugins</code>, REAPER's usual resource folder. For a
-portable REAPER, copy <code>reaper_bandcontrol.dylib</code> into its <code>UserPlugins</code> folder instead.</p>
+<p>This installs <b>BandControl</b> for REAPER, so the band's phones can control playback and in-ear mixes over
+Bluetooth:</p>
+<ul>
+<li>the REAPER extension, into <code>~/Library/Application Support/REAPER/UserPlugins</code>, REAPER's usual resource
+folder (for a portable REAPER, copy <code>reaper_bandcontrol.dylib</code> into its <code>UserPlugins</code> folder
+instead);</li>
+<li>the <b>BandControl</b> app, into <code>~/Applications</code>. macOS doesn't let REAPER itself use Bluetooth, so
+REAPER starts this small menu bar app, which talks to the phones for it.</li>
+</ul>
 <p>Quit REAPER before you continue.</p>
 </body></html>

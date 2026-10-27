@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Builds the extension in release mode and installs it into REAPER's UserPlugins.
-# REAPER_RESOURCE overrides the resource directory. Restart REAPER afterwards.
+# Builds the extension in release mode and installs it into REAPER's UserPlugins; on macOS also BandControl.app into
+# ~/Applications, which gives the extension Bluetooth. REAPER_RESOURCE overrides the resource directory. Restart
+# REAPER afterwards.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -30,3 +31,10 @@ cp "target/release/$built" "$tmp"
 chmod 755 "$tmp"
 mv -f "$tmp" "$dir/UserPlugins/reaper_bandcontrol.$ext"
 echo "Installed $dir/UserPlugins/reaper_bandcontrol.$ext, restart REAPER to load it."
+
+if [[ $(uname -s) == Darwin ]]; then
+  cargo build --release -p bandcontrol-app
+  pkill -x BandControl || true
+  mkdir -p "$HOME/Applications"
+  scripts/macos-app.sh target/release/BandControl "$HOME/Applications"
+fi

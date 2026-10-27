@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- BandControl.app, assembled by scripts/macos-app.sh, which fills in VERSION. -->
+<!-- BandControl.app, assembled by scripts/macos-app.sh, which fills in VERSION and MACOS_MIN. -->
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
@@ -25,9 +25,9 @@
 	<string>VERSION</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.music</string>
-	<!-- Keep in sync with MACOSX_DEPLOYMENT_TARGET in scripts/package-macos.sh and the README. -->
+	<!-- MACOSX_DEPLOYMENT_TARGET from .cargo/config.toml. -->
 	<key>LSMinimumSystemVersion</key>
-	<string>11.0</string>
+	<string>MACOS_MIN</string>
 	<!-- A menu bar app: no Dock icon. -->
 	<key>LSUIElement</key>
 	<true/>
