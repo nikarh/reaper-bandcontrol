@@ -25,7 +25,7 @@ pre { background: var(--panel); padding: 1em; border-radius: 8px; overflow-x: au
 
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 /* Every block of the page is a section with one h2 and the same spacing; every other one has a darker background. A
-   section's subsections are h3 directly in its .wrap; cards, features and releases have their own smaller titles. */
+   section's subsections are h3 directly in its .wrap; features and releases have their own smaller titles. */
 main > section { padding: 64px 0; }
 main > section:nth-of-type(even) { background: #0b1220; border-block: 1px solid var(--line); }
 h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.15; margin: 0.2em 0; }
@@ -50,7 +50,6 @@ main > section > .wrap > :last-child, .pairing > :last-child { margin-bottom: 0;
 /* Inline SVG icons (site/icons), sized and colored like the text around them. */
 .icon { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex-shrink: 0; }
 .button .icon, summary .icon, h2 .icon, h3 .icon { margin-right: 0.45em; }
-.card h3 .icon { color: var(--green); }
 .button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .button.ghost { background: transparent; }
 /* The star count, a pill at the end of the GitHub button. */
@@ -72,10 +71,7 @@ main > section > .wrap > :last-child, .pairing > :last-child { margin-bottom: 0;
 a.zoom { display: block; cursor: zoom-in; }
 
 .grid { display: grid; gap: 20px; }
-.grid.three { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .grid.two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-.card p { color: var(--muted); margin: 0; }
 
 .feature { display: flex; gap: 40px; align-items: center; padding: 28px 0; border-top: 1px solid var(--line); }
 .feature:nth-of-type(even) { flex-direction: row-reverse; }

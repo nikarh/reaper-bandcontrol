@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BandControl: control REAPER from the band's phones, over Bluetooth</title>
-  <meta name="description" content="A REAPER extension and an Android app: playback, setlist, input and front of house levels and personal in-ear mixes for every band member. No Wi-Fi needed.">
+  <title>BandControl for REAPER</title>
+  <meta name="description" content="A REAPER extension and an Android app: band members control playback, the setlist, levels and their in-ear mixes from their phones, connected to the computer over Bluetooth.">
   <meta property="og:title" content="BandControl for REAPER">
-  <meta property="og:description" content="Control REAPER from the band's phones over Bluetooth: setlist, levels and in-ear mixes. No Wi-Fi needed.">
+  <meta property="og:description" content="A REAPER extension and an Android app: playback, setlist, levels and in-ear mixes from the band's phones, over Bluetooth.">
   <meta property="og:image" content="screenshots/iem.png">
   <link rel="icon" href="app-icon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
@@ -21,14 +21,14 @@
       <img class="app-icon" src="app-icon.svg" alt="" width="56" height="56">
       <p class="eyebrow">BandControl for REAPER</p>
     </div>
-    <h1>Your band's REAPER, on everyone's phone.</h1>
+    <h1>Control REAPER from the band's phones</h1>
     <p class="lead">Playback, setlist, input and front of house levels and a personal in-ear mix for every band member, over
       Bluetooth.</p>
     <p class="supports">For REAPER {{reaper_min}} and newer on Windows, macOS and Linux · Android app</p>
     <div class="buttons">
       <a class="button primary" href="#download">{{icon:download}}Download</a>
-      <a class="button" href="#setup">{{icon:wrench}}Set it up</a>
-      <a class="button ghost star" href="{{repo}}" data-repo="{{repo_path}}">{{icon:github}}Star on GitHub<span class="stars" hidden>{{icon:star}}<span class="count"></span></span></a>
+      <a class="button" href="#setup">{{icon:wrench}}Install</a>
+      <a class="button ghost star" href="{{repo}}" data-repo="{{repo_path}}">{{icon:github}}GitHub<span class="stars" hidden>{{icon:star}}<span class="count"></span></span></a>
     </div>
     <div class="phones" id="phones">
       <a class="zoom" href="screenshots/playback.png"><img src="screenshots/playback.png" alt="Playback tab: transport, current song and the setlist" loading="lazy"></a>
@@ -40,27 +40,23 @@
 </header>
 
 <main>
-  <section id="why">
+  <section id="about">
     <div class="wrap">
-    <h2>Why not the web remote?</h2>
-    <p>BandControl supersedes <a href="https://github.com/nikarh/reaper-remote-bandui">reaper-remote-bandui</a>, a web
-      page for REAPER's web interface. The page works, until you play somewhere without a usable Wi-Fi: then one phone
-      has to share its hotspot, the computer joins it, and every musician types the computer's IP address and port into
-      a browser, again after every reconnect.</p>
-    <div class="grid three">
-      <div class="card"><h3>{{icon:wifi-off}}Direct Bluetooth</h3><p>The computer becomes a Bluetooth device the phones connect to
-        directly, wherever they are in range of it.</p></div>
-      <div class="card"><h3>{{icon:qr-code}}Pair once</h3><p>Scan a QR code from REAPER (or from a bandmate's phone) once. After that
-        the app finds the computer by itself.</p></div>
-      <div class="card"><h3>{{icon:sliders-horizontal}}Made for the stage</h3><p>Input and FOH meters with clip indicators, safe faders that don't
-        jump when touched, and a setlist editor, in a native app that keeps the screen on.</p></div>
-    </div>
+    <h2>How it works</h2>
+    <ul>
+      <li>The <strong>extension</strong> runs in REAPER. On a Mac it comes with a small menu bar app that does the
+        Bluetooth part, since macOS doesn't let REAPER use Bluetooth.</li>
+      <li>Every band member installs the <strong>app</strong> and pairs it once with a QR code from REAPER or from a
+        bandmate's phone. It connects to the computer over Bluetooth.</li>
+      <li>The app shows what the <strong>project</strong> has, by its folder names: songs (regions), inputs, front of
+        house outputs and in-ear mixes. See <a href="#project">organizing the project</a>.</li>
+    </ul>
     </div>
   </section>
 
   <section id="features">
     <div class="wrap">
-    <h2>What it does</h2>
+    <h2>The app</h2>
     {{features}}
     </div>
   </section>
@@ -192,17 +188,11 @@ installer -pkg bandcontrol-macos.pkg -target CurrentUserHomeDirectory</pre>
     <h3>Pairing, names and where they are saved</h3>
     <figure class="shots narrow"><a class="zoom" href="screenshots/reaper-pairing.png"><img src="screenshots/reaper-pairing.png" alt="The pairing window in REAPER" loading="lazy"></a><figcaption>The pairing window in REAPER: make it bigger and the QR code grows with it.</figcaption></figure>
     <ul>
-      <li><strong>On the computer</strong>, the pairing code belongs to the REAPER installation: it is saved in
-        REAPER's settings (its resource folder), so it is the same for every project and survives restarts.
-        <em>BandControl: Reset pairing key</em> replaces it and unpairs every phone.</li>
-      <li><strong>The name</strong> phones show is the computer's name unless you set one with <em>BandControl: Set
-        the name shown on phones</em>, saved in the same place. Give each computer a name the band recognizes, like
-        "Rehearsal laptop" or "Stage PC"; the app shows it at the top while connected and picks up renames
-        automatically.</li>
-      <li><strong>On the phone</strong>, the app remembers every computer it was paired with. Each REAPER
-        installation has its own code, so the phone only finds computers it was paired with. With one of them in
-        range it connects by itself; with several in range when the app opens it asks which one; when another one
-        comes in range it says so and offers to switch. The menu switches between them or forgets one.</li>
+      <li>The pairing code is saved in REAPER's settings, the same for every project. <em>BandControl: Reset pairing
+        key</em> makes a new one and unpairs every phone.</li>
+      <li>Phones show the computer's name; <em>BandControl: Set the name shown on phones</em> changes it.</li>
+      <li>The app remembers every computer it was paired with and connects to the one in range. The menu switches
+        between them or forgets one.</li>
     </ul>
     </div>
     </div>
@@ -228,10 +218,8 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
           or <em>Monitor</em> in its name. The IEM tab sets the mix's volume and the volume and mute of every
           receive.</li>
       </ul>
-      <p>The click, backtracks, buses and any other tracks can be anywhere else, organized however you like, as long as they don't land in these folders: a direct child of the Inputs or FOH folder shows
-        up in that tab, and a track with a hardware output and receives inside the IEM folder is listed as a mix.
-        Without these folders the Inputs and FOH tabs are hidden and the IEM tab lists every track with a hardware
-        output and receives. There is nothing to install in the project.</p>
+      <p>Other tracks (click, backtracks, buses) can be anywhere outside these folders. Without the folders the Inputs
+        and FOH tabs are hidden and the IEM tab lists every track with a hardware output and receives.</p>
       <div class="example">
         <span class="example-icon">{{icon:file-down}}</span>
         <div class="example-text">
@@ -241,6 +229,25 @@ IEM OUT/            → IEM tab: one mix per musician, a hardware output receivi
         <a class="button primary" href="examples/BandControl-Example.RPP" download>{{icon:download}}Download .RPP</a>
       </div>
       <figure class="shots"><a class="zoom" href="screenshots/reaper-project.png"><img src="screenshots/reaper-project.png" alt="REAPER: the example project with its folders" loading="lazy"></a><figcaption>The example project in REAPER: the INPUTS, FOH OUT and IEM OUT folders and the four songs.</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <div class="wrap">
+    <h2>Troubleshooting</h2>
+    <ul>
+      <li><strong>Windows warns about the installer</strong>: the releases aren't signed yet. <em>More info → Run
+        anyway</em>.</li>
+      <li><strong>macOS says the installer was "Not Opened"</strong>: same reason, see <a href="#macos-install">macOS</a>
+        for the two ways around it.</li>
+      <li><strong>Bluetooth doesn't work</strong>: run <em>BandControl: Show status</em> in REAPER, it says why (the
+        adapter is off or can't act as a Bluetooth device, a missing permission, …).</li>
+      <li><strong>The phone doesn't find the computer</strong>: is REAPER running? After <em>Reset pairing key</em>
+        every phone has to scan the new QR code.</li>
+      <li><strong>No BandControl icon in the Mac's menu bar</strong>: a MacBook's notch hides it when REAPER's menus
+        are long. Hold ⌘ and drag it to the right, or run <em>BandControl: Show pairing QR code</em>.</li>
+      <li>Still stuck? <a href="{{repo}}/issues">Open an issue</a> with the output of <em>Show status</em>.</li>
+    </ul>
     </div>
   </section>
 
@@ -261,7 +268,7 @@ sha256sum --ignore-missing -c SHA256SUMS</pre>
     <ul>
       <li>iOS app</li>
       <li>Google Play and F-Droid</li>
-      <li>Testing the macOS and Windows Bluetooth support on more hardware</li>
+      <li>Testing the Windows Bluetooth support on more hardware</li>
     </ul>
     </div>
   </section>
@@ -277,7 +284,7 @@ sha256sum --ignore-missing -c SHA256SUMS</pre>
 
 <footer>
   <div class="wrap">MIT licensed · <a href="{{repo}}">GitHub</a> · <a href="{{repo}}/issues">Issues</a> ·
-    <a href="{{repo}}/stargazers">{{icon:star}}Star it on GitHub</a></div>
+    <a href="{{repo}}/releases">Releases</a></div>
 </footer>
 <dialog id="zoom" aria-label="Screenshot">
   <figure>

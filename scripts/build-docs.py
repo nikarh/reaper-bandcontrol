@@ -73,8 +73,7 @@ def readme_macos_version() -> list[str]:
 
 
 def is_app_screenshot(name: str) -> bool:
-    """Phone screenshots, as opposed to the computer's (REAPER, the macOS app)."""
-    return not name.startswith(("reaper-", "macos-"))
+    return not name.startswith("reaper-")
 
 
 def paragraph(text: str) -> str:
@@ -93,9 +92,7 @@ def readme_section() -> str:
         out.append(paragraph(f["text"]))
         out.append("")
         if shot and not is_app_screenshot(shot):
-            # A window is shown at about its size, a REAPER screenshot as wide as the page.
-            width = ' width="480"' if shot.startswith("macos-") else ""
-            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}"{width}>')
+            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}">')
             out.append("")
         if shot and is_app_screenshot(shot):
             out.append('<br clear="right">')

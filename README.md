@@ -25,20 +25,6 @@ menu bar app that does the Bluetooth part for REAPER.
 
 **Works with REAPER 5.93 and newer**, on Windows, macOS and Linux; see [requirements](#requirements).
 
-## Why this exists
-
-BandControl supersedes [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui), a web page for
-REAPER's built-in web interface that bands use for the same job. The web page works well on a good Wi-Fi network.
-Without one, a phone has to share its hotspot, the computer joins it, and every musician types the computer's IP
-address and port into a browser, again after the hotspot drops.
-
-With BandControl the computer is a Bluetooth device and the phones connect to it directly, wherever they are in
-range. Each phone is paired once, by scanning a QR code from REAPER or from a bandmate's phone; after that the app
-finds the computer by itself and reconnects when the connection drops. The app is made for the stage: faders that
-don't jump when touched or scrolled over, meters with clip indicators for inputs and front of house (FOH) outputs, a
-setlist editor, connection status in plain language, and the screen stays on while connected. Projects made for
-reaper-remote-bandui work as they are, and the song order it stores is shared.
-
 ## Features
 
 <!-- features:start -->
@@ -52,11 +38,11 @@ Play, pause, stop, record and repeat. The songs (regions) are listed in the band
 
 <br clear="right">
 
-### Rearrange the setlist by dragging
+### Setlist order
 
-<img src="docs/screenshots/setlist.png" alt="Rearrange the setlist by dragging" width="220" align="right">
+<img src="docs/screenshots/setlist.png" alt="Setlist order" width="220" align="right">
 
-Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees the change.
+Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, and every phone sees the change.
 
 <br clear="right">
 
@@ -64,7 +50,7 @@ Tap Edit and drag songs by their handle, or long-press anywhere on a row, into t
 
 <img src="docs/screenshots/inputs.png" alt="Input levels and gain" width="220" align="right">
 
-A live meter for every input with its peak level, and a clip indicator that stays lit until you tap it, so you see which input clipped during the last song. The fader sets the input's gain (its track volume) on a dB scale up to +12 dB.
+A meter for every input with its peak level, and a clip indicator that stays lit until you tap it. The fader sets the input's gain (its track volume), up to +12 dB.
 
 <br clear="right">
 
@@ -72,7 +58,7 @@ A live meter for every input with its peak level, and a clip indicator that stay
 
 <img src="docs/screenshots/foh.png" alt="FOH outputs" width="220" align="right">
 
-The same meters and faders for the front of house: the outputs that go to the house desk or straight to the PA. Whoever looks after the sound for the audience can check and adjust them from the stage, next to the in-ear mixes.
+The same meters and faders for the front of house outputs: the feeds to the house desk or straight to the PA.
 
 <br clear="right">
 
@@ -80,7 +66,7 @@ The same meters and faders for the front of house: the outputs that go to the ho
 
 <img src="docs/screenshots/iem.png" alt="Personal in-ear mixes" width="220" align="right">
 
-Every band member picks their own mix and sets the level of each source: click, backtracks, other instruments, vocals. Faders only move when dragged sideways, relative to where they are, so a tap or a scroll never changes a level by accident. Mutes and the overall mix level are one tap away, and changes made in REAPER show up instantly.
+Every band member picks their own mix and sets the level and mute of each source: click, backtracks, other instruments, vocals, and the mix's overall level. Drag a fader sideways to move it; tapping or scrolling the list leaves it alone. Changes made in REAPER show up on the phones.
 
 <br clear="right">
 
@@ -88,19 +74,13 @@ Every band member picks their own mix and sets the level of each source: click, 
 
 <img src="docs/screenshots/share.png" alt="Pairing by QR code" width="220" align="right">
 
-REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows the same QR code to the next one, so the rest of the band pairs without touching the computer. Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
+REAPER shows a QR code; scan it with the app or type the code. A paired phone shows the same QR code to the next one, so the rest of the band can pair from it. A phone can be paired with several computers, like a rehearsal laptop and a stage PC: the app connects to the one in range and asks when both are.
 
 <br clear="right">
 
 ### Connectivity
 
-Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones can find the computer and every session is encrypted, so a stranger in the audience can't change your monitor mix. The app reconnects by itself and keeps the screen on while connected.
-
-### Project layout
-
-BandControl reads the project by its folder names: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with receives) are in an "IEM" folder. The project needs no plugins: start from the example project, or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
-
-<img src="docs/screenshots/reaper-project.png" alt="Project layout">
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
 
 <!-- features:end -->
 
