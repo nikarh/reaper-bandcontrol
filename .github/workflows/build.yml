@@ -4,9 +4,17 @@ name: Build
 # Publish builds them again with the signing certificates (and signs the APK with the release key).
 on:
   workflow_call:
+    inputs:
+      version-suffix:
+        description: Appended to the version from Cargo.toml (the `latest` pre-release), e.g. -dev+abc1234
+        type: string
+        default: ""
 
 permissions:
   contents: read
+
+env:
+  BANDCONTROL_VERSION_SUFFIX: ${{ inputs.version-suffix }}
 
 jobs:
   extension:

@@ -413,7 +413,7 @@ fn init_logging(reaper: &Reaper) {
 fn load(reaper: &'static Reaper) -> Result<(), String> {
     init_logging(reaper);
     let app = reaper.app_version();
-    tracing::info!(version = env!("CARGO_PKG_VERSION"), reaper = app, "loading");
+    tracing::info!(version = bandcontrol_server::VERSION, reaper = app, "loading");
     if version::older_than_supported(&app) == Some(true) {
         let msg = format!(
             "BandControl supports REAPER {} and newer, this is REAPER {app}: some things may not work.",

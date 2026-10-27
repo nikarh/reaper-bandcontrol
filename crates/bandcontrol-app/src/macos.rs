@@ -42,7 +42,7 @@ pub fn main() -> ExitCode {
         tracing::error!("no home folder for the socket");
         return ExitCode::FAILURE;
     };
-    tracing::info!(version = env!("CARGO_PKG_VERSION"), socket = %socket.display(), "starting");
+    tracing::info!(version = bandcontrol_server::VERSION, socket = %socket.display(), "starting");
 
     let app = NSApplication::sharedApplication(mtm);
     // A menu bar app: no Dock icon, no main menu.

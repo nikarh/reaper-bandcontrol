@@ -13,6 +13,9 @@ pub mod helper;
 pub mod tcp;
 pub mod transport;
 
+/// The version of this build, e.g. `0.1.2`, or `0.1.2-dev+abc1234` for a build of main (the `latest` pre-release).
+pub const VERSION: &str = env!("BANDCONTROL_VERSION");
+
 use std::{net::SocketAddr, sync::Arc, thread::JoinHandle, time::Instant};
 
 use bandcontrol_core::engine::{Input, Output};

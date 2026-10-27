@@ -10,6 +10,10 @@ on:
       tag:
         type: string
         required: true
+      version-suffix:
+        description: Appended to the version from Cargo.toml, e.g. -dev+abc1234
+        type: string
+        default: ""
   workflow_dispatch:
     inputs:
       tag:
@@ -21,6 +25,7 @@ permissions:
 
 env:
   TAG: ${{ inputs.tag || github.event.release.tag_name }}
+  BANDCONTROL_VERSION_SUFFIX: ${{ inputs.version-suffix }}
 
 jobs:
   build:
@@ -28,6 +33,8 @@ jobs:
     # The Latest workflow creates the `latest` pre-release once and publishes it itself.
     if: github.repository_owner == 'nikarh' && github.event.release.tag_name != 'latest'
     uses: ./.github/workflows/build.yml
+    with:
+      version-suffix: ${{ inputs.version-suffix }}
 
   windows-installers:
     name: Windows installers
