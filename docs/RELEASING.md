@@ -56,6 +56,29 @@ macOS Gatekeeper warn before opening them):
 | `MACOS_SIGN_IDENTITY` | `Developer ID Application: Name (TEAMID)` |
 | `MACOS_INSTALLER_IDENTITY` | `Developer ID Installer: Name (TEAMID)` |
 | `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, `MACOS_NOTARY_PASSWORD` | Apple ID, team ID and an [app-specific password](https://support.apple.com/102654) for notarization |
+| `MACOS_SELF_SIGNED_P12_BASE64` | Without Developer ID: the project's self-signed code signing certificate with its key (`.p12`, base64 encoded), see below |
+| `MACOS_SELF_SIGNED_PASSWORD` | Its password |
+
+#### The self-signed certificate for BandControl.app
+
+macOS ties an app's permissions to its signature. With an ad-hoc signature, which changes with every build, macOS
+would ask for Bluetooth again after every update. So without a Developer ID, Publish signs BandControl.app with a
+self-signed certificate ("BandControl (self-signed)", valid until 2056): Gatekeeper still warns before the first
+install, but updates keep the permission. Keep a backup of the `.p12` and its password: a new certificate makes
+every Mac ask once more. It was made like this (macOS's `security import` needs the old `.p12` encryption):
+
+```sh
+printf '%s\n' '[req]' 'distinguished_name = dn' 'x509_extensions = ext' 'prompt = no' \
+  '[dn]' 'CN = BandControl (self-signed)' 'O = BandControl' \
+  '[ext]' 'basicConstraints = critical,CA:false' 'keyUsage = critical,digitalSignature' \
+  'extendedKeyUsage = critical,codeSigning' 'subjectKeyIdentifier = hash' > cert.cnf
+openssl req -x509 -newkey rsa:3072 -nodes -days 10950 -keyout key.pem -out cert.pem -config cert.cnf
+openssl rand -hex 24 | tr -d '\n' > password.txt
+openssl pkcs12 -export -inkey key.pem -in cert.pem -name "BandControl (self-signed)" \
+  -out bandcontrol-self-signed.p12 -passout file:password.txt -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES -macalg sha1
+gh secret set MACOS_SELF_SIGNED_P12_BASE64 --env release --body "$(base64 -w0 < bandcontrol-self-signed.p12)"
+gh secret set MACOS_SELF_SIGNED_PASSWORD --env release --body "$(cat password.txt)"
+```
 
 ### REAPER license for the e2e tests (optional)
 
