@@ -11,6 +11,10 @@
    (when the certificates below are set up), signs the APK with the release key, writes `SHA256SUMS` and its GPG
    signature, and uploads everything to the release.
 
+Every push to `main` also updates the `latest` pre-release (the **Latest** workflow): the tag moves to the new
+commit, the notes list the unreleased changes, and Publish uploads the same files, signed the same way. It is never
+marked as GitHub's latest release, so the links below keep pointing at the newest `vX.Y.Z`.
+
 Asset names never change, so `https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/<name>` always
 points at the newest file:
 

@@ -87,7 +87,8 @@ Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-
 ## Install
 
 Download the files from the [latest release](https://github.com/nikarh/reaper-bandcontrol/releases/latest), or use
-the [website](https://nikarh.github.io/reaper-bandcontrol/).
+the [website](https://nikarh.github.io/reaper-bandcontrol/). The same files built from the current `main`, with
+changes not released yet, are on the [`latest` pre-release](https://github.com/nikarh/reaper-bandcontrol/releases/tag/latest).
 
 ### Requirements
 
