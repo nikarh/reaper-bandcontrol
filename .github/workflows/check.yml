@@ -104,6 +104,38 @@ jobs:
       # Kotlin protocol and state tests, the Kotlin client against the Rust simulator.
       - run: mise run android:test
 
+  macos:
+    name: macOS (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest and the newest macOS GitHub has runners for, and Intel. The oldest supported macOS is
+        # MACOSX_DEPLOYMENT_TARGET in .cargo/config.toml; older ones have no runners. The job names don't contain the
+        # versions, so required checks stay the same when the runners change.
+        include:
+          - name: oldest
+            os: macos-14
+          - name: newest
+            os: macos-26
+          - name: intel
+            os: macos-15-intel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        with:
+          install_args: rust
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.name }}
+      # Everything but Bluetooth itself, which the runners don't have: the relay between the extension's server and
+      # the app, CoreBluetooth and AppKit code compiled natively, the app started through Launch Services.
+      - run: cargo test --workspace --locked
+      - run: scripts/macos-app-e2e.sh
+      - name: The app's log
+        if: failure()
+        run: cat ~/Library/Logs/BandControl.log || true
+
   build:
     name: Build
     uses: ./.github/workflows/build.yml

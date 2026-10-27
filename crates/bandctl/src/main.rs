@@ -10,7 +10,11 @@ use bandcontrol_proto::{
     pairing::{PairingInfo, PairingSecret},
     random::OsRandom,
 };
-use bandcontrol_server::client::{Mirror, TcpClient};
+use bandcontrol_server::{
+    Server, ServerOptions, TransportStatus,
+    client::{Mirror, TcpClient},
+    helper::HelperOptions,
+};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -78,6 +82,45 @@ enum Command {
         #[arg(long, default_value = "Simulator")]
         name: String,
     },
+    /// macOS: connect to a running BandControl app like the REAPER extension and wait until it reports Bluetooth
+    /// (on, or why not). Fails when the app doesn't answer.
+    AppCheck {
+        /// The app's socket; defaults to the one the extension uses.
+        #[arg(long)]
+        socket: Option<PathBuf>,
+        #[arg(long, default_value_t = 60)]
+        timeout_secs: u64,
+    },
+}
+
+/// Talks to the BandControl app through the same server the extension uses.
+fn app_check(socket: Option<PathBuf>, timeout: Duration) -> anyhow::Result<()> {
+    let socket = socket
+        .or_else(bandcontrol_server::helper::default_socket)
+        .context("no socket path")?;
+    let server = Server::start(ServerOptions {
+        secret: PairingSecret::generate(&mut OsRandom),
+        name: "app-check".into(),
+        ble: true,
+        tcp: None,
+        helper: Some(HelperOptions { socket, launch: false }),
+    })?;
+    let deadline = std::time::Instant::now() + timeout;
+    while std::time::Instant::now() < deadline {
+        match server.status().ble {
+            TransportStatus::Running(service) => {
+                tracing::info!(service, "the app runs Bluetooth");
+                return Ok(());
+            }
+            // Before the app answered, the transport fails with "isn't running" or "quit".
+            TransportStatus::Failed(e) if !e.contains("BandControl app") => {
+                tracing::info!("the app answered, Bluetooth is unavailable: {e}");
+                return Ok(());
+            }
+            _ => std::thread::sleep(Duration::from_millis(100)),
+        }
+    }
+    anyhow::bail!("no answer from the BandControl app: {:?}", server.status().ble)
 }
 
 fn print_pairing(secret: &PairingSecret, name: &str) {
@@ -141,5 +184,6 @@ fn main() -> anyhow::Result<()> {
             print_pairing(&secret.load()?, &name);
             Ok(())
         }
+        Command::AppCheck { socket, timeout_secs } => app_check(socket, Duration::from_secs(timeout_secs)),
     }
 }
