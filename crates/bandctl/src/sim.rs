@@ -19,7 +19,7 @@ use bandcontrol_core::{
     model::{Marker, PlayState},
     rpp,
 };
-use bandcontrol_server::{Server, ServerOptions};
+use bandcontrol_server::{Server, ServerOptions, helper::HelperOptions};
 use parking_lot::Mutex;
 use serde_json::json;
 
@@ -35,6 +35,9 @@ pub struct SimArgs {
     /// Serve over BLE.
     #[arg(long)]
     ble: bool,
+    /// macOS: serve over BLE through the BandControl app, like the REAPER extension, instead of directly.
+    #[arg(long, requires = "ble")]
+    app: bool,
     /// Serve over TCP on this address.
     #[arg(long)]
     tcp: Option<SocketAddr>,
@@ -73,7 +76,11 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         name: args.name.clone(),
         ble: args.ble,
         tcp: args.tcp,
-        helper: None,
+        helper: args
+            .app
+            .then(bandcontrol_server::helper::default_socket)
+            .flatten()
+            .map(|socket| HelperOptions { socket, launch: true }),
     };
     let mut server = Some(Server::start(options())?);
     // Cleared by the `offline` control command to stop serving, as if the computer left.
@@ -133,6 +140,10 @@ pub fn run(args: &SimArgs) -> anyhow::Result<()> {
         server.send(outputs);
         if goodbye.swap(false, Ordering::Relaxed) {
             server.goodbye_all();
+        }
+        // Rename and reset in the BandControl app only matter to REAPER, which stores them.
+        for request in server.poll_requests() {
+            tracing::info!(?request, "ignoring a request from the BandControl app");
         }
 
         let status = server.status();
