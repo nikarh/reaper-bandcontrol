@@ -102,6 +102,11 @@ h2 .version, h3 .version { font-size: 0.55em; color: var(--green); vertical-alig
 .steps li { margin-bottom: 0.6em; }
 .platforms details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; margin: 12px 0; }
 .platforms summary { cursor: pointer; font-weight: 600; }
+/* The steps through Gatekeeper on macOS: dialogs side by side at the same height. */
+.mac-steps { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin: 8px 0 16px; }
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.option { border: 1px solid var(--line); border-radius: 10px; padding: 4px 16px; }
+.mac-steps img { height: 96px; max-width: 100%; object-fit: contain; border-radius: 10px; }
 
 .shots figure { margin: 0; }
 .shots img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }

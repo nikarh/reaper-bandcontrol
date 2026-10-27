@@ -49,12 +49,24 @@ website read them; `mise run lint` fails when the README names other versions. T
 `mise run e2e:reaper-versions` for the whole range. A REAPER API function newer than `min` must be optional (looked up
 separately in `ffi.rs`, with a fallback), or `min` has to go up.
 
+## macOS
+
+macOS doesn't let REAPER use Bluetooth (its `Info.plist` has no usage description), so on macOS the extension starts
+the BandControl app (`crates/bandcontrol-app`, AppKit through objc2) through Launch Services and relays packets over
+a Unix socket (`bandcontrol_server::helper`); sessions and keys stay in the extension. Linux and Windows don't use
+the app. The oldest supported macOS is `MACOSX_DEPLOYMENT_TARGET` in `.cargo/config.toml`: the build, the app's
+`Info.plist` (`scripts/macos-app.sh`) and `mise run lint` (the README must name it) read it. CI tests the app on the
+oldest and newest macOS runners and on Intel (`mise run e2e:macos`); runners have no Bluetooth. The macOS
+screenshots in `docs/screenshots/macos-*.png` are taken by hand on a Mac, with the simulator served through the app
+(`bandctl sim --ble --app --secret ...`) so that no real pairing code shows.
+
 ## Checks before pushing
 
 ```sh
 mise run lint && mise run test && mise run android:lint && mise run android:test
 mise run e2e:reaper          # needs REAPER and cage or Xvfb
 mise run android:e2e         # needs a phone or the emulator
+mise run e2e:macos           # needs macOS
 ```
 
 ## Releases

@@ -75,17 +75,19 @@
       <div class="grid downloads">
         <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-x64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows</strong><span>x64 · installer</span></a>
         <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-windows-arm64-setup.exe"><span class="logo">{{icon:windows}}</span><strong>Windows on ARM</strong><span>ARM64EC · installer</span></a>
-        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-macos.pkg"><span class="logo">{{icon:apple}}</span><strong>macOS</strong><span>Apple silicon, Intel · installer</span></a>
+        <a class="download" href="{{repo}}/releases/latest/download/bandcontrol-macos.pkg"><span class="logo">{{icon:apple}}</span><strong>macOS</strong><span>{{macos_min}} or newer · Apple silicon, Intel · installer</span></a>
         <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-x86_64.so"><span class="logo">{{icon:linux}}</span><strong>Linux x86_64</strong><span>BlueZ · library</span></a>
         <a class="download" href="{{repo}}/releases/latest/download/reaper_bandcontrol-linux-aarch64.so"><span class="logo">{{icon:linux}}</span><strong>Linux ARM</strong><span>aarch64 · library</span></a>
       </div>
       <details class="manual">
         <summary>{{icon:file-down}}Plain libraries for a manual or portable install</summary>
-        <p>The installers put exactly one file into REAPER's <code>UserPlugins</code> folder. To do it yourself, pick
-          the library for your platform and see <a href="#setup">manual install</a> below:
+        <p>The installers put exactly one file into REAPER's <code>UserPlugins</code> folder, and on macOS the
+          BandControl app into <code>~/Applications</code>. To do it yourself, pick the files for your platform and see
+          <a href="#setup">manual install</a> below:
           <a href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-x86_64.dll">Windows x64 DLL</a>,
           <a href="{{repo}}/releases/latest/download/reaper_bandcontrol-windows-arm64ec.dll">Windows ARM64EC DLL</a>,
-          <a href="{{repo}}/releases/latest/download/reaper_bandcontrol-macos-universal.dylib">macOS dylib</a>.</p>
+          <a href="{{repo}}/releases/latest/download/reaper_bandcontrol-macos-universal.dylib">macOS dylib</a> with
+          <a href="{{repo}}/releases/latest/download/BandControl-macos.zip">the BandControl app</a>.</p>
       </details>
       <h3>Phone app</h3>
       <div class="grid downloads">
@@ -106,8 +108,8 @@
         browser or file manager when Android asks. A phone that has it shows a QR code for the download in its menu
         (<em>About &amp; share the app</em>).</li>
       <li><strong>Pair:</strong> in REAPER run the action <em>BandControl: Show pairing QR code</em> (Actions → Show
-        action list). A window shows the QR code (resize it and the code grows); scan it with the app, or type the
-        code below it.</li>
+        action list; on a Mac also in the BandControl menu bar icon's menu). A window shows the QR code (resize it and
+        the code grows); scan it with the app, or type the code below it.</li>
       <li><strong>Pair the rest of the band</strong> from the first phone: menu → <em>Share pairing with another
         phone</em>.</li>
     </ol>
@@ -125,17 +127,46 @@
           one) into REAPER's <code>UserPlugins</code> folder (Options → Show REAPER resource path) and restart
           REAPER.</p>
       </details>
-      <details>
+      <details id="macos-install">
         <summary>{{icon:apple}}macOS</summary>
-        <p>macOS 10.12 or newer (11 on Apple silicon). Open <code>bandcontrol-macos.pkg</code>; it installs into
-          <code>~/Library/Application Support/REAPER</code> without an administrator password. Until releases are
-          notarized, open it with <em>right click → Open</em>.</p>
-        <p><strong>Manual install:</strong> copy <code>reaper_bandcontrol-macos-universal.dylib</code> into REAPER's
-          <code>UserPlugins</code> folder (Options → Show REAPER resource path). Downloaded with a browser it is
-          quarantined and REAPER can't load it, so once:</p>
-        <pre>xattr -d com.apple.quarantine ~/Library/Application\ Support/REAPER/UserPlugins/reaper_bandcontrol-macos-universal.dylib</pre>
-        <p>macOS only lets apps use Bluetooth when they declare it. If <em>BandControl: Show status</em> reports that
-          REAPER lacks the Bluetooth usage description, Bluetooth can't be used from REAPER on that Mac yet.</p>
+        <p>macOS {{macos_min}} or newer, Apple silicon or Intel. The installer puts the extension and the
+          <strong>BandControl</strong> app into your home folder; REAPER starts that small menu bar app for Bluetooth,
+          which macOS doesn't let REAPER use itself.</p>
+        <p>The releases aren't signed by Apple yet, so macOS blocks the installer the first time. Install it in
+          <strong>one</strong> of these two ways:</p>
+        <div class="options">
+          <div class="option">
+            <p><strong>Option 1: the installer</strong> (recommended)</p>
+            <p><em>macOS 15 Sequoia and newer:</em></p>
+            <ol>
+              <li>Double-click <code>bandcontrol-macos.pkg</code>; it says <em>Not Opened</em>: click
+                <strong>Done</strong>.</li>
+              <li><em>System Settings → Privacy &amp; Security</em>, scroll down, <strong>Open Anyway</strong>.</li>
+              <li><strong>Open Anyway</strong> again, Touch ID or password, then the installer.</li>
+            </ol>
+            <div class="mac-steps">
+              <a class="zoom" href="screenshots/macos-blocked.png"><img src="screenshots/macos-blocked.png" alt="Step 1: Not Opened, with the buttons Done and Move to Bin" loading="lazy"></a>
+              <a class="zoom" href="screenshots/macos-open-anyway.png"><img src="screenshots/macos-open-anyway.png" alt="Step 2: Privacy &amp; Security with the Open Anyway button" loading="lazy"></a>
+              <a class="zoom" href="screenshots/macos-open-anyway-confirm.png"><img src="screenshots/macos-open-anyway-confirm.png" alt="Step 3: Open Anyway in the confirmation" loading="lazy"></a>
+            </div>
+            <p><em>macOS 11 to 14:</em> right-click the package, <strong>Open</strong>, <strong>Open</strong>
+              again, then the installer.</p>
+          </div>
+          <div class="option">
+            <p><strong>Option 2: the Terminal</strong> (advanced)</p>
+            <p>Downloads and installs for your user, without System Settings or a password:</p>
+            <pre>cd ~/Downloads
+curl -fLO {{repo}}/releases/latest/download/bandcontrol-macos.pkg
+installer -pkg bandcontrol-macos.pkg -target CurrentUserHomeDirectory</pre>
+          </div>
+        </div>
+        <p><strong>Then</strong> start REAPER and click <strong>Allow</strong> when macOS asks whether
+          <em>BandControl.app</em> may use Bluetooth. Its menu bar icon is three faders; if a MacBook's notch hides it,
+          ⌘-drag it to the right, or use <em>BandControl: Show pairing QR code</em> in REAPER.</p>
+        <p><strong>Manual install:</strong> the <code>.dylib</code> into REAPER's <code>UserPlugins</code> folder,
+          <code>BandControl-macos.zip</code> unzipped into <code>~/Applications</code>, then once:
+          <code>xattr -dr com.apple.quarantine ~/Applications/BandControl.app</code> and the same for the
+          <code>.dylib</code>.</p>
       </details>
       <details>
         <summary>{{icon:linux}}Linux</summary>

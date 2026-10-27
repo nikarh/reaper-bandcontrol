@@ -53,8 +53,28 @@ def readme_reaper_versions() -> list[str]:
     return problems
 
 
+def macos_min() -> str:
+    """The oldest supported macOS, MACOSX_DEPLOYMENT_TARGET in .cargo/config.toml, as people write it ("11")."""
+    text = (ROOT / ".cargo" / "config.toml").read_text()
+    version = re.search(r'^MACOSX_DEPLOYMENT_TARGET\s*=\s*"([^"]+)"', text, re.M).group(1)
+    return version.removesuffix(".0")
+
+
+def readme_macos_version() -> list[str]:
+    """The README names the oldest supported macOS and no older one."""
+    text = README.read_text()
+    problems = []
+    if f"macOS {macos_min()} " not in text:
+        problems.append(f"README doesn't name macOS {macos_min()} (MACOSX_DEPLOYMENT_TARGET in .cargo/config.toml)")
+    for v in sorted(set(re.findall(r"macOS (\d+(?:\.\d+)?)", text))):
+        if float(v) < float(macos_min()):
+            problems.append(f"README names macOS {v}, older than the supported {macos_min()}")
+    return problems
+
+
 def is_app_screenshot(name: str) -> bool:
-    return not name.startswith("reaper-")
+    """Phone screenshots, as opposed to the computer's (REAPER, the macOS app)."""
+    return not name.startswith(("reaper-", "macos-"))
 
 
 def paragraph(text: str) -> str:
@@ -73,7 +93,9 @@ def readme_section() -> str:
         out.append(paragraph(f["text"]))
         out.append("")
         if shot and not is_app_screenshot(shot):
-            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}">')
+            # A window is shown at about its size, a REAPER screenshot as wide as the page.
+            width = ' width="480"' if shot.startswith("macos-") else ""
+            out.append(f'<img src="docs/screenshots/{shot}.png" alt="{f["title"]}"{width}>')
             out.append("")
         if shot and is_app_screenshot(shot):
             out.append('<br clear="right">')
@@ -311,6 +333,7 @@ def build_site(out: Path) -> None:
         "version": version(),
         "reaper_min": reaper("min"),
         "reaper_tested": reaper("tested"),
+        "macos_min": macos_min(),
         "repo": REPO,
         "repo_path": REPO.removeprefix("https://github.com/"),
     }.items():
@@ -334,6 +357,7 @@ def main() -> int:
         problems = [f"missing screenshot docs/screenshots/{n}.png" for n in missing_screenshots()]
         site = (ROOT / "site" / "index.html").read_text()
         problems += readme_reaper_versions()
+        problems += readme_macos_version()
         problems += fastlane_problems()
         if not APP_ICON.exists() or APP_ICON.read_text() != app_icon_svg():
             problems.append("site/app-icon.svg differs from the app's launcher icon, run `python3 scripts/build-docs.py icon`")
