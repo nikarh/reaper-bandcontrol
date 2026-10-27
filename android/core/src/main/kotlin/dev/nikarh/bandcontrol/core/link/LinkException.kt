@@ -30,6 +30,9 @@ enum class Problem {
 
     /** App and extension speak different protocol versions. */
     Incompatible,
+
+    /** The user disconnected this phone on the computer; no reconnecting until the user asks. */
+    DisconnectedByComputer,
     Unknown,
 }
 

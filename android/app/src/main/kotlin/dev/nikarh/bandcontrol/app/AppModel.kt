@@ -180,6 +180,9 @@ class AppModel(
         restart()
     }
 
+    /** Connects again after the computer disconnected this phone. */
+    fun reconnect() = restart()
+
     fun send(message: ClientMessage): Boolean = connection.value?.send(message) ?: false
 
     private fun decide() {

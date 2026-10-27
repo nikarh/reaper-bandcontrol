@@ -167,6 +167,7 @@ fun BandControlApp(
                         repairing = true
                     },
                     onPairAnother = { repairing = true },
+                    onReconnect = model::reconnect,
                     onSwitch = model::use,
                     onShare = { sharing = true },
                     onAbout = { about = true },
@@ -279,6 +280,7 @@ fun problemText(
         Problem.PairingRejected -> "$name doesn't accept this phone's pairing code"
         Problem.TooManyPhones -> "Too many phones are connected to $name"
         Problem.Incompatible -> "This app and the REAPER extension don't match. Update both."
+        Problem.DisconnectedByComputer -> "$name disconnected this phone"
         Problem.Unknown -> "Can't connect to $name. Trying again…"
     }
 
@@ -294,6 +296,7 @@ private fun StatusBar(
     onChoose: () -> Unit,
     onRepair: () -> Unit,
     onPairAnother: () -> Unit,
+    onReconnect: () -> Unit,
     onSwitch: (PairingInfo) -> Unit,
     onShare: () -> Unit,
     onAbout: () -> Unit,
@@ -353,6 +356,12 @@ private fun StatusBar(
 
             problem == Problem.PairingRejected -> {
                 TextButton(onClick = onRepair) { Text("Pair again", color = Palette.blue500) }
+            }
+
+            problem == Problem.DisconnectedByComputer -> {
+                TextButton(onClick = onReconnect, modifier = Modifier.testTag("reconnect")) {
+                    Text("Reconnect", color = Palette.blue500)
+                }
             }
         }
         Box {

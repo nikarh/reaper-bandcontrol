@@ -140,6 +140,7 @@ class Connection(
                     ConnectionStatus.Disconnected(shown, e.toString())
                 }
             mutableStatus.value = status
+            if (status.problem == Problem.DisconnectedByComputer) return
             val wait = if (status.authRejected) maxRetryDelayMs else minOf(retryDelayMs shl minOf(failures, 8), maxRetryDelayMs)
             failures++
             delay(wait)
@@ -186,7 +187,9 @@ class Connection(
 
                     is ClientEvent.Message -> {
                         val meters = event.message.meters
-                        if (meters != null) {
+                        if (event.message.goodbye != null) {
+                            throw LinkException(Problem.DisconnectedByComputer, "the computer disconnected this phone")
+                        } else if (meters != null) {
                             onMeters(meters)
                         } else {
                             mutableState.update { it.apply(event.message, clock()) }

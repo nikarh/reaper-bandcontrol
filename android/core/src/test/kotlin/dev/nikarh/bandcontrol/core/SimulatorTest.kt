@@ -177,6 +177,18 @@ class SimulatorTest {
     }
 
     @Test
+    fun staysDisconnectedWhenTheComputerSaysGoodbye() {
+        val c = connection()
+        c.status.await { it is ConnectionStatus.Connected }
+        control("goodbye")
+        val status = c.status.await { it is ConnectionStatus.Disconnected } as ConnectionStatus.Disconnected
+        assertEquals(status.toString(), Problem.DisconnectedByComputer, status.problem)
+        // No reconnecting by itself.
+        Thread.sleep(2_500)
+        assertEquals(status, c.status.value)
+    }
+
+    @Test
     fun reconnectsAfterServerRestart() {
         val c = connection()
         c.status.await { it is ConnectionStatus.Connected }
