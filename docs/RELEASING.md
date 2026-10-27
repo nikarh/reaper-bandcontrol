@@ -12,7 +12,9 @@
    signature, and uploads everything to the release.
 
 Every push to `main` also updates the `latest` pre-release (the **Latest** workflow): the tag moves to the new
-commit, the notes list the unreleased changes, and Publish uploads the same files, signed the same way. It is never
+commit, the notes list the unreleased changes, and Publish uploads the same files, signed the same way, with the
+version marked as a build of main (`0.1.2-dev+abc1234`, from `BANDCONTROL_VERSION_SUFFIX`) in the extension's and
+the app's logs, the Android app and the Windows installers. It is never
 marked as GitHub's latest release, so the links below keep pointing at the newest `vX.Y.Z`.
 
 Asset names never change, so `https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/<name>` always

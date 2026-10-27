@@ -46,7 +46,8 @@ android {
         minSdk = 28
         targetSdk = 36
         versionCode = appVersionCode
-        versionName = appVersion
+        // BANDCONTROL_VERSION_SUFFIX: builds of main, e.g. 0.1.2-dev+abc1234 (the `latest` pre-release).
+        versionName = appVersion + System.getenv("BANDCONTROL_VERSION_SUFFIX").orEmpty()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "REPOSITORY", "\"$repository\"")
     }

@@ -23,7 +23,7 @@ if [[ -z $dll ]]; then
   cargo build --release --locked -p reaper-bandcontrol --lib --target "$target"
   dll=target/$target/release/reaper_bandcontrol.dll
 fi
-version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)
+version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)${BANDCONTROL_VERSION_SUFFIX:-}
 
 # makensis on Windows wants Windows paths.
 native() { if command -v cygpath > /dev/null; then cygpath -w "$1"; else echo "$1"; fi; }

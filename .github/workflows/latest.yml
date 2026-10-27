@@ -22,6 +22,8 @@ jobs:
     if: github.repository_owner == 'nikarh'
     runs-on: ubuntu-24.04
     environment: release
+    outputs:
+      version-suffix: ${{ steps.version.outputs.suffix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -29,7 +31,13 @@ jobs:
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install_args: git-cliff
+      - name: Version suffix
+        id: version
+        run: echo "suffix=-dev+${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
       - name: Release notes
+        env:
+          # git-cliff looks up the pull requests and authors of the commits.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           {
@@ -72,4 +80,6 @@ jobs:
     uses: ./.github/workflows/publish.yml
     with:
       tag: latest
+      # The extension, the app and the installers say e.g. 0.1.2-dev+abc1234, so a bug report tells the build.
+      version-suffix: ${{ needs.tag.outputs.version-suffix }}
     secrets: inherit
