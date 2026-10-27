@@ -55,6 +55,10 @@ description = "End-to-end tests against a real, isolated, headless REAPER (needs
 run = "cargo test -p reaper-harness -- --ignored --test-threads=1"
 
 
+[tasks."e2e:macos"]
+description = "Start BandControl.app like the extension does and talk to it over its socket (needs macOS)"
+run         = "scripts/macos-app-e2e.sh"
+
 [tasks."e2e:reaper-versions"]
 description = "REAPER e2e against several REAPER releases for Linux (args: versions, default the supported range)"
 run         = "scripts/reaper-versions.sh"
@@ -64,7 +68,7 @@ description = "Windows installer (args: x64|arm64 [DLL] [OUTDIR]); signed when W
 run         = "scripts/package-windows.sh"
 
 [tasks."package:macos"]
-description = "macOS installer (args: [DYLIB] [OUTDIR]); signed and notarized when MACOS_* are set; needs macOS"
+description = "macOS installer and app zip (args: [DYLIB APP] [OUTDIR]); signed and notarized when MACOS_* are set; needs macOS"
 run         = "scripts/package-macos.sh"
 [tasks.reaper]
 description = "Run isolated REAPER with the extension; stdin lines go to the REAPER web interface (q quits)"

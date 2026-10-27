@@ -40,6 +40,9 @@ pub enum ServerEvent {
     Message(SessionId, pb::ClientMessage),
 }
 
+/// Longest client name kept, in characters.
+const MAX_CLIENT_NAME: usize = 64;
+
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub name: String,
@@ -89,9 +92,19 @@ impl Phase {
     }
 }
 
+/// An authenticated client, as shown to the user.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Peer {
+    pub client: ClientId,
+    pub session: SessionId,
+    /// What the phone calls itself (its model), may be empty.
+    pub name: String,
+}
+
 #[derive(Debug)]
 struct Client {
     connected_at: Instant,
+    name: String,
     reassembler: Reassembler,
     max_packet: Option<usize>,
     phase: Phase,
@@ -145,6 +158,25 @@ impl ServerSessions {
             .count()
     }
 
+    /// Authenticated clients, ordered by session id.
+    #[must_use]
+    pub fn peers(&self) -> Vec<Peer> {
+        let mut peers: Vec<Peer> = self
+            .clients
+            .iter()
+            .filter_map(|(id, c)| match c.phase {
+                Phase::Ready { session, .. } => Some(Peer {
+                    client: *id,
+                    session,
+                    name: c.name.clone(),
+                }),
+                _ => None,
+            })
+            .collect();
+        peers.sort_by_key(|p| p.session);
+        peers
+    }
+
     /// Largest packet every known client can receive (broadcast safe).
     #[must_use]
     pub fn packet_size(&self) -> usize {
@@ -160,6 +192,7 @@ impl ServerSessions {
     pub fn connect(&mut self, client: ClientId, now: Instant) {
         self.clients.entry(client).or_insert_with(|| Client {
             connected_at: now,
+            name: String::new(),
             reassembler: Reassembler::default(),
             max_packet: None,
             phase: Phase::Connected,
@@ -243,6 +276,20 @@ impl ServerSessions {
             target: Target::Client(id),
             packets: fragment(session, &frame, packet_size),
         }]
+    }
+
+    /// Ends a client's session because the user disconnected it, telling the client first.
+    pub fn goodbye(&mut self, client: ClientId) -> Vec<ServerEvent> {
+        let session = self.clients.get(&client).and_then(|c| match c.phase {
+            Phase::Ready { session, .. } => Some(session),
+            _ => None,
+        });
+        let goodbye = pb::ServerMessage {
+            msg: Some(pb::server_message::Msg::Goodbye(pb::Goodbye {})),
+        };
+        let mut events = session.map(|s| self.unicast(s, &goodbye)).unwrap_or_default();
+        events.extend(self.drop_client(client));
+        events
     }
 
     /// Expires handshakes that take too long.
@@ -340,6 +387,7 @@ impl ServerSessions {
             .clamp(MIN_PACKET, self.config.max_packet);
         if let Some(c) = self.clients.get_mut(&client) {
             c.max_packet = Some(max_packet);
+            c.name = hello.client_name.chars().take(MAX_CLIENT_NAME).collect();
             c.phase = Phase::Challenged {
                 client_nonce: hello.client_nonce.clone(),
                 server_nonce,

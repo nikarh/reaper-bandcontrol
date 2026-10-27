@@ -14,28 +14,16 @@ Control REAPER from the band's phones over Bluetooth: playback and setlist, inpu
 in-ear mix for every band member.
 
 BandControl is two parts: a **REAPER extension** (Windows, macOS, Linux) that turns the computer into a Bluetooth
-Low Energy device, and an **Android app** that every band member installs.
+Low Energy device, and an **Android app** that every band member installs. On a Mac the extension comes with a small
+menu bar app that does the Bluetooth part for REAPER.
 
 > **Status:** the Android app is the only client for now. An **iOS app is planned** but doesn't exist yet. The app
 > is not on **Google Play** or **F-Droid** yet (both planned); install the APK from the
 > [releases](https://github.com/nikarh/reaper-bandcontrol/releases/latest). The Linux Bluetooth backend is tested
-> daily; the macOS and Windows backends are implemented but have only been tried on a few machines so far.
+> daily, the macOS one on an Apple silicon MacBook with macOS 15; the Windows backend is implemented but has only been
+> tried on a few machines so far.
 
 **Works with REAPER 5.93 and newer**, on Windows, macOS and Linux; see [requirements](#requirements).
-
-## Why this exists
-
-BandControl supersedes [reaper-remote-bandui](https://github.com/nikarh/reaper-remote-bandui), a web page for
-REAPER's built-in web interface that bands use for the same job. The web page works well on a good Wi-Fi network.
-Without one, a phone has to share its hotspot, the computer joins it, and every musician types the computer's IP
-address and port into a browser, again after the hotspot drops.
-
-With BandControl the computer is a Bluetooth device and the phones connect to it directly, wherever they are in
-range. Each phone is paired once, by scanning a QR code from REAPER or from a bandmate's phone; after that the app
-finds the computer by itself and reconnects when the connection drops. The app is made for the stage: faders that
-don't jump when touched or scrolled over, meters with clip indicators for inputs and front of house (FOH) outputs, a
-setlist editor, connection status in plain language, and the screen stays on while connected. Projects made for
-reaper-remote-bandui work as they are, and the song order it stores is shared.
 
 ## Features
 
@@ -50,11 +38,11 @@ Play, pause, stop, record and repeat. The songs (regions) are listed in the band
 
 <br clear="right">
 
-### Rearrange the setlist by dragging
+### Setlist order
 
-<img src="docs/screenshots/setlist.png" alt="Rearrange the setlist by dragging" width="220" align="right">
+<img src="docs/screenshots/setlist.png" alt="Setlist order" width="220" align="right">
 
-Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, compatible with reaper-remote-bandui, and every phone sees the change.
+Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, and every phone sees the change.
 
 <br clear="right">
 
@@ -62,7 +50,7 @@ Tap Edit and drag songs by their handle, or long-press anywhere on a row, into t
 
 <img src="docs/screenshots/inputs.png" alt="Input levels and gain" width="220" align="right">
 
-A live meter for every input with its peak level, and a clip indicator that stays lit until you tap it, so you see which input clipped during the last song. The fader sets the input's gain (its track volume) on a dB scale up to +12 dB.
+A meter for every input with its peak level, and a clip indicator that stays lit until you tap it. The fader sets the input's gain (its track volume), up to +12 dB.
 
 <br clear="right">
 
@@ -70,7 +58,7 @@ A live meter for every input with its peak level, and a clip indicator that stay
 
 <img src="docs/screenshots/foh.png" alt="FOH outputs" width="220" align="right">
 
-The same meters and faders for the front of house: the outputs that go to the house desk or straight to the PA. Whoever looks after the sound for the audience can check and adjust them from the stage, next to the in-ear mixes.
+The same meters and faders for the front of house outputs: the feeds to the house desk or straight to the PA.
 
 <br clear="right">
 
@@ -78,7 +66,7 @@ The same meters and faders for the front of house: the outputs that go to the ho
 
 <img src="docs/screenshots/iem.png" alt="Personal in-ear mixes" width="220" align="right">
 
-Every band member picks their own mix and sets the level of each source: click, backtracks, other instruments, vocals. Faders only move when dragged sideways, relative to where they are, so a tap or a scroll never changes a level by accident. Mutes and the overall mix level are one tap away, and changes made in REAPER show up instantly.
+Every band member picks their own mix and sets the level and mute of each source: click, backtracks, other instruments, vocals, and the mix's overall level. Drag a fader sideways to move it; tapping or scrolling the list leaves it alone. Changes made in REAPER show up on the phones.
 
 <br clear="right">
 
@@ -86,19 +74,13 @@ Every band member picks their own mix and sets the level of each source: click, 
 
 <img src="docs/screenshots/share.png" alt="Pairing by QR code" width="220" align="right">
 
-REAPER shows a QR code; scan it with the app (no Google services needed) or type the code. A paired phone shows the same QR code to the next one, so the rest of the band pairs without touching the computer. Pair the rehearsal laptop and the stage PC alike: the app connects to whichever is in range and asks when both are.
+REAPER shows a QR code; scan it with the app or type the code. A paired phone shows the same QR code to the next one, so the rest of the band can pair from it. A phone can be paired with several computers, like a rehearsal laptop and a stage PC: the app connects to the one in range and asks when both are.
 
 <br clear="right">
 
 ### Connectivity
 
-Phones connect to the computer directly over Bluetooth Low Energy, so it works wherever you play. Only paired phones can find the computer and every session is encrypted, so a stranger in the audience can't change your monitor mix. The app reconnects by itself and keeps the screen on while connected.
-
-### Project layout
-
-BandControl reads the project by its folder names: songs are regions, the tracks in a folder named "Inputs" fill the Inputs tab, those in a "FOH" (or "PA") folder the FOH tab, and the in-ear mixes (hardware outputs with receives) are in an "IEM" folder. The project needs no plugins: start from the example project, or rename three folders in yours. reaper-remote-bandui projects keep working, with the IEM tab only.
-
-<img src="docs/screenshots/reaper-project.png" alt="Project layout">
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
 
 <!-- features:end -->
 
@@ -113,7 +95,7 @@ the [website](https://nikarh.github.io/reaper-bandcontrol/).
 | --- | --- |
 | REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change, and every week the newest REAPER release. On an older REAPER the extension says so in the console when it loads. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
 | Windows | Windows 10 1803 or newer, x64 or ARM, with a Bluetooth adapter that supports the LE peripheral role (**BandControl: Show status** says when it doesn't). |
-| macOS | macOS 10.12 or newer (11 on Apple silicon). REAPER must be allowed to use Bluetooth, see [quirks](#quirks-and-limitations). |
+| macOS | **macOS 11 Big Sur or newer**, Apple silicon or Intel: every Mac that runs macOS 11 has Bluetooth LE. Tested on macOS 15 (Apple silicon); CI tests the app on the oldest and the newest macOS that GitHub's runners offer, and on Intel. The installer adds the BandControl app, which REAPER starts for Bluetooth, see [macOS](#macos). |
 | Linux | x86_64 or aarch64 (e.g. a Raspberry Pi 5) with BlueZ (`bluetoothd`) and glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and newer. |
 | Phones | Android 9 or newer with Bluetooth LE. |
 
@@ -126,11 +108,53 @@ with "BandControl".
 | --- | --- | --- |
 | Windows, x64 (most PCs) | `bandcontrol-windows-x64-setup.exe` | For your user, into `%APPDATA%\REAPER`; for a portable REAPER choose its folder. Uninstall from *Settings → Apps*. |
 | Windows on ARM | `bandcontrol-windows-arm64-setup.exe` | For REAPER's ARM64EC build. An x64 REAPER running under emulation needs the x64 installer. |
-| macOS, Apple silicon and Intel | `bandcontrol-macos.pkg` | Into `~/Library/Application Support/REAPER`, no administrator password. |
+| macOS, Apple silicon and Intel | `bandcontrol-macos.pkg` | The extension into `~/Library/Application Support/REAPER`, the BandControl app into `~/Applications`; no administrator password. See [macOS](#macos) for opening it. |
 | Linux | – | Copy the library, see below. |
 
 Until a release is signed with the project's certificates, Windows SmartScreen asks first (*More info → Run anyway*),
-and macOS opens the package only from the context menu (*right click → Open*).
+and macOS refuses to open the package until you let it through once, see below.
+
+#### macOS
+
+The installer puts the extension and the **BandControl** app into your home folder. BandControl is a small menu bar
+app that REAPER starts for Bluetooth, which macOS doesn't let REAPER use itself.
+
+The releases aren't signed by Apple yet, so macOS blocks the installer the first time. Install it in **one** of these
+two ways.
+
+##### Option 1: the installer (recommended)
+
+**macOS 15 Sequoia and newer**
+
+1. Double-click `bandcontrol-macos.pkg`. macOS says it was *Not Opened*: click **Done**.
+2. Open *System Settings → Privacy & Security*, scroll down and click **Open Anyway**.
+3. Click **Open Anyway** again, confirm with Touch ID or your password, and go through the installer.
+
+<p>
+<img src="docs/screenshots/macos-blocked.png" alt="Step 1: Not Opened, with the buttons Done and Move to Bin" width="190">
+<img src="docs/screenshots/macos-open-anyway.png" alt="Step 2: Privacy &amp; Security with the Open Anyway button" width="380">
+<img src="docs/screenshots/macos-open-anyway-confirm.png" alt="Step 3: Open Anyway in the confirmation" width="190">
+</p>
+
+**macOS 11 to 14**: right-click `bandcontrol-macos.pkg`, choose **Open**, click **Open** again and go through the
+installer.
+
+##### Option 2: the Terminal (advanced)
+
+Downloads and installs in one go, for your user, without System Settings or a password:
+
+```sh
+cd ~/Downloads && curl -fLO https://github.com/nikarh/reaper-bandcontrol/releases/latest/download/bandcontrol-macos.pkg \
+  && installer -pkg bandcontrol-macos.pkg -target CurrentUserHomeDirectory
+```
+
+##### Then
+
+<img src="docs/screenshots/macos-bluetooth.png" alt="&quot;BandControl.app&quot; would like to use Bluetooth, with the buttons Don't Allow and Allow" width="190" align="right">
+
+Start REAPER. When macOS asks whether *BandControl.app* may use Bluetooth, click **Allow**.
+
+<br clear="right">
 
 #### Manual install: the plain library
 
@@ -142,11 +166,12 @@ file name doesn't matter as long as it starts with `reaper_`; an installer puts 
 | --- | --- |
 | Windows x64 | `reaper_bandcontrol-windows-x86_64.dll` |
 | Windows on ARM (ARM64EC REAPER) | `reaper_bandcontrol-windows-arm64ec.dll` |
-| macOS | `reaper_bandcontrol-macos-universal.dylib`; downloaded with a browser it is quarantined and REAPER can't load it: run `xattr -d com.apple.quarantine reaper_bandcontrol-macos-universal.dylib` once |
+| macOS | `reaper_bandcontrol-macos-universal.dylib`, and `BandControl-macos.zip`: unzip it and move `BandControl.app` into `Applications` in your home folder (or the main one). Downloaded with a browser both are quarantined and won't run: `xattr -d com.apple.quarantine reaper_bandcontrol-macos-universal.dylib` and `xattr -dr com.apple.quarantine ~/Applications/BandControl.app` once |
 | Linux x86_64 | `reaper_bandcontrol-linux-x86_64.so` (into `~/.config/REAPER/UserPlugins`) |
 | Linux aarch64 | `reaper_bandcontrol-linux-aarch64.so` |
 
-From source: `mise run install` builds the extension and copies it into REAPER's `UserPlugins` (Linux and macOS).
+From source: `mise run install` builds the extension and copies it into REAPER's `UserPlugins` (Linux and macOS; on
+macOS it also puts BandControl.app into `~/Applications`).
 
 ### Android app
 
@@ -174,6 +199,12 @@ and a link to the project on GitHub.
    tweaks*).
 2. In the app, tap **Scan QR code**, or type the code.
 3. Pair the other phones from the first one: menu (⋮) → **Share pairing with another phone** shows the same QR code.
+
+**On a Mac** the action opens the window of the BandControl app, which also lists the connected phones and can
+disconnect one. The app's menu bar icon (three faders) has the same actions; when a MacBook's notch hides it behind
+REAPER's menus, hold ⌘ and drag it further right.
+
+<img src="docs/screenshots/macos-window.png" alt="The BandControl window on macOS: QR code, name, status and connected phones" width="480">
 
 All phones share one pairing code. **Reset pairing key…** in the window (or the action **BandControl: Reset pairing
 key**) creates a new one and unpairs every phone; **Rename…** sets the name phones show. **BandControl: Show status**
@@ -264,7 +295,10 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
 - **Transport.** The extension registers a GATT service whose UUID is derived from the pairing secret, with one
   characteristic phones write to and one they subscribe to. Phones scan for that UUID, so only paired phones even
   see the computer. Messages are [protobuf](proto/bandcontrol.proto) in a small framing layer that splits them into
-  packets of the negotiated Bluetooth MTU. Linux uses BlueZ, macOS CoreBluetooth, Windows WinRT.
+  packets of the negotiated Bluetooth MTU. Linux uses BlueZ, macOS CoreBluetooth, Windows WinRT. On macOS the
+  Bluetooth part runs in the BandControl app, which REAPER starts through Launch Services so that macOS gives it a
+  Bluetooth permission of its own; the extension and the app exchange the (still encrypted) packets over a Unix
+  socket, `~/Library/Application Support/BandControl/helper.sock`. Sessions and keys stay in the extension.
 - **Sync policy.** A phone that connects gets the full state (tracks, volumes, receives, regions, markers, song
   order) and the transport. After that: the play position about once a second (the app extrapolates in between),
   volume and mute changes as small deltas the moment they happen, and the full state again, debounced by a second,
@@ -286,9 +320,11 @@ opens in any REAPER from 5.93 on and needs no plugins. The screenshots here are 
   adapter unobstructed; a USB adapter on a short extension cable helps with laptops in flight cases.
 - **Number of phones.** Adapters handle a limited number of simultaneous connections, usually 5 to 10. A typical
   band fits; a big ensemble may hit the adapter's limit.
-- **macOS.** macOS only lets an application use Bluetooth if its `Info.plist` declares it
-  (`NSBluetoothAlwaysUsageDescription`). The extension checks this instead of letting macOS terminate REAPER; if
-  REAPER's bundle lacks the key, **Show status** says so and Bluetooth stays off.
+- **macOS.** macOS only lets an application use Bluetooth if its `Info.plist` declares it, and REAPER's doesn't,
+  so the BandControl app does it for the extension (see [macOS](#macos)). The app needs no administrator rights and
+  quits a few seconds after REAPER. Until the releases are signed, macOS asks for the Bluetooth permission again
+  after an update. Like Windows, macOS can't drop a phone's Bluetooth connection: **Disconnect** in the app ends the
+  phone's session and ignores it from then on, and the phone shows that the computer disconnected it.
 - **Windows.** Needs Windows 10 1803 or newer and an adapter that supports the peripheral role. Windows can't drop a
   connection from the computer's side, so a rejected phone stays connected at the Bluetooth level until it leaves.
 - **Gain and meters.** "Gain" on the Inputs and FOH tabs is the track volume (the fader in REAPER), and meters show
@@ -321,7 +357,8 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 
 | Layer | Command | Needs |
 | --- | --- | --- |
-| Rust unit and integration tests (protocol, engine, server over TCP, .RPP parser) | `mise run test` | – |
+| Rust unit and integration tests (protocol, engine, server over TCP, .RPP parser, the macOS app's relay between the extension and a fake Bluetooth) | `mise run test` | – |
+| The macOS app started through Launch Services, talking to the extension's server over its socket | `mise run e2e:macos` | macOS |
 | Lints: clippy for Linux, macOS and Windows, cargo-deny, rustfmt, taplo, shellcheck, actionlint, actions pinned to commit SHAs and allowed, docs check | `mise run lint` | – |
 | Extension in REAPER itself, headless (band fixture and Mother Project) | `mise run e2e:reaper` | REAPER, `cage` or Xvfb |
 | The same against REAPER releases from 5.93 to 7.82, downloaded on demand | `mise run e2e:reaper-versions [VERSION...]` | `cage` or Xvfb |
@@ -336,13 +373,16 @@ Tools:
   faders and the playhead; `--tcp 127.0.0.1:47011` serves TCP. `--project band` is the test fixture
   ([`tests/fixtures/Band Project.RPP`](tests/fixtures/Band%20Project.RPP): a full band's layout with markers, a custom
   song order and a skipped song, which the tests need), `--project example` the example project, `--project
-  FILE.RPP` any project. `bandctl pair` prints a pairing code, `bandctl client` prints what a server sends.
+  FILE.RPP` any project. `bandctl pair` prints a pairing code, `bandctl client` prints what a server sends. On
+  macOS `--ble --app` serves through the BandControl app, like the extension does.
 - `mise run reaper` starts an isolated headless REAPER with the extension and the band fixture (`--project FILE` for
   another); lines typed on stdin go to REAPER's web API (`SET/TRACK/13/VOL/0.5`), `screenshot FILE.png` saves a
   screenshot.
-- `mise run package:windows x64|arm64 [DLL]` and `mise run package:macos [DYLIB]` build the installers, signed when
-  the signing variables are set (see [`docs/RELEASING.md`](docs/RELEASING.md)). The Windows one needs `makensis`
-  (NSIS) and, without a DLL argument, Windows; the macOS one needs macOS.
+- `mise run package:windows x64|arm64 [DLL]` and `mise run package:macos [DYLIB APP]` build the installers, signed
+  when the signing variables are set (see [`docs/RELEASING.md`](docs/RELEASING.md)). The Windows one needs
+  `makensis` (NSIS) and, without a DLL argument, Windows; the macOS one needs macOS and also writes
+  `BandControl-macos.zip`. The oldest supported macOS is `MACOSX_DEPLOYMENT_TARGET` in
+  [`.cargo/config.toml`](.cargo/config.toml).
 - `scripts/make-example-project.py` and `scripts/make-band-fixture.py` regenerate the two projects.
 - `mise run android:deploy [-s SERIAL] [pairing-url]` installs and starts the app; with several devices in
   `adb devices` it asks which one (or takes `-s` / `ANDROID_SERIAL`), like the other phone scripts. A pairing URL
@@ -350,8 +390,9 @@ Tools:
   emulator (after `mise run android:emulator-sdk`) when there's no phone.
 
 Extension environment variables: `BANDCONTROL_SECRET` (pairing code), `BANDCONTROL_TCP` (also listen on TCP),
-`BANDCONTROL_BLE=0`, `BANDCONTROL_NAME`, `BANDCONTROL_LOG` (tracing filter). It logs to `bandcontrol.log` in REAPER's
-resource directory.
+`BANDCONTROL_BLE=0`, `BANDCONTROL_NAME`, `BANDCONTROL_LOG` (tracing filter); on macOS `BANDCONTROL_HELPER_SOCKET`
+(the app's socket) and `BANDCONTROL_APP` (the app to start). It logs to `bandcontrol.log` in REAPER's resource
+directory, the macOS app to `~/Library/Logs/BandControl.log`.
 
 ### Docs, screenshots and releases
 

@@ -10,6 +10,7 @@
     <choices-outline>
         <line choice="default">
             <line choice="dev.nikarh.bandcontrol.extension"/>
+            <line choice="dev.nikarh.bandcontrol.app"/>
         </line>
     </choices-outline>
     <choice id="default"/>
@@ -17,4 +18,8 @@
         <pkg-ref id="dev.nikarh.bandcontrol.extension"/>
     </choice>
     <pkg-ref id="dev.nikarh.bandcontrol.extension" version="VERSION" onConclusion="none">extension.pkg</pkg-ref>
+    <choice id="dev.nikarh.bandcontrol.app" visible="false">
+        <pkg-ref id="dev.nikarh.bandcontrol.app"/>
+    </choice>
+    <pkg-ref id="dev.nikarh.bandcontrol.app" version="VERSION" onConclusion="none">app.pkg</pkg-ref>
 </installer-gui-script>

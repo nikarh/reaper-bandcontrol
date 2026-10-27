@@ -62,13 +62,31 @@ pub fn open(path: &Path) -> io::Result<()> {
 /// Best effort machine name for the server name shown on phones.
 #[must_use]
 pub fn hostname() -> String {
-    std::env::var("COMPUTERNAME")
-        .ok()
+    computer_name()
+        .or_else(|| std::env::var("COMPUTERNAME").ok())
         .or_else(|| std::fs::read_to_string("/etc/hostname").ok())
         .or_else(|| std::env::var("HOSTNAME").ok())
         .map(|s| s.trim().to_owned())
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "REAPER".into())
+}
+
+/// macOS: the name from *System Settings → General → Sharing*, like "Alex's Mac". Applications started from
+/// the Finder have no `HOSTNAME`, and the host name is a mangled version of this one.
+#[cfg(target_os = "macos")]
+fn computer_name() -> Option<String> {
+    let out = Command::new("/usr/sbin/scutil")
+        .args(["--get", "ComputerName"])
+        .output()
+        .ok()?;
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn computer_name() -> Option<String> {
+    None
 }
 
 #[cfg(test)]

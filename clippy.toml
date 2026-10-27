@@ -3,6 +3,7 @@ allow-indexing-slicing-in-tests = true
 allow-panic-in-tests            = true
 allow-print-in-tests            = true
 allow-unwrap-in-tests           = true
+doc-valid-idents                = ["..", "BandControl"]
 too-many-arguments-threshold    = 10
 
 disallowed-types = [

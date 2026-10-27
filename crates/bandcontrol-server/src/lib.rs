@@ -9,6 +9,7 @@
 
 pub mod ble;
 pub mod client;
+pub mod helper;
 pub mod tcp;
 pub mod transport;
 
@@ -21,8 +22,9 @@ use bandcontrol_proto::{
     random::OsRandom,
     server::{ClientId, ServerConfig, ServerEvent, ServerSessions, Target},
 };
+use helper::{HelperOptions, Phone, Request};
 use parking_lot::Mutex;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use transport::{LocalId, TransportCommand, TransportEvent};
 
 #[derive(Debug, Clone)]
@@ -31,9 +33,11 @@ pub struct ServerOptions {
     pub name: String,
     pub ble: bool,
     pub tcp: Option<SocketAddr>,
+    /// Bluetooth through the BandControl app instead of directly (macOS, where REAPER may not use Bluetooth).
+    pub helper: Option<HelperOptions>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum TransportStatus {
     #[default]
     Disabled,
@@ -55,6 +59,10 @@ pub struct Server {
     inputs: mpsc::UnboundedReceiver<Input>,
     outputs: mpsc::UnboundedSender<Output>,
     status: Arc<Mutex<Status>>,
+    requests: mpsc::UnboundedReceiver<Request>,
+    show: mpsc::UnboundedSender<()>,
+    goodbye: mpsc::UnboundedSender<()>,
+    helper: bool,
     shutdown: Option<oneshot::Sender<()>>,
     thread: Option<JoinHandle<()>>,
 }
@@ -64,6 +72,15 @@ impl Server {
         let (inputs_tx, inputs) = mpsc::unbounded_channel();
         let (outputs, outputs_rx) = mpsc::unbounded_channel();
         let (shutdown, shutdown_rx) = oneshot::channel();
+        let (requests_tx, requests) = mpsc::unbounded_channel();
+        let (show, show_rx) = mpsc::unbounded_channel();
+        let (goodbye, goodbye_rx) = mpsc::unbounded_channel();
+        let helper = options.ble && options.helper.is_some();
+        let app = App {
+            requests: requests_tx,
+            show: show_rx,
+            goodbye: goodbye_rx,
+        };
         let status = Arc::new(Mutex::new(Status {
             ble: if options.ble {
                 TransportStatus::Starting
@@ -81,13 +98,17 @@ impl Server {
         let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
         let thread_status = status.clone();
         let thread = std::thread::Builder::new().name("bandcontrol".into()).spawn(move || {
-            runtime.block_on(run(options, inputs_tx, outputs_rx, shutdown_rx, thread_status));
+            runtime.block_on(run(options, inputs_tx, outputs_rx, shutdown_rx, thread_status, app));
         })?;
 
         Ok(Self {
             inputs,
             outputs,
             status,
+            requests,
+            show,
+            goodbye,
+            helper,
             shutdown: Some(shutdown),
             thread: Some(thread),
         })
@@ -112,6 +133,33 @@ impl Server {
     pub fn status(&self) -> Status {
         self.status.lock().clone()
     }
+
+    /// What the BandControl app asked for since the last call. Never blocks.
+    pub fn poll_requests(&mut self) -> Vec<Request> {
+        let mut requests = Vec::new();
+        while let Ok(r) = self.requests.try_recv() {
+            requests.push(r);
+        }
+        requests
+    }
+
+    /// Ends every session with a `Goodbye`, as if the user disconnected every phone (for the simulator).
+    pub fn goodbye_all(&self) {
+        let _ = self.goodbye.send(());
+    }
+
+    /// Shows the pairing window of the BandControl app, starting the app if needed. False without the app.
+    #[must_use]
+    pub fn show_pairing(&self) -> bool {
+        self.helper && self.show.send(()).is_ok()
+    }
+}
+
+/// The server's side of the BandControl app link.
+struct App {
+    requests: mpsc::UnboundedSender<Request>,
+    show: mpsc::UnboundedReceiver<()>,
+    goodbye: mpsc::UnboundedReceiver<()>,
 }
 
 impl Drop for Server {
@@ -163,6 +211,7 @@ async fn run(
     mut outputs: mpsc::UnboundedReceiver<Output>,
     mut shutdown: oneshot::Receiver<()>,
     status: Arc<Mutex<Status>>,
+    mut app: App,
 ) {
     let (events_tx, mut events) = mpsc::unbounded_channel::<(u64, TransportEvent)>();
     let mut transports = Transports { commands: vec![] };
@@ -181,7 +230,18 @@ async fn run(
         };
     }
 
-    if options.ble {
+    let (phones_tx, phones_rx) = watch::channel(Vec::<Phone>::new());
+    let (ble_status_tx, mut ble_status) = watch::channel(TransportStatus::Starting);
+    if let (true, Some(helper)) = (options.ble, options.helper.clone()) {
+        let (event_tx, cmd_rx) = forward(BLE, &events_tx, &mut transports);
+        let link = helper::Link {
+            status: ble_status_tx,
+            phones: phones_rx,
+            requests: app.requests.clone(),
+            show: std::mem::replace(&mut app.show, mpsc::unbounded_channel().1),
+        };
+        start_helper(helper, &options, event_tx, cmd_rx, link);
+    } else if options.ble {
         let (event_tx, cmd_rx) = forward(BLE, &events_tx, &mut transports);
         let service_uuid = uuid::Uuid::from_bytes(crypto::service_uuid(&options.secret));
         let config = ble::BleConfig {
@@ -214,6 +274,7 @@ async fn run(
                 }
                 TransportEvent::Packet(local, packet) => sessions.receive(client_id(transport, local), &packet, Instant::now()),
                 TransportEvent::Disconnected(local) => sessions.disconnect(client_id(transport, local)),
+                TransportEvent::Goodbye(local) => sessions.goodbye(client_id(transport, local)),
             },
             output = outputs.recv() => match output {
                 Some(Output::Broadcast(msg)) => sessions.broadcast(&msg),
@@ -221,48 +282,100 @@ async fn run(
                 None => break,
             },
             _ = tick.tick() => sessions.tick(Instant::now()),
+            Some(()) = app.goodbye.recv() => {
+                let peers = sessions.peers();
+                peers.into_iter().flat_map(|p| sessions.goodbye(p.client)).collect()
+            }
+            Ok(()) = ble_status.changed() => {
+                status.lock().ble = ble_status.borrow_and_update().clone();
+                vec![]
+            }
         };
 
         for event in server_events {
-            match event {
-                ServerEvent::Send {
-                    target: Target::All,
-                    packets,
-                } => transports.broadcast(&TransportCommand::Send {
-                    target: Target::All,
-                    packets,
-                }),
-                ServerEvent::Send {
-                    target: Target::Client(id),
-                    packets,
-                } => {
-                    let (transport, local) = split_id(id);
-                    transports.send(
-                        transport,
-                        &TransportCommand::Send {
-                            target: Target::Client(local),
-                            packets,
-                        },
-                    );
-                }
-                ServerEvent::Disconnect(id) => {
-                    let (transport, local) = split_id(id);
-                    transports.send(transport, &TransportCommand::Disconnect(local));
-                }
-                ServerEvent::Joined(s) => {
-                    tracing::info!(session = s, "client authenticated");
-                    let _ = inputs.send(Input::Joined(s));
-                }
-                ServerEvent::Left(s) => {
-                    tracing::info!(session = s, "client left");
-                    let _ = inputs.send(Input::Left(s));
-                }
-                ServerEvent::Message(s, msg) => {
-                    let _ = inputs.send(Input::Command(s, msg));
-                }
-            }
+            dispatch(event, &transports, &inputs);
         }
         status.lock().sessions = sessions.session_count();
+        let phones = ble_phones(&sessions);
+        phones_tx.send_if_modified(|p| (*p != phones).then(|| *p = phones).is_some());
+    }
+}
+
+/// The phones connected over Bluetooth with a session.
+fn ble_phones(sessions: &ServerSessions) -> Vec<Phone> {
+    sessions
+        .peers()
+        .into_iter()
+        .filter_map(|p| match split_id(p.client) {
+            (BLE, client) => Some(Phone { client, name: p.name }),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Carries out what the sessions decided.
+fn dispatch(event: ServerEvent, transports: &Transports, inputs: &mpsc::UnboundedSender<Input>) {
+    match event {
+        ServerEvent::Send {
+            target: Target::All,
+            packets,
+        } => transports.broadcast(&TransportCommand::Send {
+            target: Target::All,
+            packets,
+        }),
+        ServerEvent::Send {
+            target: Target::Client(id),
+            packets,
+        } => {
+            let (transport, local) = split_id(id);
+            transports.send(
+                transport,
+                &TransportCommand::Send {
+                    target: Target::Client(local),
+                    packets,
+                },
+            );
+        }
+        ServerEvent::Disconnect(id) => {
+            let (transport, local) = split_id(id);
+            transports.send(transport, &TransportCommand::Disconnect(local));
+        }
+        ServerEvent::Joined(s) => {
+            tracing::info!(session = s, "client authenticated");
+            let _ = inputs.send(Input::Joined(s));
+        }
+        ServerEvent::Left(s) => {
+            tracing::info!(session = s, "client left");
+            let _ = inputs.send(Input::Left(s));
+        }
+        ServerEvent::Message(s, msg) => {
+            let _ = inputs.send(Input::Command(s, msg));
+        }
+    }
+}
+
+/// Bluetooth through the BandControl app.
+#[cfg_attr(not(unix), allow(clippy::needless_pass_by_value))]
+fn start_helper(
+    helper: HelperOptions,
+    options: &ServerOptions,
+    events: transport::EventSender,
+    commands: transport::CommandReceiver,
+    link: helper::Link,
+) {
+    let hello = helper::ToApp::Hello {
+        version: helper::VERSION,
+        code: options.secret.to_code(),
+        name: options.name.clone(),
+    };
+    #[cfg(unix)]
+    helper::spawn(helper, hello, events, commands, link);
+    #[cfg(not(unix))]
+    {
+        let _ = (helper, hello, events, commands);
+        link.status.send_replace(TransportStatus::Failed(
+            "the BandControl app only exists for macOS".into(),
+        ));
     }
 }
 

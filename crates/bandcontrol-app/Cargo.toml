@@ -1,0 +1,74 @@
+[package]
+categories             = ["multimedia::audio"]
+description            = "BandControl for macOS: Bluetooth, menu bar icon and pairing window for the REAPER extension"
+edition.workspace      = true
+keywords               = ["ble", "reaper", "remote"]
+license.workspace      = true
+name                   = "bandcontrol-app"
+publish.workspace      = true
+readme                 = "../../README.md"
+repository.workspace   = true
+rust-version.workspace = true
+version.workspace      = true
+
+[[bin]]
+name = "BandControl"
+path = "src/main.rs"
+
+[dependencies]
+bandcontrol-proto  = { workspace = true }
+bandcontrol-server = { workspace = true }
+parking_lot        = { workspace = true }
+qrcode             = { workspace = true }
+tokio              = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid               = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = { workspace = true }
+dispatch2 = { workspace = true }
+objc2 = { workspace = true }
+objc2-app-kit = { workspace = true, features = [
+  "NSAlert",
+  "NSApplication",
+  "NSBezierPath",
+  "NSBox",
+  "NSButton",
+  "NSCell",
+  "NSClipView",
+  "NSColor",
+  "NSControl",
+  "NSFont",
+  "NSFontDescriptor",
+  "NSGraphics",
+  "NSImage",
+  "NSImageView",
+  "NSLayoutAnchor",
+  "NSLayoutConstraint",
+  "NSMenu",
+  "NSMenuItem",
+  "NSParagraphStyle",
+  "NSResponder",
+  "NSRunningApplication",
+  "NSScrollView",
+  "NSStackView",
+  "NSStatusBar",
+  "NSStatusBarButton",
+  "NSStatusItem",
+  "NSText",
+  "NSTextField",
+  "NSUserInterfaceLayout",
+  "NSView",
+  "NSWindow",
+  "block2",
+  "objc2-core-foundation",
+] }
+objc2-foundation = { workspace = true }
+
+[dev-dependencies]
+bandcontrol-core  = { workspace = true }
+pretty_assertions = { workspace = true }
+
+[lints]
+workspace = true
