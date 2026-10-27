@@ -93,7 +93,7 @@ the [website](https://nikarh.github.io/reaper-bandcontrol/).
 
 | | |
 | --- | --- |
-| REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.82 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change, and every week the newest REAPER release. On an older REAPER the extension says so in the console when it loads. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
+| REAPER | **5.93 or newer.** Every release from 5.93 (the oldest REAPER for Linux still available) to 7.83 passes the end-to-end tests ([`mise run e2e:reaper-versions`](#development)); CI tests the oldest and the newest on every change, and every week the newest REAPER release. On an older REAPER the extension says so in the console when it loads. Windows and macOS builds use the same REAPER API, they aren't run against old releases. |
 | Windows | Windows 10 1803 or newer, x64 or ARM, with a Bluetooth adapter that supports the LE peripheral role (**BandControl: Show status** says when it doesn't). |
 | macOS | **macOS 11 Big Sur or newer**, Apple silicon or Intel: every Mac that runs macOS 11 has Bluetooth LE. Tested on macOS 15 (Apple silicon); CI tests the app on the oldest and the newest macOS that GitHub's runners offer, and on Intel. The installer adds the BandControl app, which REAPER starts for Bluetooth, see [macOS](#macos). |
 | Linux | x86_64 or aarch64 (e.g. a Raspberry Pi 5) with BlueZ (`bluetoothd`) and glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and newer. |
@@ -361,7 +361,7 @@ mise run android:sdk   # once: Android SDK packages into .android-sdk
 | The macOS app started through Launch Services, talking to the extension's server over its socket | `mise run e2e:macos` | macOS |
 | Lints: clippy for Linux, macOS and Windows, cargo-deny, rustfmt, taplo, shellcheck, actionlint, actions pinned to commit SHAs and allowed, docs check | `mise run lint` | – |
 | Extension in REAPER itself, headless (band fixture and Mother Project) | `mise run e2e:reaper` | REAPER, `cage` or Xvfb |
-| The same against REAPER releases from 5.93 to 7.82, downloaded on demand | `mise run e2e:reaper-versions [VERSION...]` | `cage` or Xvfb |
+| The same against REAPER releases from 5.93 to 7.83, downloaded on demand | `mise run e2e:reaper-versions [VERSION...]` | `cage` or Xvfb |
 | Kotlin protocol and state tests, Kotlin client against the Rust simulator | `mise run android:test` | – |
 | Android lint and ktlint | `mise run android:lint` | – |
 | App on a phone against the simulated example project | `mise run android:e2e [tcp\|ble]` | phone (adb) |

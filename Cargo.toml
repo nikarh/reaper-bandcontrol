@@ -19,7 +19,7 @@ version-code = 102
 # against both on every change), the scripts and the docs read them from here: raising either is one edit.
 [workspace.metadata.reaper]
 min    = "5.93"
-tested = "7.82"
+tested = "7.83"
 
 [profile.release]
 codegen-units = 1
