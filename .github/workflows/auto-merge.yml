@@ -1,4 +1,7 @@
-name: Dependabot auto-merge
+name: Auto-merge
+
+# Merges green pull requests nobody needs to review: Dependabot's, and those the workflows open with the auto-merge
+# label (the tested REAPER version from Newest REAPER).
 
 on:
   workflow_run:
@@ -15,16 +18,16 @@ permissions:
   actions: write
 
 concurrency:
-  group: dependabot-auto-merge
+  group: auto-merge
   cancel-in-progress: false
 
 jobs:
   merge:
-    name: Merge green Dependabot PRs
+    name: Merge green automated PRs
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-24.04
     steps:
-      - name: Merge green Dependabot PRs
+      - name: Merge green automated PRs
         env:
           # Optional fine-grained PAT (Contents + Pull requests + Workflows: write)
           # as a fallback if GITHUB_TOKEN is refused for workflow file changes.
@@ -47,10 +50,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          prs=$(gh pr list --author 'app/dependabot' --state open --base main \
-            --json number,headRefOid,isDraft,mergeable,mergeStateStatus)
+          prs=$(gh pr list --state open --base main \
+            --json number,headRefOid,isDraft,mergeable,mergeStateStatus,author,labels)
 
-          jq -c '.[] | select(.isDraft | not)' <<<"$prs" | while IFS= read -r pr; do
+          # Only bots' pull requests: a label alone is not enough.
+          jq -c '.[] | select(.isDraft | not)
+            | select(.author.login == "app/dependabot" or (.author.is_bot and any(.labels[]; .name == "auto-merge")))' <<<"$prs" | while IFS= read -r pr; do
             number=$(jq -r .number <<<"$pr")
             sha=$(jq -r .headRefOid <<<"$pr")
             mergeable=$(jq -r .mergeable <<<"$pr")
@@ -58,7 +63,7 @@ jobs:
             echo "::group::PR #$number ($sha, mergeable=$mergeable, state=$state)"
 
             if [[ "$mergeable" == "CONFLICTING" || "$state" == "DIRTY" ]]; then
-              echo "Has conflicts; Dependabot rebases conflicting PRs itself."
+              echo "Has conflicts; Dependabot and the workflows that opened it update it themselves."
               echo "::endgroup::"
               continue
             fi
@@ -89,6 +94,7 @@ jobs:
             if gh pr merge "$number" --squash --match-head-commit "$sha"; then
               # Merges made with GITHUB_TOKEN don't trigger push workflows.
               gh workflow run check.yml --ref main
+              gh workflow run pages.yml --ref main
             else
               echo "::warning::Failed to merge PR #$number"
             fi

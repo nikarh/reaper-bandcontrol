@@ -44,8 +44,9 @@ Platform logos come from [Simple Icons](https://simpleicons.org) (CC0), everythi
 
 The oldest supported and the newest tested REAPER are `min` and `tested` in `[workspace.metadata.reaper]` in
 `Cargo.toml`. The extension (load-time warning), CI (the e2e tests against both on every change), the scripts and the
-website read them; `mise run lint` fails when the README names other versions. To support a new REAPER: raise
-`tested` (the weekly *Newest REAPER* workflow opens an issue when a newer release passes), update the README, and run
+website read them; `mise run lint` fails when the README names other versions. A newer REAPER release that passes
+the e2e tests needs nothing: the weekly *Newest REAPER* workflow raises `tested` and the README in a pull request, and
+*Auto-merge* merges it once Check is green. To support a new REAPER by hand, raise `tested`, update the README and run
 `mise run e2e:reaper-versions` for the whole range. A REAPER API function newer than `min` must be optional (looked up
 separately in `ffi.rs`, with a fallback), or `min` has to go up.
 

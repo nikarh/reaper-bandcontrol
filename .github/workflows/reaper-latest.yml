@@ -1,8 +1,8 @@
 name: Newest REAPER
 
 # Weekly: the REAPER e2e tests against the newest REAPER on reaper.fm, so a REAPER update that breaks the extension
-# shows up as an issue before users report it. When a newer release passes, an issue asks to raise the tested version
-# in Cargo.toml (which the Check workflow then tests on every change).
+# shows up as an issue before users report it. When a newer release passes, a pull request raises the tested version
+# in Cargo.toml (which the Check workflow then tests on every change); Auto-merge merges it once Check is green.
 on:
   schedule:
     - cron: "17 5 * * 1"
@@ -17,6 +17,9 @@ jobs:
     name: REAPER e2e (latest release)
     if: github.repository_owner == 'nikarh'
     runs-on: ubuntu-24.04
+    outputs:
+      latest: ${{ steps.reaper.outputs.latest }}
+      tested: ${{ steps.reaper.outputs.tested }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Find the newest REAPER
@@ -63,12 +66,42 @@ jobs:
         run: |
           scripts/report-issue.sh "REAPER $VERSION fails the end-to-end tests" \
             "The weekly run against REAPER $VERSION failed: $RUN (logs attached to the run)."
-      - name: Ask to raise the tested version
-        if: success() && steps.reaper.outputs.latest != steps.reaper.outputs.tested
+
+  raise:
+    name: Raise the tested REAPER
+    needs: e2e
+    if: needs.e2e.outputs.latest != needs.e2e.outputs.tested
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Raise the version in Cargo.toml and the README
         env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.reaper.outputs.latest }}
-          TESTED: ${{ steps.reaper.outputs.tested }}
+          VERSION: ${{ needs.e2e.outputs.latest }}
+          TESTED: ${{ needs.e2e.outputs.tested }}
         run: |
-          scripts/report-issue.sh "REAPER $VERSION passes: raise the tested REAPER version" \
-            "REAPER $VERSION passes the end-to-end tests. Set \`tested = \"$VERSION\"\` (now $TESTED) in \`[workspace.metadata.reaper]\` in Cargo.toml, so Check tests it on every change."
+          set -euo pipefail
+          sed -i "/^\[workspace.metadata.reaper\]/,/^\[/s/^tested *= *\"$TESTED\"/tested = \"$VERSION\"/" Cargo.toml
+          sed -i "s/ to ${TESTED//./\\.}\b/ to $VERSION/g" README.md
+          [[ $(scripts/reaper-version.sh tested) == "$VERSION" ]]
+          python3 scripts/build-docs.py check
+      # A token of the app, not GITHUB_TOKEN: pull requests opened with GITHUB_TOKEN don't start the Check workflow.
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: generate-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - name: Open a pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          title: "test: test against REAPER ${{ needs.e2e.outputs.latest }}"
+          commit-message: "test: test against REAPER ${{ needs.e2e.outputs.latest }}"
+          body: REAPER ${{ needs.e2e.outputs.latest }} passed the weekly end-to-end tests, so Check tests it on every change from now on.
+          branch: reaper-tested
+          labels: auto-merge
+          add-paths: |
+            Cargo.toml
+            README.md
+          delete-branch: true
