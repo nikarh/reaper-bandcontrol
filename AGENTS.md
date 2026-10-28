@@ -57,7 +57,7 @@ the BandControl app (`crates/bandcontrol-app`, AppKit through objc2) through Lau
 a Unix socket (`bandcontrol_server::helper`); sessions and keys stay in the extension. Linux and Windows don't use
 the app. The oldest supported macOS is `MACOSX_DEPLOYMENT_TARGET` in `.cargo/config.toml`: the build, the app's
 `Info.plist` (`scripts/macos-app.sh`) and `mise run lint` (the README must name it) read it. CI tests the app on the
-oldest and newest macOS runners and on Intel (`mise run e2e:macos`); runners have no Bluetooth. The macOS
+newest macOS (Apple silicon) and on Intel (`mise run e2e:macos`); runners have no Bluetooth. The macOS
 screenshots in `docs/screenshots/macos-*.png` are taken by hand on a Mac, with the simulator served through the app
 (`bandctl sim --ble --app --secret ...`) so that no real pairing code shows.
 

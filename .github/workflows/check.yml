@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - run: scripts/ci-apt.sh libdbus-1-dev pkg-config
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install_args: rust cargo-deny taplo shellcheck actionlint
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - run: scripts/ci-apt.sh libdbus-1-dev pkg-config
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install_args: rust
@@ -55,14 +55,23 @@ jobs:
             version: tested
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install REAPER and a virtual display
+      - id: reaper
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
-            libgtk-3-0t64 libasound2t64 libxml2
           version=$(scripts/reaper-version.sh ${{ matrix.version }})
           echo "Testing REAPER $version" >> "$GITHUB_STEP_SUMMARY"
-          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "$version")" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # REAPER's archive, so that the tests don't depend on reaper.fm answering.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/reaper-downloads
+          key: reaper-${{ steps.reaper.outputs.version }}-linux-x86_64
+      - name: Install REAPER and a virtual display
+        env:
+          REAPER_DOWNLOADS: ${{ runner.temp }}/reaper-downloads
+        run: |
+          scripts/ci-apt.sh libdbus-1-dev pkg-config xvfb xdotool imagemagick \
+            libgtk-3-0t64 libasound2t64 libxml2
+          echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "${{ steps.reaper.outputs.version }}")" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install_args: rust
@@ -88,7 +97,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update -q && sudo apt-get install -yq libdbus-1-dev pkg-config
+      - run: scripts/ci-apt.sh libdbus-1-dev pkg-config
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install_args: rust java gradle http:android-cmdline-tools
@@ -110,12 +119,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The oldest and the newest macOS GitHub has runners for, and Intel. The oldest supported macOS is
-        # MACOSX_DEPLOYMENT_TARGET in .cargo/config.toml; older ones have no runners. The job names don't contain the
-        # versions, so required checks stay the same when the runners change.
+        # Apple silicon on the newest macOS, Intel on an older one. The oldest supported macOS is
+        # MACOSX_DEPLOYMENT_TARGET in .cargo/config.toml; there are no runners for it. No macos-14: GitHub often has no
+        # runner for it at all, and the job fails without running. The job names don't contain the versions, so
+        # required checks stay the same when the runners change.
         include:
-          - name: oldest
-            os: macos-14
           - name: newest
             os: macos-26
           - name: intel

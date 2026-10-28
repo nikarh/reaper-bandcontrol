@@ -32,8 +32,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install REAPER and a virtual display
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
+          scripts/ci-apt.sh libdbus-1-dev pkg-config xvfb xdotool imagemagick \
             libgtk-3-0t64 libasound2t64 libxml2
           echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper")" >> "$GITHUB_ENV"
       - name: Enable KVM for the emulator

@@ -33,8 +33,7 @@ jobs:
           echo "Newest REAPER: $latest (tested in Check: $tested)" >> "$GITHUB_STEP_SUMMARY"
       - name: Install REAPER and a virtual display
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -yq libdbus-1-dev pkg-config xvfb xdotool imagemagick \
+          scripts/ci-apt.sh libdbus-1-dev pkg-config xvfb xdotool imagemagick \
             libgtk-3-0t64 libasound2t64 libxml2
           echo "REAPER_BIN=$(scripts/install-reaper.sh "$RUNNER_TEMP/reaper" "${{ steps.reaper.outputs.latest }}")" >> "$GITHUB_ENV"
       - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
