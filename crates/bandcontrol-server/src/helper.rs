@@ -412,7 +412,30 @@ async fn connection(
     for client in clients {
         let _ = events.send(TransportEvent::Disconnected(client));
     }
-    result.unwrap_or_else(Ended::Failed)
+    match result {
+        Ok(ended) => ended,
+        // A write to the app fails as soon as it closes the connection, possibly before the reason it sent is read.
+        Err(e) if replaced(&mut reader).await => {
+            tracing::debug!("the BandControl app closed the connection after replacing it: {e}");
+            Ended::Replaced
+        }
+        Err(e) => Ended::Failed(e),
+    }
+}
+
+/// Whether the rest of what the app sent says that another REAPER replaced this one.
+#[cfg(unix)]
+async fn replaced(reader: &mut codec::Reader<tokio::net::unix::OwnedReadHalf>) -> bool {
+    let rest = async {
+        loop {
+            match reader.next::<FromApp>().await {
+                Ok(Some(FromApp::Replaced)) => return true,
+                Ok(Some(_)) => {}
+                Ok(None) | Err(_) => return false,
+            }
+        }
+    };
+    tokio::time::timeout(RETRY, rest).await.unwrap_or(false)
 }
 
 #[cfg(test)]

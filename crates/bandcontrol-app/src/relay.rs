@@ -96,6 +96,16 @@ struct Reaper {
     writer: OwnedWriteHalf,
 }
 
+/// Ends the connection of a replaced REAPER without losing what it was told: only the app's direction is closed and
+/// what it still sends is read, until it has read [`FromApp::Replaced`] and hangs up. Dropping the connection instead
+/// could make its next write fail, or reset the connection, before it reads why, and it would reconnect and replace
+/// the other REAPER in turn.
+async fn hang_up(mut reaper: Reaper) {
+    let _ = tokio::io::AsyncWriteExt::shutdown(&mut reaper.writer).await;
+    let drain = async { while let Ok(Some(_)) = reaper.reader.next::<ToApp>().await {} };
+    let _ = tokio::time::timeout(Duration::from_secs(5), drain).await;
+}
+
 struct Bluetooth {
     commands: mpsc::UnboundedSender<TransportCommand>,
     events: mpsc::UnboundedReceiver<TransportEvent>,
@@ -227,6 +237,9 @@ impl Relay {
         if self.reaper.is_some() {
             tracing::info!("another REAPER connected, it replaces the current one");
             self.send(&FromApp::Replaced).await;
+            if let Some(old) = self.reaper.take() {
+                tokio::spawn(hang_up(old));
+            }
             self.reaper_gone("replaced");
         }
         tracing::info!("REAPER connected");
