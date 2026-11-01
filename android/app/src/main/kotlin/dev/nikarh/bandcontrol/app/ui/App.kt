@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -55,6 +56,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,13 +104,15 @@ fun BandControlApp(
     // Keeps each tab's scroll positions and selections while another tab is shown.
     val tabStates = rememberSaveableStateHolder()
     val groups = remember(state.tracks) { state.groups() }
+    // Before the project is known every tab is shown, locked; then the ones with nothing to show go.
     val tabs =
         Tab.entries.filter {
-            when (it) {
-                Tab.Inputs -> groups.inputs.isNotEmpty()
-                Tab.Foh -> groups.fohOutputs.isNotEmpty()
-                else -> true
-            }
+            !state.loaded ||
+                when (it) {
+                    Tab.Inputs -> groups.inputs.isNotEmpty()
+                    Tab.Foh -> groups.fohOutputs.isNotEmpty()
+                    else -> true
+                }
         }
     val shown = if (tab in tabs || !state.loaded) tab else Tab.Playback
     val output = groups.iemOutputs.find { it.id == selectedOutput } ?: groups.iemOutputs.firstOrNull()
@@ -188,14 +192,18 @@ fun BandControlApp(
             }
         },
         bottomBar = {
-            CompactTabBar(tabs, shown) { tab = it }
+            CompactTabBar(tabs, shown, enabled = state.loaded) { tab = it }
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (!state.loaded) {
-                Text(
-                    if (info == null) "Pick a computer to control" else "Waiting for REAPER…",
-                    color = Palette.gray400,
+                Waiting(
+                    when {
+                        info == null -> "Pick a computer to control"
+                        status is ConnectionStatus.Connected -> "Loading the project…"
+                        else -> "Connecting to ${info.label()}…"
+                    },
+                    busy = info != null,
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
@@ -243,6 +251,23 @@ fun BandControlApp(
     }
 }
 
+/** Instead of the tabs' content while nothing is known about the project yet. */
+@Composable
+private fun Waiting(
+    text: String,
+    busy: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier.padding(24.dp).testTag("waiting"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (busy) CircularProgressIndicator(color = Palette.gray400, strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
+        Text(text, color = Palette.gray400, textAlign = TextAlign.Center)
+    }
+}
+
 /** Above the last known state while not connected. */
 @Composable
 private fun LastKnownBanner() {
@@ -285,18 +310,24 @@ private fun Modifier.grayedOut(on: Boolean): Modifier =
 private fun CompactTabBar(
     tabs: List<Tab>,
     selected: Tab,
+    enabled: Boolean,
     onSelect: (Tab) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().background(Palette.gray800)) {
         HorizontalDivider(color = Palette.gray700)
         Row(Modifier.fillMaxWidth().navigationBarsPadding().height(52.dp)) {
             for (t in tabs) {
-                val color = if (t == selected) Color.White else Palette.gray400
+                val color =
+                    when {
+                        !enabled -> Palette.gray600
+                        t == selected -> Color.White
+                        else -> Palette.gray400
+                    }
                 Column(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .selectable(selected = t == selected, role = Role.Tab) { onSelect(t) }
+                        .selectable(selected = enabled && t == selected, enabled = enabled, role = Role.Tab) { onSelect(t) }
                         .testTag("tab-${t.name.lowercase()}"),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -307,7 +338,7 @@ private fun CompactTabBar(
                         color = color,
                         fontSize = 10.sp,
                         lineHeight = 12.sp,
-                        fontWeight = if (t == selected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = if (enabled && t == selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
             }
