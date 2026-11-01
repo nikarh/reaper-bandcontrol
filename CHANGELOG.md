@@ -3,6 +3,18 @@
 All notable changes to this project are documented in this file. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions follow [Semantic Versioning](https://semver.org).
 
+## [0.2.0] - 2026-11-01
+
+### Features
+
+- **android:** Stay connected in the background, presets, listening and more (#26) by @nikarh in #26
+
+### Fixes
+
+- **macos:** A REAPER replaced in the BandControl app by a second one no longer takes it back (#24) by @nikarh in #24
+- **android:** The welcome, About and QR code screens fit without scrolling (#27) by @nikarh in #27
+- **macos:** The installer no longer shows garbled characters after "Show Pairing QR Code" (#28) by @nikarh in #28
+
 ## [0.1.3] - 2026-10-27
 
 ### Features
@@ -116,6 +128,7 @@ All notable changes to this project are documented in this file. The format is b
 - Plainer wording in the README, website and app description by @nikarh
 - Shorter example project box on the website by @nikarh
 
+[0.2.0]: https://github.com/nikarh/reaper-bandcontrol/compare/v0.1.3..v0.2.0
 [0.1.3]: https://github.com/nikarh/reaper-bandcontrol/compare/v0.1.2..v0.1.3
 [0.1.2]: https://github.com/nikarh/reaper-bandcontrol/compare/v0.1.1..v0.1.2
 

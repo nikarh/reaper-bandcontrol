@@ -1,0 +1,2 @@
+• Stay connected in the background, presets, listening and more (#26)
+• The welcome, About and QR code screens fit without scrolling (#27)
