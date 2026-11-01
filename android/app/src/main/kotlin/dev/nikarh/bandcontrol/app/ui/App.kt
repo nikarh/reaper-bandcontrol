@@ -129,6 +129,12 @@ fun BandControlApp(
     LaunchedEffect(metered, pairing, repairing) { model.meter(if (pairing == null || repairing) emptyList() else metered) }
 
     val info = pairing
+    // Reachable from every screen with a menu, also before pairing.
+    if (about) {
+        AboutScreen(onClose = { about = false })
+        return
+    }
+
     if (computers.isEmpty() || repairing) {
         PairScreen(
             onPair = {
@@ -145,12 +151,8 @@ fun BandControlApp(
                 } else {
                     null
                 },
+            onAbout = { about = true },
         )
-        return
-    }
-
-    if (about) {
-        AboutScreen(onClose = { about = false })
         return
     }
 

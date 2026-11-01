@@ -14,11 +14,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,13 +58,19 @@ fun ShareScreen(
     BackHandler(onBack = onClose)
     FullBrightness()
 
-    Box(Modifier.fillMaxSize().background(Palette.gray900).safeDrawingPadding()) {
+    Scaffold(
+        containerColor = Palette.gray900,
+        topBar = { AppBar("Pair another phone", onBack = onClose, backTag = "share-close") },
+    ) { padding ->
         Column(
-            Modifier.fillMaxSize().padding(24.dp),
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
-            Text("Pair another phone", color = Palette.gray200, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Text(
                 "On the other phone, open BandControl, tap \"Scan QR code\" and point it at this code.",
                 color = Palette.gray400,
@@ -79,9 +88,6 @@ fun ShareScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.testTag("share-code"),
             )
-        }
-        IconButton(onClick = onClose, modifier = Modifier.padding(8.dp).testTag("share-close")) {
-            Icon(Icons.Default.Close, contentDescription = "Close", tint = Palette.gray300)
         }
     }
 }

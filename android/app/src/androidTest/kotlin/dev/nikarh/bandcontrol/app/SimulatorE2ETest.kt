@@ -429,6 +429,7 @@ class SimulatorE2ETest {
         Thread.sleep(1_000)
         compose.onNodeWithText("camera couldn't be started", substring = true).assertDoesNotExist()
         compose.onNodeWithTag("qr-close").performClick()
+        compose.onNodeWithTag("enter-code").performClick()
         compose.onNodeWithTag("pair-code").assertExists()
     }
 
@@ -497,7 +498,10 @@ class SimulatorE2ETest {
                 20_000,
             )
             compose.onNodeWithText("Pair again").performClick()
-            compose.onNodeWithTag("pair-code").assertExists()
+            compose.onNodeWithTag("scan-button").assertExists()
+            // Back to the computer that rejected this phone.
+            compose.onNodeWithTag("back").performClick()
+            compose.onNodeWithTag("scan-button").assertDoesNotExist()
         }
     }
 
@@ -510,6 +514,26 @@ class SimulatorE2ETest {
                 ((c.red * 0.299f + c.green * 0.587f + c.blue * 0.114f) * 255).toInt().toByte()
             }
         return QrDecoder().decode(luminance, image.width, image.height)
+    }
+
+    @Test
+    fun aboutIsReachableBeforePairing() {
+        // A fresh install: nothing paired.
+        scenario.close()
+        context
+            .getSharedPreferences("bandcontrol", 0)
+            .edit()
+            .clear()
+            .commit()
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+        compose.waitUntilAtLeastOneExists(hasTestTag("scan-button"), 10_000)
+        compose.onNodeWithTag("get-extension").assertExists()
+        compose.onNodeWithTag("back").assertDoesNotExist()
+        compose.onNodeWithTag("menu").performClick()
+        compose.onNodeWithTag("about").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("about-qr"), 5_000)
+        compose.onNodeWithTag("about-close").performClick()
+        compose.onNodeWithTag("scan-button").assertExists()
     }
 
     @Test
