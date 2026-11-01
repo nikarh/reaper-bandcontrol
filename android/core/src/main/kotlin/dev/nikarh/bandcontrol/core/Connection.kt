@@ -50,6 +50,30 @@ sealed interface ConnectionStatus {
     }
 }
 
+/** A session at least this long was working; losing it retries without waiting. */
+internal const val STABLE_SESSION_MS = 5_000L
+
+/**
+ * How long to wait before connecting again after [failures] failed attempts in a row. [sessionMs] is how long the
+ * session that just ended was authenticated, null when the attempt failed before that.
+ */
+internal fun retryDelay(
+    failures: Int,
+    authRejected: Boolean,
+    sessionMs: Long?,
+    retryDelayMs: Long,
+    maxRetryDelayMs: Long,
+): Long =
+    when {
+        authRejected -> maxRetryDelayMs
+
+        // A session that worked for a while and dropped (out of range for a moment, a radio hiccup) is most likely
+        // back right away: try again at once instead of after a pause.
+        sessionMs != null && sessionMs >= STABLE_SESSION_MS -> 0
+
+        else -> minOf(retryDelayMs shl minOf(failures, 8), maxRetryDelayMs)
+    }
+
 /**
  * Keeps a session to the server alive: connects, authenticates, reconnects, and folds messages into [state].
  * Meters of the tracks passed to [meter] arrive in [meters], also across reconnects.
@@ -121,11 +145,13 @@ class Connection(
         while (coroutineContext.isActive) {
             mutableStatus.value = ConnectionStatus.Connecting
             var connected = false
+            var connectedAt = 0L
             val status =
                 try {
                     connector.connect().use { link ->
                         session(link) {
                             connected = true
+                            connectedAt = clock()
                             wasConnected = true
                             failures = 0
                         }
@@ -141,8 +167,10 @@ class Connection(
                 }
             mutableStatus.value = status
             if (status.problem == Problem.DisconnectedByComputer) return
-            val wait = if (status.authRejected) maxRetryDelayMs else minOf(retryDelayMs shl minOf(failures, 8), maxRetryDelayMs)
-            failures++
+            val session = if (connected) clock() - connectedAt else null
+            val wait = retryDelay(failures, status.authRejected, session, retryDelayMs, maxRetryDelayMs)
+            // The immediate retry after a working session is extra, the backoff continues from the start after it.
+            if (wait > 0) failures++
             delay(wait)
         }
     }
