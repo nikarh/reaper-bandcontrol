@@ -10,13 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -35,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,24 +74,15 @@ fun AboutScreen(onClose: () -> Unit) {
         containerColor = Palette.gray900,
         topBar = { AppBar("About BandControl", onBack = onClose, backTag = "about-close") },
     ) { padding ->
-        Column(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        ) {
-            Text("Get the app", color = Palette.gray200, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        QrPage(Modifier.padding(padding)) { qr ->
             Text(
-                "Scan with the camera of another phone to download the latest app from GitHub.",
+                "Scan with another phone to download the app.",
                 color = Palette.gray400,
                 textAlign = TextAlign.Center,
             )
-            QrCode(matrix, Modifier.testTag("about-qr"))
+            QrCode(matrix, qr.testTag("about-qr"))
             Text(
-                "Android 9 or newer. Android asks to allow installing apps from the browser the first time.",
+                "Android 9 or newer",
                 color = Palette.gray500,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
