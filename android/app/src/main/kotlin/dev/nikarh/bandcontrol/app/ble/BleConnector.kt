@@ -164,10 +164,17 @@ private class BleLink private constructor(
             }
         }
 
-    // The settings based overload only exists on API 37+.
+    // The settings based overload only exists on API 37+. The 2M PHY, where both sides have it, halves the time the
+    // first full state takes.
     @Suppress("DEPRECATION")
     private val gatt: BluetoothGatt =
-        device.connectGatt(context, false, callback, BluetoothDevice.TRANSPORT_LE)
+        device.connectGatt(
+            context,
+            false,
+            callback,
+            BluetoothDevice.TRANSPORT_LE,
+            BluetoothDevice.PHY_LE_1M_MASK or BluetoothDevice.PHY_LE_2M_MASK,
+        )
             ?: throw LinkException(Problem.Unreachable, "connectGatt returned null")
 
     override val maxPacket get() = mtu - 3
@@ -196,8 +203,9 @@ private class BleLink private constructor(
         } catch (_: TimeoutCancellationException) {
             throw IOException("connection timed out")
         }
-        op("MTU request") { gatt.requestMtu(Gatt.MAX_MTU) }
+        // A short connection interval first, so the MTU exchange and service discovery are quick too.
         gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+        op("MTU request") { gatt.requestMtu(Gatt.MAX_MTU) }
         if (op("service discovery") { gatt.discoverServices() } != BluetoothGatt.GATT_SUCCESS) {
             throw IOException("service discovery failed")
         }

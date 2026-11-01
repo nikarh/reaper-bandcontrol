@@ -9,20 +9,36 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.nikarh.bandcontrol.app.ble.BleConnector
 import dev.nikarh.bandcontrol.app.ble.NearbyScanner
+import dev.nikarh.bandcontrol.app.ui.MixActions
 import dev.nikarh.bandcontrol.core.ComputerChoice
 import dev.nikarh.bandcontrol.core.Connection
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.chooseComputer
 import dev.nikarh.bandcontrol.core.link.Connector
+import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.link.TcpConnector
 import dev.nikarh.bandcontrol.core.newlyNearby
 import dev.nikarh.bandcontrol.core.protocol.Crypto
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.Listening
+import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.PeakHolds
+import dev.nikarh.bandcontrol.core.state.Presets
+import dev.nikarh.bandcontrol.core.state.RegionView
+import dev.nikarh.bandcontrol.core.state.commandsFor
+import dev.nikarh.bandcontrol.core.state.levelsOf
+import dev.nikarh.bandcontrol.core.state.listenCommands
+import dev.nikarh.bandcontrol.core.state.mirror
+import dev.nikarh.bandcontrol.core.state.mix
+import dev.nikarh.bandcontrol.core.state.snapshotOf
+import dev.nikarh.bandcontrol.core.state.stopped
+import dev.nikarh.bandcontrol.core.state.toSnapshot
 import dev.nikarh.bandcontrol.proto.ClientMessage
+import dev.nikarh.bandcontrol.proto.Track
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,22 +46,28 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 
 private val PairingInfo.id: String get() = secret.toCode()
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class AppModel(
     app: Application,
-) : AndroidViewModel(app) {
+) : AndroidViewModel(app),
+    MixActions {
     private val prefs = app.getSharedPreferences("bandcontrol", Context.MODE_PRIVATE)
     private val scanner = NearbyScanner(app)
 
@@ -83,7 +105,17 @@ class AppModel(
     private var settled = false
     private var watching: Job? = null
 
+    /** Connecting is allowed: the app is visible, or was until less than [BACKGROUND_MINUTES] ago. */
     private var started = false
+
+    /** The app is on screen. */
+    private var visible = false
+
+    /** Ends the connection after the app spent [BACKGROUND_MINUTES] in the background. */
+    private var background: Job? = null
+
+    /** [ConnectionService] runs. */
+    private var keepingAlive = false
     private val mutablePermitted = MutableStateFlow(false)
     val permissionsGranted: StateFlow<Boolean> = mutablePermitted.asStateFlow()
 
@@ -94,16 +126,46 @@ class AppModel(
             .flatMapLatest { it?.status ?: flowOf(ConnectionStatus.Idle) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConnectionStatus.Idle)
 
-    val state: StateFlow<BandState> =
+    /** The state as the computer sends it in this connection, empty until it arrives. */
+    private val live: StateFlow<BandState> =
         connection
             .flatMapLatest { it?.state ?: flowOf(BandState()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, BandState())
+
+    /** The computer's state as last seen, from this or an earlier connection (stored), empty if never. */
+    private val lastKnown = MutableStateFlow(BandState())
+
+    /** The live state, or the last known one while (re)connecting; see [stale]. */
+    val state: StateFlow<BandState> =
+        combine(live, lastKnown) { now, last -> if (now.loaded) now else last.stopped(monotonicMs()) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, BandState())
+
+    /** [state] is the last known one, not live: shown read-only. */
+    val stale: StateFlow<Boolean> =
+        combine(status, live) { status, now -> status !is ConnectionStatus.Connected || !now.loaded }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     /** Latest peak per metered track in dBFS, null for silence. */
     val meters: StateFlow<Map<Int, Float?>> =
         connection
             .flatMapLatest { it?.meters ?: flowOf(emptyMap()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private val mutableRegionView =
+        MutableStateFlow(prefs.getString(KEY_REGION_VIEW, null)?.let { v -> RegionView.entries.find { it.name == v } })
+
+    /** How the Playback tab lists songs, null until the user picks (then it depends on the project). */
+    val regionView: StateFlow<RegionView?> = mutableRegionView.asStateFlow()
+
+    fun setRegionView(view: RegionView) {
+        mutableRegionView.value = view
+        prefs.edit { putString(KEY_REGION_VIEW, view.name) }
+    }
+
+    private val mutablePresets = MutableStateFlow(Presets())
+
+    /** The mix presets of the computer in use, kept on this phone. */
+    val presets: StateFlow<Presets> = mutablePresets.asStateFlow()
 
     private val mutablePeaks = MutableStateFlow(PeakHolds())
     val peaks: StateFlow<PeakHolds> = mutablePeaks.asStateFlow()
@@ -121,15 +183,33 @@ class AppModel(
 
                     else -> Unit
                 }
+                keepAlive()
             }.launchIn(viewModelScope)
+        KeepAlive.disconnect = ::disconnect
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
+        live.onEach { if (it.loaded) lastKnown.value = it }.launchIn(viewModelScope)
+        combine(live, stale, mutablePresets) { _, _, _ -> }.onEach { syncListening() }.launchIn(viewModelScope)
+        // Stored once the project settles (not on every fader step), and when the app leaves the screen.
+        live
+            .filter { it.loaded }
+            .debounce(SNAPSHOT_DEBOUNCE_MS)
+            .onEach { storeSnapshot() }
+            .launchIn(viewModelScope)
+        mutablePairing
+            .map { it?.id }
+            .distinctUntilChanged()
+            .onEach { id ->
+                lastKnown.value = id?.let { snapshotOf(prefs.getString(snapshotKey(it), null)) } ?: BandState()
+                mutablePresets.value = Presets.fromJson(id?.let { prefs.getString(presetsKey(it), null) })
+            }.launchIn(viewModelScope)
         decide()
     }
 
     /** The tracks currently shown with meters, kept across reconnects. */
     fun meter(tracks: List<Int>) {
         meterTracks = tracks
-        connection.value?.meter(tracks)
+        // Nobody looks at meters in the background: they would only cost Bluetooth bandwidth and battery.
+        if (visible) connection.value?.meter(tracks)
     }
 
     fun resetPeaks(tracks: Collection<Int>) = mutablePeaks.update { it.reset(tracks) }
@@ -156,6 +236,10 @@ class AppModel(
 
     fun forget(info: PairingInfo) {
         if (selected == info.id) selected = null
+        prefs.edit {
+            remove(snapshotKey(info.id))
+            remove(presetsKey(info.id))
+        }
         save(mutableComputers.value.filter { it.id != info.id })
         decide()
     }
@@ -168,22 +252,185 @@ class AppModel(
         save(mutableComputers.value.map { if (it.id == info.id) renamed else it }, rewatch = false)
     }
 
-    /** Called when the UI becomes visible (and Bluetooth permissions are granted) or hidden. */
+    /**
+     * Called when the UI becomes visible (and Bluetooth permissions are granted) or hidden. A working connection
+     * outlives the UI by [BACKGROUND_MINUTES], so a look at a message or the locked screen doesn't end it.
+     */
     fun setActive(
         active: Boolean,
         permissionsGranted: Boolean,
     ) {
-        if (active == started && permissionsGranted == mutablePermitted.value) return
-        started = active
+        val permissionsChanged = permissionsGranted != mutablePermitted.value
+        if (active == visible && !permissionsChanged) return
         mutablePermitted.value = permissionsGranted
+        visible = active
+        if (!active) storeSnapshot()
         watch()
+        background?.cancel()
+        background = null
+        val current = connection.value
+        when {
+            active && started && !permissionsChanged -> {
+                current?.meter(meterTracks)
+                keepAlive()
+            }
+
+            active -> {
+                started = true
+                restart()
+            }
+
+            current != null && keepingAlive && !permissionsChanged -> {
+                current.meter(emptyList())
+                background =
+                    viewModelScope.launch {
+                        delay(BACKGROUND_MINUTES * 60_000L)
+                        disconnect()
+                    }
+            }
+
+            else -> {
+                started = false
+                restart()
+            }
+        }
+    }
+
+    /** Saves the current levels of [output] as preset [name] (replacing one of that name). */
+    override fun save(
+        output: Track,
+        name: String,
+    ) {
+        val levels = state.value.levelsOf(output)
+        updatePresets { it.with(output.name, it.of(output.name).save(name, levels)) }
+    }
+
+    /** Applies preset [name] (or [MixPresets.UNSAVED]) to [output]; false when not connected. */
+    override fun load(
+        output: Track,
+        name: String,
+    ): Boolean {
+        if (stale.value) return false
+        val state = state.value
+        val (next, levels) = presets.value.of(output.name).load(name, state.levelsOf(output)) ?: return false
+        if (!state.commandsFor(output, levels).all(::send)) return false
+        updatePresets { it.with(output.name, next) }
+        return true
+    }
+
+    override fun rename(
+        output: Track,
+        from: String,
+        to: String,
+    ) = updatePresets { it.with(output.name, it.of(output.name).rename(from, to)) }
+
+    override fun delete(
+        output: Track,
+        name: String,
+    ) = updatePresets { it.with(output.name, it.of(output.name).delete(name)) }
+
+    private fun updatePresets(change: (Presets) -> Presets) {
+        val id = mutablePairing.value?.id ?: return
+        val presets = mutablePresets.updateAndGet(change)
+        prefs.edit { putString(presetsKey(id), presets.toJson()) }
+    }
+
+    /** Connects again after the computer disconnected this phone, or after [disconnect]. */
+    fun reconnect() {
+        if (visible) started = true
         restart()
     }
 
-    /** Connects again after the computer disconnected this phone. */
-    fun reconnect() = restart()
+    /** Ends the connection until the app is opened again or [reconnect]. */
+    fun disconnect() {
+        background?.cancel()
+        background = null
+        started = false
+        restart()
+    }
 
-    fun send(message: ClientMessage): Boolean = connection.value?.send(message) ?: false
+    /** Runs [ConnectionService] while a connection is wanted, once it has worked (it can only start while visible). */
+    private fun keepAlive() {
+        val app = getApplication<Application>()
+        val status = status.value
+        val wanted = connection.value != null && !(status is ConnectionStatus.Disconnected && status.problem in FINAL_PROBLEMS)
+        val name = mutablePairing.value?.name?.ifEmpty { null } ?: "REAPER"
+        val text = if (status is ConnectionStatus.Connected) "Connected to ${status.serverName}" else "Reconnecting to $name…"
+        when {
+            !wanted && keepingAlive -> {
+                keepingAlive = false
+                ConnectionService.stop(app)
+            }
+
+            wanted && keepingAlive -> {
+                ConnectionService.update(app, text)
+            }
+
+            wanted && visible && status is ConnectionStatus.Connected -> {
+                keepingAlive = true
+                ConnectionService.start(app, text)
+            }
+        }
+    }
+
+    fun send(message: ClientMessage): Boolean {
+        val sent = connection.value?.send(message) ?: false
+        // While listening, a change to the mix listened to reaches the listener's own ears right away, not only once
+        // REAPER confirmed it.
+        val listening = presets.value.listening
+        if (sent && listening != null) state.value.mirror(message, listening)?.let { sendForListening(it, catchUp = false) }
+        return sent
+    }
+
+    /** Marks [mix] as the phone owner's own mix, null for none. */
+    override fun setMine(mix: String?) = updatePresets { it.copy(mine = mix) }
+
+    /** Hear [to] in the own mix, to help with it. Its own levels are kept to go back to with [stopListening]. */
+    override fun listen(to: Track): Boolean {
+        val state = state.value
+        val mine = presets.value.mine?.let(state::mix) ?: return false
+        if (stale.value || mine.id == to.id) return false
+        val listening = Listening(mine = mine.name, to = to.name, before = state.levelsOf(mine, withVolume = false))
+        updatePresets { it.copy(listening = listening) }
+        syncListening()
+        return true
+    }
+
+    /** Back to the own mix as it was before [listen]. */
+    override fun stopListening(): Boolean {
+        val listening = presets.value.listening ?: return true
+        if (stale.value) return false
+        val state = state.value
+        val mine = state.mix(listening.mine)
+        if (mine != null && !state.commandsFor(mine, listening.before).all(::send)) return false
+        updatePresets { it.copy(listening = null) }
+        return true
+    }
+
+    /** When a receive of the own mix was last set while listening, so catching up doesn't repeat or undo it. */
+    private val listenSent = mutableMapOf<Pair<Int, Int>, Long>()
+
+    /**
+     * Sends a change of the own mix while listening. A [catchUp] (from the state REAPER confirmed) waits for the
+     * receive's last change to come back first: during a drag that state is behind the mirrored steps.
+     */
+    private fun sendForListening(
+        message: ClientMessage,
+        catchUp: Boolean,
+    ) {
+        val set = message.set_receive ?: return
+        val key = set.track to set.index
+        val now = monotonicMs()
+        if (catchUp && listenSent[key]?.let { now - it < LISTEN_RESEND_MS } == true) return
+        if (connection.value?.send(message) == true) listenSent[key] = now
+    }
+
+    /** Makes the own mix follow the mix listened to, also when it changes on another phone or in REAPER. */
+    private fun syncListening() {
+        val listening = presets.value.listening ?: return
+        if (stale.value) return
+        state.value.listenCommands(listening)?.forEach { sendForListening(it, catchUp = true) }
+    }
 
     private fun decide() {
         val all = mutableComputers.value
@@ -201,7 +448,7 @@ class AppModel(
         watching?.cancel()
         watching = null
         val all = mutableComputers.value
-        if (!started || all.size < 2) return
+        if (!visible || all.size < 2) return
         watching =
             viewModelScope.launch {
                 if (!settled) {
@@ -231,12 +478,13 @@ class AppModel(
         connection.value =
             if (started && connector != null) {
                 Connection(viewModelScope, connector, info.secret, Build.MODEL).also {
-                    it.meter(meterTracks)
+                    it.meter(if (visible) meterTracks else emptyList())
                     it.start()
                 }
             } else {
                 null
             }
+        keepAlive()
     }
 
     private fun connector(info: PairingInfo): Connector? {
@@ -274,18 +522,45 @@ class AppModel(
         }
     }
 
-    override fun onCleared() {
-        connection.value?.stop()
+    private fun storeSnapshot() {
+        val id = mutablePairing.value?.id ?: return
+        val state = lastKnown.value
+        if (state.loaded) prefs.edit { putString(snapshotKey(id), state.stopped(monotonicMs()).toSnapshot()) }
     }
 
-    private companion object {
-        const val TAG = "BandControl"
-        const val KEY_COMPUTERS = "computers"
-        const val KEY_SECRET = "secret"
-        const val KEY_NAME = "name"
-        const val KEY_TCP = "tcp"
+    override fun onCleared() {
+        storeSnapshot()
+        connection.value?.stop()
+        if (KeepAlive.disconnect == ::disconnect) KeepAlive.disconnect = null
+        if (keepingAlive) ConnectionService.stop(getApplication())
+    }
+
+    companion object {
+        /** How long a working connection stays up while the app is in the background. */
+        const val BACKGROUND_MINUTES = 10
+
+        /** Nothing to keep alive: the connection doesn't retry, or not without the user. */
+        private val FINAL_PROBLEMS = setOf(Problem.DisconnectedByComputer, Problem.PairingRejected, Problem.Incompatible)
+
+        private const val TAG = "BandControl"
+        private const val KEY_COMPUTERS = "computers"
+        private const val KEY_SECRET = "secret"
+        private const val KEY_NAME = "name"
+        private const val KEY_TCP = "tcp"
+        private const val KEY_REGION_VIEW = "regionView"
 
         /** How long the first scan may take to find every computer in range before one is picked. */
-        const val SETTLE_MS = 3_000L
+        private const val SETTLE_MS = 3_000L
+
+        private const val SNAPSHOT_DEBOUNCE_MS = 2_000L
+
+        /** A listening command not confirmed within this time is sent again. */
+        private const val LISTEN_RESEND_MS = 1_000L
+
+        private fun snapshotKey(id: String) = "state.$id"
+
+        private fun presetsKey(id: String) = "presets.$id"
+
+        private fun monotonicMs() = System.nanoTime() / 1_000_000
     }
 }

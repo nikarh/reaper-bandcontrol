@@ -29,6 +29,9 @@ use crate::transport::{CommandReceiver, EventSender, LocalId, TransportCommand, 
 
 /// Packets for a device are kept this long while its notification socket is not acquired yet.
 const PENDING_TTL: Duration = Duration::from_secs(3);
+/// Fast enough for a phone to find the computer within a scan window or two, the range Apple recommends for quick
+/// discovery (152.5 ms is its upper end).
+const ADVERTISING_INTERVAL: (Duration, Duration) = (Duration::from_millis(100), Duration::from_millis(150));
 
 fn id_of(address: Address) -> LocalId {
     address.0.iter().fold(0, |acc, b| (acc << 8) | LocalId::from(*b))
@@ -86,15 +89,27 @@ pub async fn start(config: BleConfig, events: EventSender, commands: CommandRece
         ..Default::default()
     };
     let app_handle = adapter.serve_gatt_application(app).await?;
-    let adv_handle = adapter
-        .advertise(Advertisement {
-            advertisement_type: Type::Peripheral,
-            service_uuids: BTreeSet::from([config.service_uuid]),
-            discoverable: Some(true),
-            local_name: Some(config.advertised_name.clone()),
-            ..Default::default()
-        })
-        .await?;
+    let advertisement = Advertisement {
+        advertisement_type: Type::Peripheral,
+        service_uuids: BTreeSet::from([config.service_uuid]),
+        discoverable: Some(true),
+        local_name: Some(config.advertised_name.clone()),
+        ..Default::default()
+    };
+    // The kernel's default interval is 1.28 s, so a phone's scan could wait that long for an advertisement on every
+    // (re)connect. Controllers that can't set the interval reject the whole advertisement: then the default it is.
+    let fast = Advertisement {
+        min_interval: Some(ADVERTISING_INTERVAL.0),
+        max_interval: Some(ADVERTISING_INTERVAL.1),
+        ..advertisement.clone()
+    };
+    let adv_handle = match adapter.advertise(fast).await {
+        Ok(handle) => handle,
+        Err(error) => {
+            tracing::info!(%error, "BLE advertising interval not supported, using the default");
+            adapter.advertise(advertisement).await?
+        }
+    };
     tracing::info!(
         adapter = adapter.name(),
         service = %config.service_uuid,

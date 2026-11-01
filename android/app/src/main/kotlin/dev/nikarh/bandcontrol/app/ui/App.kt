@@ -18,11 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Speaker
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -41,11 +43,20 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +65,7 @@ import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
+import dev.nikarh.bandcontrol.core.state.defaultRegionView
 import dev.nikarh.bandcontrol.core.state.groups
 import dev.nikarh.bandcontrol.core.state.receivesOf
 
@@ -79,6 +91,9 @@ fun BandControlApp(
     val notice by model.notice.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val state by model.state.collectAsStateWithLifecycle()
+    val stale by model.stale.collectAsStateWithLifecycle()
+    val regionView by model.regionView.collectAsStateWithLifecycle()
+    val presets by model.presets.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -92,13 +107,15 @@ fun BandControlApp(
     // Keeps each tab's scroll positions and selections while another tab is shown.
     val tabStates = rememberSaveableStateHolder()
     val groups = remember(state.tracks) { state.groups() }
+    // Before the project is known every tab is shown, locked; then the ones with nothing to show go.
     val tabs =
         Tab.entries.filter {
-            when (it) {
-                Tab.Inputs -> groups.inputs.isNotEmpty()
-                Tab.Foh -> groups.fohOutputs.isNotEmpty()
-                else -> true
-            }
+            !state.loaded ||
+                when (it) {
+                    Tab.Inputs -> groups.inputs.isNotEmpty()
+                    Tab.Foh -> groups.fohOutputs.isNotEmpty()
+                    else -> true
+                }
         }
     val shown = if (tab in tabs || !state.loaded) tab else Tab.Playback
     val output = groups.iemOutputs.find { it.id == selectedOutput } ?: groups.iemOutputs.firstOrNull()
@@ -112,6 +129,12 @@ fun BandControlApp(
     LaunchedEffect(metered, pairing, repairing) { model.meter(if (pairing == null || repairing) emptyList() else metered) }
 
     val info = pairing
+    // Reachable from every screen with a menu, also before pairing.
+    if (about) {
+        AboutScreen(onClose = { about = false })
+        return
+    }
+
     if (computers.isEmpty() || repairing) {
         PairScreen(
             onPair = {
@@ -128,12 +151,8 @@ fun BandControlApp(
                 } else {
                     null
                 },
+            onAbout = { about = true },
         )
-        return
-    }
-
-    if (about) {
-        AboutScreen(onClose = { about = false })
         return
     }
 
@@ -148,7 +167,7 @@ fun BandControlApp(
         ComputerChooser(choices, onPick = model::use, onDismiss = { chooserDismissed = true })
     }
 
-    val connected = status is ConnectionStatus.Connected
+    val connected = !stale
     Scaffold(
         containerColor = Palette.gray900,
         topBar = {
@@ -174,53 +193,69 @@ fun BandControlApp(
                     onForget = model::forget,
                 )
                 notice?.let { NearbyNotice(it, onSwitch = { model.use(it) }, onDismiss = model::dismissNotice) }
+                if (stale && state.loaded) LastKnownBanner()
             }
         },
         bottomBar = {
-            CompactTabBar(tabs, shown) { tab = it }
+            CompactTabBar(tabs, shown, enabled = state.loaded) { tab = it }
         },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (!state.loaded) {
-                Text(
-                    if (info == null) "Pick a computer to control" else "Waiting for REAPER…",
-                    color = Palette.gray400,
+                Waiting(
+                    when {
+                        info == null -> "Pick a computer to control"
+                        status is ConnectionStatus.Connected -> "Loading the project…"
+                        else -> "Connecting to ${info.label()}…"
+                    },
+                    busy = info != null,
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
-                tabStates.SaveableStateProvider(shown.name) {
-                    when (shown) {
-                        Tab.Playback -> {
-                            ControlScreen(state, enabled = connected, send = model::send)
-                        }
+                // Still scrolls and switches tabs: the setlist and mixes stay readable while reconnecting.
+                Box(Modifier.fillMaxSize().grayedOut(stale)) {
+                    tabStates.SaveableStateProvider(shown.name) {
+                        when (shown) {
+                            Tab.Playback -> {
+                                ControlScreen(
+                                    state,
+                                    regionView = regionView ?: state.defaultRegionView(),
+                                    onRegionView = model::setRegionView,
+                                    enabled = connected,
+                                    send = model::send,
+                                )
+                            }
 
-                        Tab.Iem -> {
-                            MixScreen(
-                                state = state,
-                                outputs = groups.iemOutputs,
-                                selected = output,
-                                onSelect = { selectedOutput = it },
-                                meters = model.meters,
-                                enabled = connected,
-                                send = model::send,
-                            )
-                        }
+                            Tab.Iem -> {
+                                MixScreen(
+                                    state = state,
+                                    outputs = groups.iemOutputs,
+                                    selected = output,
+                                    onSelect = { selectedOutput = it },
+                                    meters = model.meters,
+                                    presets = presets,
+                                    actions = model,
+                                    enabled = connected,
+                                    send = model::send,
+                                )
+                            }
 
-                        Tab.Inputs -> {
-                            LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
-                        }
+                            Tab.Inputs -> {
+                                LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
+                            }
 
-                        Tab.Foh -> {
-                            LevelsScreen(
-                                "FOH outputs",
-                                groups.fohOutputs,
-                                model.meters,
-                                model.peaks,
-                                model::resetPeaks,
-                                connected,
-                                model::send,
-                                hint = "To the house desk or the PA",
-                            )
+                            Tab.Foh -> {
+                                LevelsScreen(
+                                    "FOH outputs",
+                                    groups.fohOutputs,
+                                    model.meters,
+                                    model.peaks,
+                                    model::resetPeaks,
+                                    connected,
+                                    model::send,
+                                    hint = "To the house desk or the PA",
+                                )
+                            }
                         }
                     }
                 }
@@ -229,23 +264,83 @@ fun BandControlApp(
     }
 }
 
+/** Instead of the tabs' content while nothing is known about the project yet. */
+@Composable
+private fun Waiting(
+    text: String,
+    busy: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier.padding(24.dp).testTag("waiting"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (busy) CircularProgressIndicator(color = Palette.gray400, strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
+        Text(text, color = Palette.gray400, textAlign = TextAlign.Center)
+    }
+}
+
+/** Above the last known state while not connected. */
+@Composable
+private fun LastKnownBanner() {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Palette.gray700)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .testTag("last-known"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Default.History, contentDescription = null, tint = Palette.gray300, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "Last known state. Controls are off until connected.",
+            color = Palette.gray200,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+        )
+    }
+}
+
+/** Faded and without color: content that is only a reminder of how things were. */
+private fun Modifier.grayedOut(on: Boolean): Modifier =
+    if (!on) {
+        this
+    } else {
+        val paint = Paint().apply { colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
+        graphicsLayer { alpha = 0.6f }.drawWithContent {
+            drawIntoCanvas { canvas ->
+                canvas.saveLayer(Rect(Offset.Zero, size), paint)
+                drawContent()
+                canvas.restore()
+            }
+        }
+    }
+
 /** A low tab bar (icon over a small label, no indicator pill) instead of Material's 80 dp one. */
 @Composable
 private fun CompactTabBar(
     tabs: List<Tab>,
     selected: Tab,
+    enabled: Boolean,
     onSelect: (Tab) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().background(Palette.gray800)) {
         HorizontalDivider(color = Palette.gray700)
         Row(Modifier.fillMaxWidth().navigationBarsPadding().height(52.dp)) {
             for (t in tabs) {
-                val color = if (t == selected) Color.White else Palette.gray400
+                val color =
+                    when {
+                        !enabled -> Palette.gray600
+                        t == selected -> Color.White
+                        else -> Palette.gray400
+                    }
                 Column(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .selectable(selected = t == selected, role = Role.Tab) { onSelect(t) }
+                        .selectable(selected = enabled && t == selected, enabled = enabled, role = Role.Tab) { onSelect(t) }
                         .testTag("tab-${t.name.lowercase()}"),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -256,7 +351,7 @@ private fun CompactTabBar(
                         color = color,
                         fontSize = 10.sp,
                         lineHeight = 12.sp,
-                        fontWeight = if (t == selected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontWeight = if (enabled && t == selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
             }
@@ -358,9 +453,9 @@ private fun StatusBar(
                 TextButton(onClick = onRepair) { Text("Pair again", color = Palette.blue500) }
             }
 
-            problem == Problem.DisconnectedByComputer -> {
+            problem == Problem.DisconnectedByComputer || (current != null && status == ConnectionStatus.Idle) -> {
                 TextButton(onClick = onReconnect, modifier = Modifier.testTag("reconnect")) {
-                    Text("Reconnect", color = Palette.blue500)
+                    Text(if (problem == null) "Connect" else "Reconnect", color = Palette.blue500)
                 }
             }
         }

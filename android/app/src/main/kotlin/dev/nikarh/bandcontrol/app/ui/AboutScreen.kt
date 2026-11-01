@@ -20,11 +20,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -40,6 +42,14 @@ import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import dev.nikarh.bandcontrol.app.BuildConfig
 import dev.nikarh.bandcontrol.core.protocol.QrMatrix
+
+/** The project's website (GitHub Pages of the repository): the manual and the REAPER extension's downloads. */
+val WEBSITE: String =
+    BuildConfig.REPOSITORY
+        .removeSuffix("/")
+        .split('/')
+        .takeLast(2)
+        .let { (owner, repo) -> "https://$owner.github.io/$repo/" }
 
 /** Always the newest release: GitHub redirects this to the asset of the latest one. */
 val LATEST_APK = "${BuildConfig.REPOSITORY}/releases/latest/download/bandcontrol.apk"
@@ -64,13 +74,20 @@ fun AboutScreen(onClose: () -> Unit) {
         context.startActivity(Intent.createChooser(send, "Share the BandControl app"))
     }
 
-    Box(Modifier.fillMaxSize().background(Palette.gray900).safeDrawingPadding()) {
+    Scaffold(
+        containerColor = Palette.gray900,
+        topBar = { AppBar("About BandControl", onBack = onClose, backTag = "about-close") },
+    ) { padding ->
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
-            Text("Get BandControl", color = Palette.gray200, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("Get the app", color = Palette.gray200, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text(
                 "Scan with the camera of another phone to download the latest app from GitHub.",
                 color = Palette.gray400,
@@ -87,15 +104,13 @@ fun AboutScreen(onClose: () -> Unit) {
                 LinkButton("Share link", Icons.Default.Share, Modifier.testTag("about-share"), share)
                 LinkButton("GitHub", Icons.Default.Code, Modifier.testTag("about-github")) { open(BuildConfig.REPOSITORY) }
             }
+            LinkButton("Website and REAPER extension", Icons.Default.Language, Modifier.testTag("about-website")) { open(WEBSITE) }
             Text(
                 "BandControl ${BuildConfig.VERSION_NAME} · free software (MIT)",
                 color = Palette.gray500,
                 fontSize = 12.sp,
                 modifier = Modifier.testTag("about-version"),
             )
-        }
-        IconButton(onClick = onClose, modifier = Modifier.padding(8.dp).testTag("about-close")) {
-            Icon(Icons.Default.Close, contentDescription = "Close", tint = Palette.gray300)
         }
     }
 }

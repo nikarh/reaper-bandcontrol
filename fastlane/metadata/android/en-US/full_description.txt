@@ -3,7 +3,7 @@ BandControl puts the band's REAPER on every band member's phone: playback and th
 The app controls REAPER through the free BandControl extension for REAPER 5.93 or newer on Windows, macOS or Linux: https://bandcontrol.arhipov.net/
 
 Playback and setlist
-Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
+Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions) are listed with their progress as they are in the project (Timeline) or in the band's order (Setlist); tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the list.
 
 Setlist order
 Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, and every phone sees the change.
@@ -17,8 +17,11 @@ The same meters and faders for the front of house outputs: the feeds to the hous
 Personal in-ear mixes
 Every band member picks their own mix and sets the level and mute of each source: click, backtracks, other instruments, vocals, and the mix's overall level. Drag a fader sideways to move it; tapping or scrolling the list leaves it alone. Changes made in REAPER show up on the phones.
 
+Mix presets and listening to a bandmate's mix
+Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone. Helping a bandmate with their mix? Open it and tap Listen: your in-ears play their mix, and follow every change to it, until you tap Back to my mix. Your own balance comes back as it was, and theirs keeps the changes.
+
 Pairing by QR code
 REAPER shows a QR code; scan it with the app or type the code. A paired phone shows the same QR code to the next one, so the rest of the band can pair from it. A phone can be paired with several computers, like a rehearsal laptop and a stage PC: the app connects to the one in range and asks when both are.
 
 Connectivity
-Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten minutes in the background. While it connects, the app shows the setlist and mixes as it last saw them, grayed out, so you can look around before the computer answers.

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -60,7 +62,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -73,13 +78,14 @@ import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.NavTarget
 import dev.nikarh.bandcontrol.core.state.OrderedRegion
 import dev.nikarh.bandcontrol.core.state.PREVIOUS_GRACE_MS
+import dev.nikarh.bandcontrol.core.state.RegionView
 import dev.nikarh.bandcontrol.core.state.currentMarker
 import dev.nikarh.bandcontrol.core.state.currentRegion
-import dev.nikarh.bandcontrol.core.state.enabledRegions
 import dev.nikarh.bandcontrol.core.state.markersIn
 import dev.nikarh.bandcontrol.core.state.moveRegion
 import dev.nikarh.bandcontrol.core.state.nextTarget
 import dev.nikarh.bandcontrol.core.state.previousTarget
+import dev.nikarh.bandcontrol.core.state.regionsIn
 import dev.nikarh.bandcontrol.core.state.sortedRegions
 import dev.nikarh.bandcontrol.core.state.toOrder
 import dev.nikarh.bandcontrol.core.state.toggleRegion
@@ -124,6 +130,8 @@ private fun rememberPosition(state: BandState): Long {
 @Composable
 fun ControlScreen(
     state: BandState,
+    regionView: RegionView,
+    onRegionView: (RegionView) -> Unit,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
@@ -163,16 +171,22 @@ fun ControlScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TransportRow(state, enabled, send)
-            NavigationRow(view, position, enabled, goto)
+            NavigationRow(view, regionView, position, enabled, goto)
         }
         Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (editing) "Edit setlist" else "Move to Region",
-                color = Color.White,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { editing = !editing }, modifier = Modifier.testTag("edit-regions")) {
+            if (editing) {
+                Text("Edit setlist", color = Color.White, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            } else {
+                RegionViewSwitch(regionView, onRegionView, Modifier.weight(1f))
+            }
+            TextButton(
+                onClick = {
+                    // The setlist is what gets edited, so that's what shows afterwards.
+                    if (!editing) onRegionView(RegionView.Setlist)
+                    editing = !editing
+                },
+                modifier = Modifier.testTag("edit-regions"),
+            ) {
                 if (!editing) {
                     Icon(Icons.Default.Edit, contentDescription = null, tint = Palette.blue500, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -188,7 +202,44 @@ fun ControlScreen(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp),
             )
         }
-        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, position, enabled, goto)
+        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, regionView, position, enabled, goto)
+    }
+}
+
+/** Songs as in the project or in the band's order. */
+@Composable
+private fun RegionViewSwitch(
+    selected: RegionView,
+    onSelect: (RegionView) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(Palette.gray800)
+                .padding(2.dp),
+        ) {
+            for (view in RegionView.entries) {
+                val active = view == selected
+                Text(
+                    when (view) {
+                        RegionView.Timeline -> "Timeline"
+                        RegionView.Setlist -> "Setlist"
+                    },
+                    color = if (active) Color.White else Palette.gray400,
+                    fontSize = 14.sp,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (active) Palette.gray600 else Color.Transparent)
+                            .selectable(selected = active, role = Role.Tab) { onSelect(view) }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .testTag("region-view-${view.name.lowercase()}"),
+                )
+            }
+        }
     }
 }
 
@@ -288,12 +339,13 @@ private fun TransportRow(
 @Composable
 private fun NavigationRow(
     state: BandState,
+    regionView: RegionView,
     position: Long,
     enabled: Boolean,
     goto: (ClientMessage, Int) -> Unit,
 ) {
-    val previous = state.previousTarget(position, if (state.playing) PREVIOUS_GRACE_MS else 100)
-    val next = state.nextTarget(position)
+    val previous = state.previousTarget(position, if (state.playing) PREVIOUS_GRACE_MS else 100, regionView)
+    val next = state.nextTarget(position, regionView)
     val region = state.currentRegion(position)
     val marker = state.currentMarker(position)
     Row(
@@ -304,54 +356,94 @@ private fun NavigationRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         NavButton(Icons.Default.SkipPrevious, "previous", previous, enabled, goto)
-        Column(
+        Box(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Palette.gray900)
-                .padding(horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .background(Palette.gray900),
         ) {
-            if (region == null) {
-                Text("-", color = Palette.gray400)
-            } else {
-                val bg = rgb(region.color)
-                Text(
-                    region.name,
-                    color = textOn(bg),
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(bg ?: Color.Transparent)
-                            .padding(horizontal = 6.dp)
-                            .testTag("current-region"),
-                )
-            }
-            if (marker != null) {
-                Spacer(Modifier.height(3.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
-                    MarkerChip(marker)
-                    if (marker.name.isNotEmpty()) {
-                        Text(
-                            marker.name,
-                            color = Palette.gray300,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 4.dp).testTag("current-marker"),
-                        )
-                    }
+            if (region != null) SongProgress(region, position)
+            CurrentPosition(region, marker)
+        }
+        NavButton(Icons.Default.SkipNext, "next", next, enabled, goto)
+    }
+}
+
+/** How far into the current song playback is: the box fills with the song's color, with a bar along the bottom. */
+@Composable
+private fun BoxScope.SongProgress(
+    region: Region,
+    position: Long,
+) {
+    val length = (region.end_ms - region.start_ms).coerceAtLeast(1)
+    val progress = ((position - region.start_ms).toFloat() / length).coerceIn(0f, 1f)
+    val color = rgb(region.color) ?: Palette.gray500
+    Box(
+        Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(progress)
+            .background(color.copy(alpha = 0.3f))
+            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f) }
+            .testTag("current-progress"),
+    )
+    Box(
+        Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth(progress)
+            .height(3.dp)
+            .background(color),
+    )
+}
+
+@Composable
+private fun CurrentPosition(
+    region: Region?,
+    marker: Marker?,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (region == null) {
+            Text("-", color = Palette.gray400)
+        } else {
+            val bg = rgb(region.color)
+            Text(
+                region.name,
+                color = textOn(bg),
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(bg ?: Color.Transparent)
+                        .padding(horizontal = 6.dp)
+                        .testTag("current-region"),
+            )
+        }
+        if (marker != null) {
+            Spacer(Modifier.height(3.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
+                MarkerChip(marker)
+                if (marker.name.isNotEmpty()) {
+                    Text(
+                        marker.name,
+                        color = Palette.gray300,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 4.dp).testTag("current-marker"),
+                    )
                 }
             }
         }
-        NavButton(Icons.Default.SkipNext, "next", next, enabled, goto)
     }
 }
 
@@ -414,13 +506,14 @@ private fun formatTime(ms: Long): String {
 @Composable
 private fun RegionList(
     state: BandState,
+    regionView: RegionView,
     position: Long,
     enabled: Boolean,
     goto: (ClientMessage, Int) -> Unit,
 ) {
     val current = state.currentRegion(position)
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
-        itemsIndexed(state.enabledRegions(), key = { _, r -> r.id }) { _, region ->
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp).testTag("regions")) {
+        itemsIndexed(state.regionsIn(regionView), key = { _, r -> r.id }) { _, region ->
             RegionRow(
                 region = region,
                 markers = state.markersIn(region),

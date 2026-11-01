@@ -38,6 +38,8 @@ dependencies {
     api(libs.wire.runtime)
     api(libs.coroutines.core)
     implementation(libs.zxing.core)
+    // Part of Android; the JVM tests bring their own.
+    compileOnly(libs.json)
     testImplementation(libs.junit)
     testImplementation(libs.json)
     testImplementation(libs.coroutines.test)

@@ -34,7 +34,7 @@ menu bar app that does the Bluetooth part for REAPER.
 
 <img src="docs/screenshots/playback.png" alt="Playback and setlist" width="220" align="right">
 
-Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
+Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions) are listed with their progress as they are in the project (Timeline) or in the band's order (Setlist); tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the list.
 
 <br clear="right">
 
@@ -70,6 +70,14 @@ Every band member picks their own mix and sets the level and mute of each source
 
 <br clear="right">
 
+### Mix presets and listening to a bandmate's mix
+
+<img src="docs/screenshots/presets.png" alt="Mix presets and listening to a bandmate's mix" width="220" align="right">
+
+Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone. Helping a bandmate with their mix? Open it and tap Listen: your in-ears play their mix, and follow every change to it, until you tap Back to my mix. Your own balance comes back as it was, and theirs keeps the changes.
+
+<br clear="right">
+
 ### Pairing by QR code
 
 <img src="docs/screenshots/share.png" alt="Pairing by QR code" width="220" align="right">
@@ -80,7 +88,7 @@ REAPER shows a QR code; scan it with the app or type the code. A paired phone sh
 
 ### Connectivity
 
-Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten minutes in the background. While it connects, the app shows the setlist and mixes as it last saw them, grayed out, so you can look around before the computer answers.
 
 <!-- features:end -->
 

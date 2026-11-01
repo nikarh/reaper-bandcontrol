@@ -13,12 +13,14 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
@@ -41,6 +43,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.net.InetSocketAddress
 import java.net.Socket
+import kotlin.math.abs
+import kotlin.math.log10
 
 /**
  * Drives the app against `bandctl sim` running on the development machine, reached through `adb reverse`.
@@ -170,6 +174,30 @@ class SimulatorE2ETest {
     }
 
     @Test
+    fun timelineListsEverySongByPosition() {
+        // The band's setlist (1, 2, 6, 4, ...) skips Northbound (16); the timeline has every song where it is.
+        compose.onNodeWithTag("region-view-setlist").assertIsSelected()
+        compose.onNodeWithTag("region-view-timeline").performClick()
+        compose.onNodeWithTag("region-view-timeline").assertIsSelected()
+        scrollTo("regions", "region-16")
+        compose.onNodeWithTag("region-16").assertExists()
+        scrollTo("regions", "region-1")
+        val tops =
+            listOf(1, 2, 3, 4, 6).map {
+                compose
+                    .onNodeWithTag("region-$it")
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
+        assertEquals(tops.sorted(), tops)
+        // Editing the setlist shows the setlist again.
+        compose.onNodeWithTag("edit-regions").performClick()
+        compose.onNodeWithTag("edit-regions").performClick()
+        compose.onNodeWithTag("region-view-setlist").assertIsSelected()
+        compose.onNodeWithTag("region-16").assertDoesNotExist()
+    }
+
+    @Test
     fun regionsReorderByDragging() {
         compose.onNodeWithTag("edit-regions").performClick()
         // Region 6 is third in the band's order (1, 2, 6, 4, ...); dragged by its handle to the top.
@@ -213,6 +241,109 @@ class SimulatorE2ETest {
         control("rename 6 Kick and snare")
         scrollTo("receives", "receive-6")
         compose.waitUntilAtLeastOneExists(hasText("Kick and snare"), 5_000)
+    }
+
+    @Test
+    fun presetsSaveRevertAndCompare() {
+        compose.onNodeWithTag("tab-iem").performClick()
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-save").performClick()
+        compose.onNodeWithTag("preset-name").performTextReplacement("Gig")
+        compose.onNodeWithTag("preset-confirm").performClick()
+        compose.onNodeWithTag("preset-Gig").assertIsSelected()
+        compose.onNodeWithTag("preset-revert").assertDoesNotExist()
+
+        // A change to the loaded preset: Revert undoes it, and the change stays one tap away.
+        scrollTo("receives", "mute-6")
+        compose.onNodeWithTag("mute-6").performClick()
+        eventually { receive(27, 3).getBoolean("mute") }
+        compose.waitUntilAtLeastOneExists(hasTestTag("preset-revert"), 5_000)
+        compose.onNodeWithTag("preset-Gig").assertTextEquals("Gig •")
+        compose.onNodeWithTag("preset-revert").performClick()
+        eventually { !receive(27, 3).getBoolean("mute") }
+        compose.onNodeWithTag("preset-unsaved").performClick()
+        eventually { receive(27, 3).getBoolean("mute") }
+        compose.onNodeWithTag("preset-unsaved").assertIsSelected()
+
+        // Presets survive a restart of the app, and are per mix.
+        scenario.close()
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+        compose.waitUntilAtLeastOneExists(hasTestTag("tab-iem"), 20_000)
+        compose.onNodeWithTag("tab-iem").performClick()
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-Gig").assertExists()
+        compose.onNodeWithTag("output-28").performClick()
+        compose.onNodeWithTag("preset-Gig").assertDoesNotExist()
+
+        // Long-press to delete.
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-Gig").performTouchInput { longClick() }
+        compose.onNodeWithTag("preset-delete").performClick()
+        compose.onNodeWithTag("preset-delete-confirm").performClick()
+        compose.onNodeWithTag("preset-Gig").assertDoesNotExist()
+    }
+
+    /** Receives of [output] by source: volume and mute. */
+    private fun receivesBySource(output: Int): Map<Int, Pair<Double, Boolean>> {
+        val receives = track(output).getJSONArray("receives")
+        return (0 until receives.length()).map(receives::getJSONObject).associate {
+            it.getInt("src") to (it.getDouble("volume") to it.getBoolean("mute"))
+        }
+    }
+
+    /**
+     * The [mine] mix sounds like [to]: the same levels (within 0.1 dB: the app leaves inaudible differences alone)
+     * for the sources both have, the others muted.
+     */
+    private fun soundsLike(
+        mine: Int,
+        to: Int,
+    ): Boolean {
+        val theirs = receivesBySource(to)
+        return receivesBySource(mine).all { (src, level) ->
+            val their = theirs[src]
+            if (their == null) level.second else sameLevel(level, their)
+        }
+    }
+
+    private fun sameLevel(
+        a: Pair<Double, Boolean>,
+        b: Pair<Double, Boolean>,
+    ) = a.second == b.second && abs(20 * log10(a.first / b.first)) < 0.1
+
+    @Test
+    fun listeningToAnotherMix() {
+        val bassBefore = receivesBySource(28)
+        compose.onNodeWithTag("tab-iem").performClick()
+        compose.onNodeWithTag("output-27").performClick()
+        // The first time, the app asks which mix is the phone owner's.
+        compose.onNodeWithTag("listen").performClick()
+        compose.onNodeWithTag("mine-28").performClick()
+        compose.onNodeWithTag("listening").assertExists()
+        eventually { soundsLike(mine = 28, to = 27) }
+
+        // Changes to the drums mix, here or in REAPER, are heard in the own mix too.
+        scrollTo("receives", "mute-6")
+        compose.onNodeWithTag("mute-6").performClick()
+        eventually { receive(27, 3).getBoolean("mute") && soundsLike(mine = 28, to = 27) }
+        control("receive 27 1 0.3 0")
+        eventually { soundsLike(mine = 28, to = 27) }
+
+        // Back: the own mix as it was, the drums mix keeps its changes.
+        compose.onNodeWithTag("listen-stop").performClick()
+        eventually {
+            val bass = receivesBySource(28)
+            bass.keys == bassBefore.keys && bass.all { (src, level) -> sameLevel(level, bassBefore.getValue(src)) }
+        }
+        compose.onNodeWithTag("listening").assertDoesNotExist()
+        assertTrue(receive(27, 3).getBoolean("mute"))
+        // The own mix is marked from now on, and listening asks no more.
+        compose.onNodeWithTag("output-28").performClick()
+        compose.onNodeWithTag("your-mix").assertExists()
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("listen").performClick()
+        compose.onNodeWithTag("mine-chooser").assertDoesNotExist()
+        compose.onNodeWithTag("listening").assertExists()
     }
 
     @Test
@@ -298,6 +429,7 @@ class SimulatorE2ETest {
         Thread.sleep(1_000)
         compose.onNodeWithText("camera couldn't be started", substring = true).assertDoesNotExist()
         compose.onNodeWithTag("qr-close").performClick()
+        compose.onNodeWithTag("enter-code").performClick()
         compose.onNodeWithTag("pair-code").assertExists()
     }
 
@@ -366,7 +498,10 @@ class SimulatorE2ETest {
                 20_000,
             )
             compose.onNodeWithText("Pair again").performClick()
-            compose.onNodeWithTag("pair-code").assertExists()
+            compose.onNodeWithTag("scan-button").assertExists()
+            // Back to the computer that rejected this phone.
+            compose.onNodeWithTag("back").performClick()
+            compose.onNodeWithTag("scan-button").assertDoesNotExist()
         }
     }
 
@@ -379,6 +514,26 @@ class SimulatorE2ETest {
                 ((c.red * 0.299f + c.green * 0.587f + c.blue * 0.114f) * 255).toInt().toByte()
             }
         return QrDecoder().decode(luminance, image.width, image.height)
+    }
+
+    @Test
+    fun aboutIsReachableBeforePairing() {
+        // A fresh install: nothing paired.
+        scenario.close()
+        context
+            .getSharedPreferences("bandcontrol", 0)
+            .edit()
+            .clear()
+            .commit()
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+        compose.waitUntilAtLeastOneExists(hasTestTag("scan-button"), 10_000)
+        compose.onNodeWithTag("get-extension").assertExists()
+        compose.onNodeWithTag("back").assertDoesNotExist()
+        compose.onNodeWithTag("menu").performClick()
+        compose.onNodeWithTag("about").performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("about-qr"), 5_000)
+        compose.onNodeWithTag("about-close").performClick()
+        compose.onNodeWithTag("scan-button").assertExists()
     }
 
     @Test
