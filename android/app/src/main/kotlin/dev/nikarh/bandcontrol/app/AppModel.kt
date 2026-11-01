@@ -22,6 +22,7 @@ import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.PeakHolds
+import dev.nikarh.bandcontrol.core.state.RegionView
 import dev.nikarh.bandcontrol.core.state.snapshotOf
 import dev.nikarh.bandcontrol.core.state.stopped
 import dev.nikarh.bandcontrol.core.state.toSnapshot
@@ -137,6 +138,17 @@ class AppModel(
         connection
             .flatMapLatest { it?.meters ?: flowOf(emptyMap()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private val mutableRegionView =
+        MutableStateFlow(prefs.getString(KEY_REGION_VIEW, null)?.let { v -> RegionView.entries.find { it.name == v } })
+
+    /** How the Playback tab lists songs, null until the user picks (then it depends on the project). */
+    val regionView: StateFlow<RegionView?> = mutableRegionView.asStateFlow()
+
+    fun setRegionView(view: RegionView) {
+        mutableRegionView.value = view
+        prefs.edit { putString(KEY_REGION_VIEW, view.name) }
+    }
 
     private val mutablePeaks = MutableStateFlow(PeakHolds())
     val peaks: StateFlow<PeakHolds> = mutablePeaks.asStateFlow()
@@ -416,6 +428,7 @@ class AppModel(
         private const val KEY_SECRET = "secret"
         private const val KEY_NAME = "name"
         private const val KEY_TCP = "tcp"
+        private const val KEY_REGION_VIEW = "regionView"
 
         /** How long the first scan may take to find every computer in range before one is picked. */
         private const val SETTLE_MS = 3_000L

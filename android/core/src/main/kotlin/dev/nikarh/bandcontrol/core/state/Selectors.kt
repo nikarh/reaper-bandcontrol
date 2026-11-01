@@ -36,6 +36,31 @@ fun BandState.sortedRegions(): List<OrderedRegion> {
 
 fun BandState.enabledRegions(): List<Region> = sortedRegions().filterNot { it.disabled }.map { it.region }
 
+/** How songs are listed and stepped through. */
+enum class RegionView {
+    /** As they are in the project, by position; every region. */
+    Timeline,
+
+    /** The band's order, without the songs switched off. */
+    Setlist,
+}
+
+/** The songs of [view], in its order. */
+fun BandState.regionsIn(view: RegionView): List<Region> =
+    when (view) {
+        RegionView.Timeline -> regions.sortedWith(compareBy({ it.start_ms }, { it.id }))
+        RegionView.Setlist -> enabledRegions()
+    }
+
+/** The project has a setlist: an order other than the regions' own, or songs switched off. */
+fun BandState.hasSetlist(): Boolean {
+    val sorted = sortedRegions()
+    return sorted.any { it.disabled } || sorted.map { it.region.id } != regions.map { it.id }.sorted()
+}
+
+/** The view to start with when the user never picked one: the setlist when the band made one. */
+fun BandState.defaultRegionView(): RegionView = if (hasSetlist()) RegionView.Setlist else RegionView.Timeline
+
 /** Markers from the region start up to (not including) its end, where the next song may already start. */
 fun BandState.markersIn(region: Region): List<Marker> = markers.filter { it.pos_ms >= region.start_ms && it.pos_ms < region.end_ms }
 
@@ -71,18 +96,22 @@ const val PREVIOUS_GRACE_MS = 2_000L
 fun BandState.previousTarget(
     posMs: Long,
     graceMs: Long = 100,
+    view: RegionView = RegionView.Setlist,
 ): NavTarget? {
     val current = currentRegion(posMs) ?: return null
     navigationTargets(current).lastOrNull { posMs - it.posMs > graceMs }?.let { return it }
-    val regions = enabledRegions()
+    val regions = regionsIn(view)
     val previous = regions.getOrNull(regions.indexOfFirst { it.id == current.id } - 1) ?: return null
     return navigationTargets(previous).lastOrNull()
 }
 
-fun BandState.nextTarget(posMs: Long): NavTarget? {
+fun BandState.nextTarget(
+    posMs: Long,
+    view: RegionView = RegionView.Setlist,
+): NavTarget? {
     val current = currentRegion(posMs) ?: return null
     navigationTargets(current).firstOrNull { it.posMs - posMs > 10 }?.let { return it }
-    val regions = enabledRegions()
+    val regions = regionsIn(view)
     val index = regions.indexOfFirst { it.id == current.id }
     if (index < 0) return null
     val next = regions.getOrNull(index + 1) ?: return null

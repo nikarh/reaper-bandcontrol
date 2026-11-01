@@ -3,7 +3,7 @@ BandControl puts the band's REAPER on every band member's phone: playback and th
 The app controls REAPER through the free BandControl extension for REAPER 5.93 or newer on Windows, macOS or Linux: https://bandcontrol.arhipov.net/
 
 Playback and setlist
-Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
+Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions) are listed with their progress as they are in the project (Timeline) or in the band's order (Setlist); tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the list.
 
 Setlist order
 Tap Edit and drag songs by their handle, or long-press anywhere on a row, into tonight's order; switch a song off to skip it. The order is stored in the REAPER project, and every phone sees the change.

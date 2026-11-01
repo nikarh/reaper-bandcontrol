@@ -65,6 +65,7 @@ import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
+import dev.nikarh.bandcontrol.core.state.defaultRegionView
 import dev.nikarh.bandcontrol.core.state.groups
 import dev.nikarh.bandcontrol.core.state.receivesOf
 
@@ -91,6 +92,7 @@ fun BandControlApp(
     val status by model.status.collectAsStateWithLifecycle()
     val state by model.state.collectAsStateWithLifecycle()
     val stale by model.stale.collectAsStateWithLifecycle()
+    val regionView by model.regionView.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -212,7 +214,13 @@ fun BandControlApp(
                     tabStates.SaveableStateProvider(shown.name) {
                         when (shown) {
                             Tab.Playback -> {
-                                ControlScreen(state, enabled = connected, send = model::send)
+                                ControlScreen(
+                                    state,
+                                    regionView = regionView ?: state.defaultRegionView(),
+                                    onRegionView = model::setRegionView,
+                                    enabled = connected,
+                                    send = model::send,
+                                )
                             }
 
                             Tab.Iem -> {

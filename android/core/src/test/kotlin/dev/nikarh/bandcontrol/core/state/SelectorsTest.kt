@@ -75,6 +75,35 @@ class SelectorsTest {
     }
 
     @Test
+    fun timelineListsEveryRegionByPosition() {
+        // Region ids aren't positions: an id order would put the newest region last wherever it is.
+        val s = Fixtures.state(listOf(1, 4, 3, 2).map { RegionOrder(id = it, disabled = it == 4) })
+        val shuffled = s.copy(regions = s.regions.reversed())
+        assertEquals(listOf(1, 2, 3, 4), shuffled.regionsIn(RegionView.Timeline).map { it.id })
+        assertEquals(listOf(1, 3, 2), shuffled.regionsIn(RegionView.Setlist).map { it.id })
+    }
+
+    @Test
+    fun navigationAcrossRegionsFollowsTheView() {
+        // Summer -> Autumn on the timeline (Spring next in the setlist), Autumn has no marker at its start.
+        assertEquals(2 to null, state.nextTarget(100_000, RegionView.Timeline).ids())
+        assertEquals(4 to null, state.nextTarget(100_000, RegionView.Setlist).ids())
+        // Right after Winter started, back to Autumn on the timeline.
+        assertEquals(2, state.previousTarget(684_522L + 1_000, PREVIOUS_GRACE_MS, RegionView.Timeline)?.region?.id)
+        // Spring is last on the timeline.
+        assertNull(state.nextTarget(1_300_000, RegionView.Timeline))
+    }
+
+    @Test
+    fun theSetlistIsTheDefaultOnlyWhenTheBandMadeOne() {
+        assertEquals(RegionView.Setlist, state.defaultRegionView())
+        assertEquals(RegionView.Timeline, Fixtures.state(emptyList()).defaultRegionView())
+        // The regions' own order, all on: no setlist either.
+        assertEquals(RegionView.Timeline, Fixtures.state(listOf(1, 2, 3, 4).map { RegionOrder(id = it) }).defaultRegionView())
+        assertEquals(RegionView.Setlist, Fixtures.state(listOf(RegionOrder(id = 2, disabled = true))).defaultRegionView())
+    }
+
+    @Test
     fun regionEditing() {
         val sorted = state.sortedRegions()
         assertEquals(listOf(4, 1, 3, 2), moveRegion(sorted, 1, -1).map { it.id })

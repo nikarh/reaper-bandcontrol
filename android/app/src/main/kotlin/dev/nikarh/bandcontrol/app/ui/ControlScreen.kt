@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -62,6 +63,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.selected
@@ -76,13 +78,14 @@ import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.NavTarget
 import dev.nikarh.bandcontrol.core.state.OrderedRegion
 import dev.nikarh.bandcontrol.core.state.PREVIOUS_GRACE_MS
+import dev.nikarh.bandcontrol.core.state.RegionView
 import dev.nikarh.bandcontrol.core.state.currentMarker
 import dev.nikarh.bandcontrol.core.state.currentRegion
-import dev.nikarh.bandcontrol.core.state.enabledRegions
 import dev.nikarh.bandcontrol.core.state.markersIn
 import dev.nikarh.bandcontrol.core.state.moveRegion
 import dev.nikarh.bandcontrol.core.state.nextTarget
 import dev.nikarh.bandcontrol.core.state.previousTarget
+import dev.nikarh.bandcontrol.core.state.regionsIn
 import dev.nikarh.bandcontrol.core.state.sortedRegions
 import dev.nikarh.bandcontrol.core.state.toOrder
 import dev.nikarh.bandcontrol.core.state.toggleRegion
@@ -127,6 +130,8 @@ private fun rememberPosition(state: BandState): Long {
 @Composable
 fun ControlScreen(
     state: BandState,
+    regionView: RegionView,
+    onRegionView: (RegionView) -> Unit,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
@@ -166,16 +171,22 @@ fun ControlScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TransportRow(state, enabled, send)
-            NavigationRow(view, position, enabled, goto)
+            NavigationRow(view, regionView, position, enabled, goto)
         }
         Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (editing) "Edit setlist" else "Move to Region",
-                color = Color.White,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { editing = !editing }, modifier = Modifier.testTag("edit-regions")) {
+            if (editing) {
+                Text("Edit setlist", color = Color.White, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+            } else {
+                RegionViewSwitch(regionView, onRegionView, Modifier.weight(1f))
+            }
+            TextButton(
+                onClick = {
+                    // The setlist is what gets edited, so that's what shows afterwards.
+                    if (!editing) onRegionView(RegionView.Setlist)
+                    editing = !editing
+                },
+                modifier = Modifier.testTag("edit-regions"),
+            ) {
                 if (!editing) {
                     Icon(Icons.Default.Edit, contentDescription = null, tint = Palette.blue500, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -191,7 +202,44 @@ fun ControlScreen(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 4.dp),
             )
         }
-        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, position, enabled, goto)
+        if (editing) RegionEditor(view, enabled, onOrder) else RegionList(view, regionView, position, enabled, goto)
+    }
+}
+
+/** Songs as in the project or in the band's order. */
+@Composable
+private fun RegionViewSwitch(
+    selected: RegionView,
+    onSelect: (RegionView) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(Palette.gray800)
+                .padding(2.dp),
+        ) {
+            for (view in RegionView.entries) {
+                val active = view == selected
+                Text(
+                    when (view) {
+                        RegionView.Timeline -> "Timeline"
+                        RegionView.Setlist -> "Setlist"
+                    },
+                    color = if (active) Color.White else Palette.gray400,
+                    fontSize = 14.sp,
+                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (active) Palette.gray600 else Color.Transparent)
+                            .selectable(selected = active, role = Role.Tab) { onSelect(view) }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .testTag("region-view-${view.name.lowercase()}"),
+                )
+            }
+        }
     }
 }
 
@@ -291,12 +339,13 @@ private fun TransportRow(
 @Composable
 private fun NavigationRow(
     state: BandState,
+    regionView: RegionView,
     position: Long,
     enabled: Boolean,
     goto: (ClientMessage, Int) -> Unit,
 ) {
-    val previous = state.previousTarget(position, if (state.playing) PREVIOUS_GRACE_MS else 100)
-    val next = state.nextTarget(position)
+    val previous = state.previousTarget(position, if (state.playing) PREVIOUS_GRACE_MS else 100, regionView)
+    val next = state.nextTarget(position, regionView)
     val region = state.currentRegion(position)
     val marker = state.currentMarker(position)
     Row(
@@ -457,13 +506,14 @@ private fun formatTime(ms: Long): String {
 @Composable
 private fun RegionList(
     state: BandState,
+    regionView: RegionView,
     position: Long,
     enabled: Boolean,
     goto: (ClientMessage, Int) -> Unit,
 ) {
     val current = state.currentRegion(position)
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
-        itemsIndexed(state.enabledRegions(), key = { _, r -> r.id }) { _, region ->
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 8.dp).testTag("regions")) {
+        itemsIndexed(state.regionsIn(regionView), key = { _, r -> r.id }) { _, region ->
             RegionRow(
                 region = region,
                 markers = state.markersIn(region),

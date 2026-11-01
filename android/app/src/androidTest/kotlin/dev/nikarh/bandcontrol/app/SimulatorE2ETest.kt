@@ -170,6 +170,30 @@ class SimulatorE2ETest {
     }
 
     @Test
+    fun timelineListsEverySongByPosition() {
+        // The band's setlist (1, 2, 6, 4, ...) skips Northbound (16); the timeline has every song where it is.
+        compose.onNodeWithTag("region-view-setlist").assertIsSelected()
+        compose.onNodeWithTag("region-view-timeline").performClick()
+        compose.onNodeWithTag("region-view-timeline").assertIsSelected()
+        scrollTo("regions", "region-16")
+        compose.onNodeWithTag("region-16").assertExists()
+        scrollTo("regions", "region-1")
+        val tops =
+            listOf(1, 2, 3, 4, 6).map {
+                compose
+                    .onNodeWithTag("region-$it")
+                    .fetchSemanticsNode()
+                    .boundsInRoot.top
+            }
+        assertEquals(tops.sorted(), tops)
+        // Editing the setlist shows the setlist again.
+        compose.onNodeWithTag("edit-regions").performClick()
+        compose.onNodeWithTag("edit-regions").performClick()
+        compose.onNodeWithTag("region-view-setlist").assertIsSelected()
+        compose.onNodeWithTag("region-16").assertDoesNotExist()
+    }
+
+    @Test
     fun regionsReorderByDragging() {
         compose.onNodeWithTag("edit-regions").performClick()
         // Region 6 is third in the band's order (1, 2, 6, 4, ...); dragged by its handle to the top.
