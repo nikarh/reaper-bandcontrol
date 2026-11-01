@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.nikarh.bandcontrol.app.ble.BleConnector
 import dev.nikarh.bandcontrol.app.ble.NearbyScanner
+import dev.nikarh.bandcontrol.app.ui.PresetActions
 import dev.nikarh.bandcontrol.core.ComputerChoice
 import dev.nikarh.bandcontrol.core.Connection
 import dev.nikarh.bandcontrol.core.ConnectionStatus
@@ -21,12 +22,17 @@ import dev.nikarh.bandcontrol.core.protocol.Crypto
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.PeakHolds
+import dev.nikarh.bandcontrol.core.state.Presets
 import dev.nikarh.bandcontrol.core.state.RegionView
+import dev.nikarh.bandcontrol.core.state.commandsFor
+import dev.nikarh.bandcontrol.core.state.levelsOf
 import dev.nikarh.bandcontrol.core.state.snapshotOf
 import dev.nikarh.bandcontrol.core.state.stopped
 import dev.nikarh.bandcontrol.core.state.toSnapshot
 import dev.nikarh.bandcontrol.proto.ClientMessage
+import dev.nikarh.bandcontrol.proto.Track
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -46,6 +52,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -55,7 +62,8 @@ private val PairingInfo.id: String get() = secret.toCode()
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class AppModel(
     app: Application,
-) : AndroidViewModel(app) {
+) : AndroidViewModel(app),
+    PresetActions {
     private val prefs = app.getSharedPreferences("bandcontrol", Context.MODE_PRIVATE)
     private val scanner = NearbyScanner(app)
 
@@ -150,6 +158,11 @@ class AppModel(
         prefs.edit { putString(KEY_REGION_VIEW, view.name) }
     }
 
+    private val mutablePresets = MutableStateFlow(Presets())
+
+    /** The mix presets of the computer in use, kept on this phone. */
+    val presets: StateFlow<Presets> = mutablePresets.asStateFlow()
+
     private val mutablePeaks = MutableStateFlow(PeakHolds())
     val peaks: StateFlow<PeakHolds> = mutablePeaks.asStateFlow()
 
@@ -180,8 +193,10 @@ class AppModel(
         mutablePairing
             .map { it?.id }
             .distinctUntilChanged()
-            .onEach { id -> lastKnown.value = id?.let { snapshotOf(prefs.getString(snapshotKey(it), null)) } ?: BandState() }
-            .launchIn(viewModelScope)
+            .onEach { id ->
+                lastKnown.value = id?.let { snapshotOf(prefs.getString(snapshotKey(it), null)) } ?: BandState()
+                mutablePresets.value = Presets.fromJson(id?.let { prefs.getString(presetsKey(it), null) })
+            }.launchIn(viewModelScope)
         decide()
     }
 
@@ -216,7 +231,10 @@ class AppModel(
 
     fun forget(info: PairingInfo) {
         if (selected == info.id) selected = null
-        prefs.edit { remove(snapshotKey(info.id)) }
+        prefs.edit {
+            remove(snapshotKey(info.id))
+            remove(presetsKey(info.id))
+        }
         save(mutableComputers.value.filter { it.id != info.id })
         decide()
     }
@@ -271,6 +289,45 @@ class AppModel(
                 restart()
             }
         }
+    }
+
+    /** Saves the current levels of [output] as preset [name] (replacing one of that name). */
+    override fun save(
+        output: Track,
+        name: String,
+    ) {
+        val levels = state.value.levelsOf(output)
+        updatePresets { it.with(output.name, it.of(output.name).save(name, levels)) }
+    }
+
+    /** Applies preset [name] (or [MixPresets.UNSAVED]) to [output]; false when not connected. */
+    override fun load(
+        output: Track,
+        name: String,
+    ): Boolean {
+        if (stale.value) return false
+        val state = state.value
+        val (next, levels) = presets.value.of(output.name).load(name, state.levelsOf(output)) ?: return false
+        if (!state.commandsFor(output, levels).all(::send)) return false
+        updatePresets { it.with(output.name, next) }
+        return true
+    }
+
+    override fun rename(
+        output: Track,
+        from: String,
+        to: String,
+    ) = updatePresets { it.with(output.name, it.of(output.name).rename(from, to)) }
+
+    override fun delete(
+        output: Track,
+        name: String,
+    ) = updatePresets { it.with(output.name, it.of(output.name).delete(name)) }
+
+    private fun updatePresets(change: (Presets) -> Presets) {
+        val id = mutablePairing.value?.id ?: return
+        val presets = mutablePresets.updateAndGet(change)
+        prefs.edit { putString(presetsKey(id), presets.toJson()) }
     }
 
     /** Connects again after the computer disconnected this phone, or after [disconnect]. */
@@ -436,6 +493,8 @@ class AppModel(
         private const val SNAPSHOT_DEBOUNCE_MS = 2_000L
 
         private fun snapshotKey(id: String) = "state.$id"
+
+        private fun presetsKey(id: String) = "presets.$id"
 
         private fun monotonicMs() = System.nanoTime() / 1_000_000
     }

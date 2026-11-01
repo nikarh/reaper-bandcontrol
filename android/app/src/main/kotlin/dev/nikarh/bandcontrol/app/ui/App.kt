@@ -65,6 +65,7 @@ import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
+import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.defaultRegionView
 import dev.nikarh.bandcontrol.core.state.groups
 import dev.nikarh.bandcontrol.core.state.receivesOf
@@ -93,6 +94,7 @@ fun BandControlApp(
     val state by model.state.collectAsStateWithLifecycle()
     val stale by model.stale.collectAsStateWithLifecycle()
     val regionView by model.regionView.collectAsStateWithLifecycle()
+    val presets by model.presets.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -230,6 +232,8 @@ fun BandControlApp(
                                     selected = output,
                                     onSelect = { selectedOutput = it },
                                     meters = model.meters,
+                                    presets = output?.let { presets.of(it.name) } ?: MixPresets(),
+                                    presetActions = model,
                                     enabled = connected,
                                     send = model::send,
                                 )

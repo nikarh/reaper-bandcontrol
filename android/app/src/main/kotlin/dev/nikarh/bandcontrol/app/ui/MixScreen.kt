@@ -40,13 +40,39 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.nikarh.bandcontrol.core.Commands
 import dev.nikarh.bandcontrol.core.FaderLaw
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.ReceiveRow
+import dev.nikarh.bandcontrol.core.state.levelsOf
 import dev.nikarh.bandcontrol.core.state.receivesOf
 import dev.nikarh.bandcontrol.proto.ClientMessage
 import dev.nikarh.bandcontrol.proto.Track
 import kotlinx.coroutines.flow.StateFlow
 
-/** One IEM mix: the output's own level on top, the receives feeding it below. */
+/** What the presets of a mix can do, see [PresetBar]. */
+interface PresetActions {
+    fun load(
+        output: Track,
+        name: String,
+    ): Boolean
+
+    fun save(
+        output: Track,
+        name: String,
+    )
+
+    fun rename(
+        output: Track,
+        from: String,
+        to: String,
+    )
+
+    fun delete(
+        output: Track,
+        name: String,
+    )
+}
+
+/** One IEM mix: the output's own level on top, its presets, the receives feeding it below. */
 @Composable
 fun MixScreen(
     state: BandState,
@@ -54,6 +80,8 @@ fun MixScreen(
     selected: Track?,
     onSelect: (Int) -> Unit,
     meters: StateFlow<Map<Int, Float?>>,
+    presets: MixPresets,
+    presetActions: PresetActions,
     enabled: Boolean,
     send: (ClientMessage) -> Boolean,
 ) {
@@ -94,6 +122,16 @@ fun MixScreen(
                     )
                 }
             }
+            PresetBar(
+                presets = presets,
+                current = state.levelsOf(selected),
+                enabled = enabled,
+                onLoad = { presetActions.load(selected, it) },
+                onSave = { presetActions.save(selected, it) },
+                onRename = { from, to -> presetActions.rename(selected, from, to) },
+                onDelete = { presetActions.delete(selected, it) },
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
             MainMix(selected, levels[selected.id], enabled, send)
         }
         LazyColumn(Modifier.fillMaxSize().testTag("receives")) {

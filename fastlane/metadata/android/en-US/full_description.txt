@@ -17,6 +17,9 @@ The same meters and faders for the front of house outputs: the feeds to the hous
 Personal in-ear mixes
 Every band member picks their own mix and sets the level and mute of each source: click, backtracks, other instruments, vocals, and the mix's overall level. Drag a fader sideways to move it; tapping or scrolling the list leaves it alone. Changes made in REAPER show up on the phones.
 
+Mix presets
+Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone.
+
 Pairing by QR code
 REAPER shows a QR code; scan it with the app or type the code. A paired phone shows the same QR code to the next one, so the rest of the band can pair from it. A phone can be paired with several computers, like a rehearsal laptop and a stage PC: the app connects to the one in range and asks when both are.
 

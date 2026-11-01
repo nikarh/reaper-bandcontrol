@@ -13,12 +13,14 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeDown
@@ -237,6 +239,46 @@ class SimulatorE2ETest {
         control("rename 6 Kick and snare")
         scrollTo("receives", "receive-6")
         compose.waitUntilAtLeastOneExists(hasText("Kick and snare"), 5_000)
+    }
+
+    @Test
+    fun presetsSaveRevertAndCompare() {
+        compose.onNodeWithTag("tab-iem").performClick()
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-save").performClick()
+        compose.onNodeWithTag("preset-name").performTextReplacement("Gig")
+        compose.onNodeWithTag("preset-confirm").performClick()
+        compose.onNodeWithTag("preset-Gig").assertIsSelected()
+        compose.onNodeWithTag("preset-revert").assertDoesNotExist()
+
+        // A change to the loaded preset: Revert undoes it, and the change stays one tap away.
+        scrollTo("receives", "mute-6")
+        compose.onNodeWithTag("mute-6").performClick()
+        eventually { receive(27, 3).getBoolean("mute") }
+        compose.waitUntilAtLeastOneExists(hasTestTag("preset-revert"), 5_000)
+        compose.onNodeWithTag("preset-Gig").assertTextEquals("Gig •")
+        compose.onNodeWithTag("preset-revert").performClick()
+        eventually { !receive(27, 3).getBoolean("mute") }
+        compose.onNodeWithTag("preset-unsaved").performClick()
+        eventually { receive(27, 3).getBoolean("mute") }
+        compose.onNodeWithTag("preset-unsaved").assertIsSelected()
+
+        // Presets survive a restart of the app, and are per mix.
+        scenario.close()
+        scenario = ActivityScenario.launch(MainActivity::class.java)
+        compose.waitUntilAtLeastOneExists(hasTestTag("tab-iem"), 20_000)
+        compose.onNodeWithTag("tab-iem").performClick()
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-Gig").assertExists()
+        compose.onNodeWithTag("output-28").performClick()
+        compose.onNodeWithTag("preset-Gig").assertDoesNotExist()
+
+        // Long-press to delete.
+        compose.onNodeWithTag("output-27").performClick()
+        compose.onNodeWithTag("preset-Gig").performTouchInput { longClick() }
+        compose.onNodeWithTag("preset-delete").performClick()
+        compose.onNodeWithTag("preset-delete-confirm").performClick()
+        compose.onNodeWithTag("preset-Gig").assertDoesNotExist()
     }
 
     @Test

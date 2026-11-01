@@ -67,6 +67,15 @@ leaves it alone. Changes made in REAPER show up on the phones.
 title = "Personal in-ear mixes"
 
 [[feature]]
+id = "presets"
+text = """
+Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a
+change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two
+balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone.
+"""
+title = "Mix presets"
+
+[[feature]]
 id = "pairing"
 screenshot = "share"
 text = """

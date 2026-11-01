@@ -229,7 +229,8 @@ class Connection(
     }
 
     private companion object {
-        const val OUTGOING_CAPACITY = 64
+        // A preset sends a command per source at once.
+        const val OUTGOING_CAPACITY = 256
         val RECONNECT_FAILURES = setOf(Problem.NotFound, Problem.Unreachable, Problem.NoAnswer, Problem.Unknown)
     }
 }

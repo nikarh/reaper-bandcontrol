@@ -70,6 +70,10 @@ Every band member picks their own mix and sets the level and mute of each source
 
 <br clear="right">
 
+### Mix presets
+
+Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone.
+
 ### Pairing by QR code
 
 <img src="docs/screenshots/share.png" alt="Pairing by QR code" width="220" align="right">
