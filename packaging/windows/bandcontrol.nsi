@@ -30,7 +30,7 @@ BrandingText "${NAME} ${VERSION}"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TEXT "This installs the ${NAME} extension into REAPER, so phones can control playback and in-ear mixes over Bluetooth.$\r$\n$\r$\nClose REAPER before you continue."
 !insertmacro MUI_PAGE_WELCOME
-!define MUI_DIRECTORYPAGE_TEXT_TOP "The REAPER resource folder: %APPDATA%\REAPER for a normal installation, the REAPER folder itself for a portable one. REAPER shows it under Options → Show REAPER resource path in explorer/finder."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "The REAPER resource folder: %APPDATA%\REAPER for a normal installation, the REAPER folder itself for a portable one. REAPER shows it under Options > Show REAPER resource path in explorer/finder."
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "REAPER resource folder"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
