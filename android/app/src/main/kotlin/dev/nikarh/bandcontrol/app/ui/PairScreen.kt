@@ -7,20 +7,18 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -112,28 +110,40 @@ fun PairScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            if (onCancel == null) Welcome()
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text("Pair with your computer", color = Palette.gray200, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                Step(1, "Install the BandControl extension for REAPER on the computer.") {
-                    TextButton(
-                        onClick = openWebsite,
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                        modifier = Modifier.testTag("get-extension"),
-                    ) {
-                        Text("Get the extension", color = Palette.blue500)
+            // The middle takes the free space and centers its content; it only scrolls when it can't fit (the
+            // keyboard is up, landscape).
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                Column(
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                        .heightIn(min = maxHeight)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    if (manual) {
+                        ManualEntry(
+                            code = code,
+                            onCode = { code = it },
+                            name = name,
+                            onName = { name = it },
+                            valid = secret != null,
+                            onPair = { secret?.let { onPair(PairingInfo(it, name.trim())) } },
+                        )
+                    } else {
+                        Intro(welcome = onCancel == null, onGetExtension = openWebsite)
                     }
                 }
-                Step(2, "In REAPER, run the action \"BandControl: Show pairing QR code\".")
-                Step(3, "Scan the QR code it shows. Another paired phone can show it too.")
+            }
+            scanError?.let {
+                Text(it, color = Palette.red500, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
             }
             Button(
                 onClick = {
                     scanError = null
+                    manual = false
                     scanning = true
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Palette.blue500, contentColor = Color.White),
@@ -143,33 +153,29 @@ fun PairScreen(
                 Spacer(Modifier.width(8.dp))
                 Text("Scan QR code")
             }
-            scanError?.let { Text(it, color = Palette.red500) }
             if (!manual) {
                 TextButton(
                     onClick = { manual = true },
                     modifier = Modifier.align(Alignment.CenterHorizontally).testTag("enter-code"),
                 ) { Text("Enter the code instead", color = Palette.blue500) }
-            } else {
-                ManualEntry(
-                    code = code,
-                    onCode = { code = it },
-                    name = name,
-                    onName = { name = it },
-                    valid = secret != null,
-                    onPair = { secret?.let { onPair(PairingInfo(it, name.trim())) } },
-                )
             }
         }
     }
 }
 
+/** What the app is (on a fresh install) and the one thing to do: show the QR code in REAPER. */
 @Composable
-private fun Welcome() {
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(96.dp).clip(RoundedCornerShape(24.dp)).background(Palette.gray800), contentAlignment = Alignment.Center) {
-            Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(96.dp))
-        }
-        Spacer(Modifier.height(16.dp))
+private fun Intro(
+    welcome: Boolean,
+    onGetExtension: () -> Unit,
+) {
+    if (welcome) {
+        Image(
+            painterResource(R.drawable.ic_launcher_foreground),
+            contentDescription = null,
+            modifier = Modifier.size(88.dp).clip(RoundedCornerShape(22.dp)).background(Palette.gray800),
+        )
+        Spacer(Modifier.height(20.dp))
         Text(
             "Control REAPER from your phone",
             color = Palette.gray200,
@@ -177,30 +183,15 @@ private fun Welcome() {
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Playback and the setlist, input and FOH levels, and your own in-ear mix, over Bluetooth.",
-            color = Palette.gray400,
-            textAlign = TextAlign.Center,
-        )
+        Spacer(Modifier.height(8.dp))
     }
-}
-
-@Composable
-private fun Step(
-    number: Int,
-    text: String,
-    action: (@Composable () -> Unit)? = null,
-) {
-    Row {
-        Box(Modifier.size(24.dp).background(Palette.gray700, CircleShape), contentAlignment = Alignment.Center) {
-            Text(number.toString(), color = Palette.gray200, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f).padding(top = 2.dp)) {
-            Text(text, color = Palette.gray300)
-            action?.invoke()
-        }
+    Text(
+        "In REAPER, run \"BandControl: Show pairing QR code\" and scan it.",
+        color = Palette.gray400,
+        textAlign = TextAlign.Center,
+    )
+    TextButton(onClick = onGetExtension, modifier = Modifier.testTag("get-extension")) {
+        Text("Get the REAPER extension", color = Palette.blue500)
     }
 }
 
@@ -214,7 +205,7 @@ private fun ManualEntry(
     onPair: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("The code is shown below the QR code.", color = Palette.gray400, fontSize = 14.sp)
+        Text("Type the code shown below the QR code in REAPER.", color = Palette.gray400, fontSize = 14.sp)
         OutlinedTextField(
             value = code,
             onValueChange = onCode,
