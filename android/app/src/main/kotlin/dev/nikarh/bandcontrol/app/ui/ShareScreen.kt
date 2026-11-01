@@ -6,14 +6,13 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -62,21 +61,13 @@ fun ShareScreen(
         containerColor = Palette.gray900,
         topBar = { AppBar("Pair another phone", onBack = onClose, backTag = "share-close") },
     ) { padding ->
-        Column(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        ) {
+        QrPage(Modifier.padding(padding)) { qr ->
             Text(
                 "On the other phone, open BandControl, tap \"Scan QR code\" and point it at this code.",
                 color = Palette.gray400,
                 textAlign = TextAlign.Center,
             )
-            QrCode(matrix, Modifier.testTag("share-qr"))
+            QrCode(matrix, qr.testTag("share-qr"))
             if (info.name.isNotEmpty()) Text(info.name, color = Palette.gray200, fontSize = 16.sp)
             val groups = info.secret.toDisplayCode().split('-')
             Text(
@@ -92,30 +83,58 @@ fun ShareScreen(
     }
 }
 
-/** A QR code on white with its quiet zone, as wide as allowed up to 360 dp. */
+/** Below this height the QR code would get too small to scan, so the page scrolls instead of shrinking it. */
+private val MIN_FITTING_HEIGHT = 480.dp
+
+/**
+ * A centered page around a QR code. The code shrinks so that the page fits the screen without scrolling; [content]
+ * gets the modifier to give it. On a very short screen (landscape) the page scrolls with the code at full width.
+ */
+@Composable
+fun QrPage(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.(qr: Modifier) -> Unit,
+) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val fits = maxHeight >= MIN_FITTING_HEIGHT
+        Column(
+            Modifier
+                .fillMaxSize()
+                .then(if (fits) Modifier else Modifier.verticalScroll(rememberScrollState()))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        ) {
+            content(if (fits) Modifier.weight(1f, fill = false) else Modifier)
+        }
+    }
+}
+
+/** A QR code on white with its quiet zone, as large as the space it gets allows, up to 360 dp. */
 @Composable
 fun QrCode(
     matrix: QrMatrix,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(
-        modifier
-            .fillMaxWidth()
-            .widthIn(max = 360.dp)
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White),
-    ) {
-        val module = size.width / (matrix.size + 2 * QUIET_ZONE)
-        for (y in 0 until matrix.size) {
-            for (x in 0 until matrix.size) {
-                if (matrix[x, y]) {
-                    drawRect(
-                        Color.Black,
-                        Offset((x + QUIET_ZONE) * module, (y + QUIET_ZONE) * module),
-                        // Slight overlap so no hairlines appear between modules.
-                        Size(module + 0.5f, module + 0.5f),
-                    )
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val side = minOf(maxWidth, maxHeight, 360.dp)
+        Canvas(
+            Modifier
+                .size(side)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White),
+        ) {
+            val module = size.width / (matrix.size + 2 * QUIET_ZONE)
+            for (y in 0 until matrix.size) {
+                for (x in 0 until matrix.size) {
+                    if (matrix[x, y]) {
+                        drawRect(
+                            Color.Black,
+                            Offset((x + QUIET_ZONE) * module, (y + QUIET_ZONE) * module),
+                            // Slight overlap so no hairlines appear between modules.
+                            Size(module + 0.5f, module + 0.5f),
+                        )
+                    }
                 }
             }
         }
