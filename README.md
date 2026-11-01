@@ -34,7 +34,7 @@ menu bar app that does the Bluetooth part for REAPER.
 
 <img src="docs/screenshots/playback.png" alt="Playback and setlist" width="220" align="right">
 
-Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
+Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions) are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song in the setlist.
 
 <br clear="right">
 

@@ -23,8 +23,8 @@ title = "BandControl"
 id = "playback"
 screenshot = "playback"
 text = """
-Play, pause, stop, record and repeat. The songs (regions) are listed in the band's order with their progress;
-tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song
+Play, pause, stop, record and repeat. The current song fills up with its color as it plays. The songs (regions)
+are listed in the band's order with their progress; tap one to jump to it. Previous / next step through the parts of a song (markers) and continue with the next song
 in the setlist.
 """
 title = "Playback and setlist"

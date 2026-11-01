@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,7 +61,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -304,54 +307,94 @@ private fun NavigationRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         NavButton(Icons.Default.SkipPrevious, "previous", previous, enabled, goto)
-        Column(
+        Box(
             Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .background(Palette.gray900)
-                .padding(horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .background(Palette.gray900),
         ) {
-            if (region == null) {
-                Text("-", color = Palette.gray400)
-            } else {
-                val bg = rgb(region.color)
-                Text(
-                    region.name,
-                    color = textOn(bg),
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(bg ?: Color.Transparent)
-                            .padding(horizontal = 6.dp)
-                            .testTag("current-region"),
-                )
-            }
-            if (marker != null) {
-                Spacer(Modifier.height(3.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
-                    MarkerChip(marker)
-                    if (marker.name.isNotEmpty()) {
-                        Text(
-                            marker.name,
-                            color = Palette.gray300,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 4.dp).testTag("current-marker"),
-                        )
-                    }
+            if (region != null) SongProgress(region, position)
+            CurrentPosition(region, marker)
+        }
+        NavButton(Icons.Default.SkipNext, "next", next, enabled, goto)
+    }
+}
+
+/** How far into the current song playback is: the box fills with the song's color, with a bar along the bottom. */
+@Composable
+private fun BoxScope.SongProgress(
+    region: Region,
+    position: Long,
+) {
+    val length = (region.end_ms - region.start_ms).coerceAtLeast(1)
+    val progress = ((position - region.start_ms).toFloat() / length).coerceIn(0f, 1f)
+    val color = rgb(region.color) ?: Palette.gray500
+    Box(
+        Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(progress)
+            .background(color.copy(alpha = 0.3f))
+            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f) }
+            .testTag("current-progress"),
+    )
+    Box(
+        Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth(progress)
+            .height(3.dp)
+            .background(color),
+    )
+}
+
+@Composable
+private fun CurrentPosition(
+    region: Region?,
+    marker: Marker?,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (region == null) {
+            Text("-", color = Palette.gray400)
+        } else {
+            val bg = rgb(region.color)
+            Text(
+                region.name,
+                color = textOn(bg),
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(bg ?: Color.Transparent)
+                        .padding(horizontal = 6.dp)
+                        .testTag("current-region"),
+            )
+        }
+        if (marker != null) {
+            Spacer(Modifier.height(3.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
+                MarkerChip(marker)
+                if (marker.name.isNotEmpty()) {
+                    Text(
+                        marker.name,
+                        color = Palette.gray300,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 4.dp).testTag("current-marker"),
+                    )
                 }
             }
         }
-        NavButton(Icons.Default.SkipNext, "next", next, enabled, goto)
     }
 }
 
