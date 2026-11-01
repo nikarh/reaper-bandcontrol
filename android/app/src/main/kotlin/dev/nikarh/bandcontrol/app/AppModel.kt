@@ -22,8 +22,12 @@ import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
 import dev.nikarh.bandcontrol.core.state.PeakHolds
+import dev.nikarh.bandcontrol.core.state.snapshotOf
+import dev.nikarh.bandcontrol.core.state.stopped
+import dev.nikarh.bandcontrol.core.state.toSnapshot
 import dev.nikarh.bandcontrol.proto.ClientMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,9 +35,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -43,7 +51,7 @@ import org.json.JSONObject
 
 private val PairingInfo.id: String get() = secret.toCode()
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class AppModel(
     app: Application,
 ) : AndroidViewModel(app) {
@@ -105,10 +113,24 @@ class AppModel(
             .flatMapLatest { it?.status ?: flowOf(ConnectionStatus.Idle) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, ConnectionStatus.Idle)
 
-    val state: StateFlow<BandState> =
+    /** The state as the computer sends it in this connection, empty until it arrives. */
+    private val live: StateFlow<BandState> =
         connection
             .flatMapLatest { it?.state ?: flowOf(BandState()) }
             .stateIn(viewModelScope, SharingStarted.Eagerly, BandState())
+
+    /** The computer's state as last seen, from this or an earlier connection (stored), empty if never. */
+    private val lastKnown = MutableStateFlow(BandState())
+
+    /** The live state, or the last known one while (re)connecting; see [stale]. */
+    val state: StateFlow<BandState> =
+        combine(live, lastKnown) { now, last -> if (now.loaded) now else last.stopped(monotonicMs()) }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, BandState())
+
+    /** [state] is the last known one, not live: shown read-only. */
+    val stale: StateFlow<Boolean> =
+        combine(status, live) { status, now -> status !is ConnectionStatus.Connected || !now.loaded }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     /** Latest peak per metered track in dBFS, null for silence. */
     val meters: StateFlow<Map<Int, Float?>> =
@@ -136,6 +158,18 @@ class AppModel(
             }.launchIn(viewModelScope)
         KeepAlive.disconnect = ::disconnect
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
+        live.onEach { if (it.loaded) lastKnown.value = it }.launchIn(viewModelScope)
+        // Stored once the project settles (not on every fader step), and when the app leaves the screen.
+        live
+            .filter { it.loaded }
+            .debounce(SNAPSHOT_DEBOUNCE_MS)
+            .onEach { storeSnapshot() }
+            .launchIn(viewModelScope)
+        mutablePairing
+            .map { it?.id }
+            .distinctUntilChanged()
+            .onEach { id -> lastKnown.value = id?.let { snapshotOf(prefs.getString(snapshotKey(it), null)) } ?: BandState() }
+            .launchIn(viewModelScope)
         decide()
     }
 
@@ -170,6 +204,7 @@ class AppModel(
 
     fun forget(info: PairingInfo) {
         if (selected == info.id) selected = null
+        prefs.edit { remove(snapshotKey(info.id)) }
         save(mutableComputers.value.filter { it.id != info.id })
         decide()
     }
@@ -194,6 +229,7 @@ class AppModel(
         if (active == visible && !permissionsChanged) return
         mutablePermitted.value = permissionsGranted
         visible = active
+        if (!active) storeSnapshot()
         watch()
         background?.cancel()
         background = null
@@ -355,7 +391,14 @@ class AppModel(
         }
     }
 
+    private fun storeSnapshot() {
+        val id = mutablePairing.value?.id ?: return
+        val state = lastKnown.value
+        if (state.loaded) prefs.edit { putString(snapshotKey(id), state.stopped(monotonicMs()).toSnapshot()) }
+    }
+
     override fun onCleared() {
+        storeSnapshot()
         connection.value?.stop()
         if (KeepAlive.disconnect == ::disconnect) KeepAlive.disconnect = null
         if (keepingAlive) ConnectionService.stop(getApplication())
@@ -376,5 +419,11 @@ class AppModel(
 
         /** How long the first scan may take to find every computer in range before one is picked. */
         private const val SETTLE_MS = 3_000L
+
+        private const val SNAPSHOT_DEBOUNCE_MS = 2_000L
+
+        private fun snapshotKey(id: String) = "state.$id"
+
+        private fun monotonicMs() = System.nanoTime() / 1_000_000
     }
 }

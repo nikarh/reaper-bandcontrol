@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayCircle
@@ -41,7 +42,15 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -79,6 +88,7 @@ fun BandControlApp(
     val notice by model.notice.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val state by model.state.collectAsStateWithLifecycle()
+    val stale by model.stale.collectAsStateWithLifecycle()
     val permitted by model.permissionsGranted.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableStateOf(Tab.Playback) }
     var selectedOutput by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -148,7 +158,7 @@ fun BandControlApp(
         ComputerChooser(choices, onPick = model::use, onDismiss = { chooserDismissed = true })
     }
 
-    val connected = status is ConnectionStatus.Connected
+    val connected = !stale
     Scaffold(
         containerColor = Palette.gray900,
         topBar = {
@@ -174,6 +184,7 @@ fun BandControlApp(
                     onForget = model::forget,
                 )
                 notice?.let { NearbyNotice(it, onSwitch = { model.use(it) }, onDismiss = model::dismissNotice) }
+                if (stale && state.loaded) LastKnownBanner()
             }
         },
         bottomBar = {
@@ -188,39 +199,42 @@ fun BandControlApp(
                     modifier = Modifier.align(Alignment.Center),
                 )
             } else {
-                tabStates.SaveableStateProvider(shown.name) {
-                    when (shown) {
-                        Tab.Playback -> {
-                            ControlScreen(state, enabled = connected, send = model::send)
-                        }
+                // Still scrolls and switches tabs: the setlist and mixes stay readable while reconnecting.
+                Box(Modifier.fillMaxSize().grayedOut(stale)) {
+                    tabStates.SaveableStateProvider(shown.name) {
+                        when (shown) {
+                            Tab.Playback -> {
+                                ControlScreen(state, enabled = connected, send = model::send)
+                            }
 
-                        Tab.Iem -> {
-                            MixScreen(
-                                state = state,
-                                outputs = groups.iemOutputs,
-                                selected = output,
-                                onSelect = { selectedOutput = it },
-                                meters = model.meters,
-                                enabled = connected,
-                                send = model::send,
-                            )
-                        }
+                            Tab.Iem -> {
+                                MixScreen(
+                                    state = state,
+                                    outputs = groups.iemOutputs,
+                                    selected = output,
+                                    onSelect = { selectedOutput = it },
+                                    meters = model.meters,
+                                    enabled = connected,
+                                    send = model::send,
+                                )
+                            }
 
-                        Tab.Inputs -> {
-                            LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
-                        }
+                            Tab.Inputs -> {
+                                LevelsScreen("Inputs", groups.inputs, model.meters, model.peaks, model::resetPeaks, connected, model::send)
+                            }
 
-                        Tab.Foh -> {
-                            LevelsScreen(
-                                "FOH outputs",
-                                groups.fohOutputs,
-                                model.meters,
-                                model.peaks,
-                                model::resetPeaks,
-                                connected,
-                                model::send,
-                                hint = "To the house desk or the PA",
-                            )
+                            Tab.Foh -> {
+                                LevelsScreen(
+                                    "FOH outputs",
+                                    groups.fohOutputs,
+                                    model.meters,
+                                    model.peaks,
+                                    model::resetPeaks,
+                                    connected,
+                                    model::send,
+                                    hint = "To the house desk or the PA",
+                                )
+                            }
                         }
                     }
                 }
@@ -228,6 +242,43 @@ fun BandControlApp(
         }
     }
 }
+
+/** Above the last known state while not connected. */
+@Composable
+private fun LastKnownBanner() {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Palette.gray700)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .testTag("last-known"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Default.History, contentDescription = null, tint = Palette.gray300, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "Last known state. Controls are off until connected.",
+            color = Palette.gray200,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+        )
+    }
+}
+
+/** Faded and without color: content that is only a reminder of how things were. */
+private fun Modifier.grayedOut(on: Boolean): Modifier =
+    if (!on) {
+        this
+    } else {
+        val paint = Paint().apply { colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
+        graphicsLayer { alpha = 0.6f }.drawWithContent {
+            drawIntoCanvas { canvas ->
+                canvas.saveLayer(Rect(Offset.Zero, size), paint)
+                drawContent()
+                canvas.restore()
+            }
+        }
+    }
 
 /** A low tab bar (icon over a small label, no indicator pill) instead of Material's 80 dp one. */
 @Composable

@@ -80,7 +80,7 @@ REAPER shows a QR code; scan it with the app or type the code. A paired phone sh
 
 ### Connectivity
 
-Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten minutes in the background.
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten minutes in the background. While it connects, the app shows the setlist and mixes as it last saw them, grayed out, so you can look around before the computer answers.
 
 <!-- features:end -->
 
