@@ -80,6 +80,7 @@ id = "bluetooth"
 text = """
 Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find
 the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while
-connected.
+connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten
+minutes in the background.
 """
 title = "Connectivity"

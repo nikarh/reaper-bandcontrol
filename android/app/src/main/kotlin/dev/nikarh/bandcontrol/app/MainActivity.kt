@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -42,6 +43,21 @@ class MainActivity : ComponentActivity() {
             model.setActive(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED), hasPermissions())
         }
 
+    private val notificationRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    /**
+     * Asks once to show notifications: the one that says the app stays connected in the background, with its
+     * Disconnect button (Android 13+ hides it otherwise; staying connected works either way).
+     */
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        val prefs = getSharedPreferences("bandcontrol", MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_ASKED_NOTIFICATIONS, false)) return
+        prefs.edit { putBoolean(KEY_ASKED_NOTIFICATIONS, true) }
+        notificationRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -63,6 +79,7 @@ class MainActivity : ComponentActivity() {
                 model.status.collect { status ->
                     // On stage the screen must stay on while connected.
                     if (status is ConnectionStatus.Connected) {
+                        askForNotifications()
                         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -99,6 +116,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun hasPermissions() = bluetoothPermissions.all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+
+    private companion object {
+        const val KEY_ASKED_NOTIFICATIONS = "askedNotifications"
+    }
 
     private fun handleIntent(intent: Intent?) {
         val url = intent?.dataString ?: return

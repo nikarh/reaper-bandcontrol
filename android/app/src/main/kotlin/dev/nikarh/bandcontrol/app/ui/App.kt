@@ -358,9 +358,9 @@ private fun StatusBar(
                 TextButton(onClick = onRepair) { Text("Pair again", color = Palette.blue500) }
             }
 
-            problem == Problem.DisconnectedByComputer -> {
+            problem == Problem.DisconnectedByComputer || (current != null && status == ConnectionStatus.Idle) -> {
                 TextButton(onClick = onReconnect, modifier = Modifier.testTag("reconnect")) {
-                    Text("Reconnect", color = Palette.blue500)
+                    Text(if (problem == null) "Connect" else "Reconnect", color = Palette.blue500)
                 }
             }
         }

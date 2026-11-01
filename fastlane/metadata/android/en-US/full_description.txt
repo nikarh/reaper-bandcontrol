@@ -21,4 +21,4 @@ Pairing by QR code
 REAPER shows a QR code; scan it with the app or type the code. A paired phone shows the same QR code to the next one, so the rest of the band can pair from it. A phone can be paired with several computers, like a rehearsal laptop and a stage PC: the app connects to the one in range and asks when both are.
 
 Connectivity
-Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected.
+Phones connect to the computer directly over Bluetooth Low Energy, without a Wi-Fi network. Only paired phones find the computer, and every session is encrypted. The app reconnects by itself and keeps the screen on while connected. A look at a message or the locked screen doesn't end the session: the app stays connected for ten minutes in the background.

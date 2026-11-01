@@ -14,6 +14,7 @@ import dev.nikarh.bandcontrol.core.Connection
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.chooseComputer
 import dev.nikarh.bandcontrol.core.link.Connector
+import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.link.TcpConnector
 import dev.nikarh.bandcontrol.core.newlyNearby
 import dev.nikarh.bandcontrol.core.protocol.Crypto
@@ -83,7 +84,17 @@ class AppModel(
     private var settled = false
     private var watching: Job? = null
 
+    /** Connecting is allowed: the app is visible, or was until less than [BACKGROUND_MINUTES] ago. */
     private var started = false
+
+    /** The app is on screen. */
+    private var visible = false
+
+    /** Ends the connection after the app spent [BACKGROUND_MINUTES] in the background. */
+    private var background: Job? = null
+
+    /** [ConnectionService] runs. */
+    private var keepingAlive = false
     private val mutablePermitted = MutableStateFlow(false)
     val permissionsGranted: StateFlow<Boolean> = mutablePermitted.asStateFlow()
 
@@ -121,7 +132,9 @@ class AppModel(
 
                     else -> Unit
                 }
+                keepAlive()
             }.launchIn(viewModelScope)
+        KeepAlive.disconnect = ::disconnect
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
         decide()
     }
@@ -129,7 +142,8 @@ class AppModel(
     /** The tracks currently shown with meters, kept across reconnects. */
     fun meter(tracks: List<Int>) {
         meterTracks = tracks
-        connection.value?.meter(tracks)
+        // Nobody looks at meters in the background: they would only cost Bluetooth bandwidth and battery.
+        if (visible) connection.value?.meter(tracks)
     }
 
     fun resetPeaks(tracks: Collection<Int>) = mutablePeaks.update { it.reset(tracks) }
@@ -168,20 +182,86 @@ class AppModel(
         save(mutableComputers.value.map { if (it.id == info.id) renamed else it }, rewatch = false)
     }
 
-    /** Called when the UI becomes visible (and Bluetooth permissions are granted) or hidden. */
+    /**
+     * Called when the UI becomes visible (and Bluetooth permissions are granted) or hidden. A working connection
+     * outlives the UI by [BACKGROUND_MINUTES], so a look at a message or the locked screen doesn't end it.
+     */
     fun setActive(
         active: Boolean,
         permissionsGranted: Boolean,
     ) {
-        if (active == started && permissionsGranted == mutablePermitted.value) return
-        started = active
+        val permissionsChanged = permissionsGranted != mutablePermitted.value
+        if (active == visible && !permissionsChanged) return
         mutablePermitted.value = permissionsGranted
+        visible = active
         watch()
+        background?.cancel()
+        background = null
+        val current = connection.value
+        when {
+            active && started && !permissionsChanged -> {
+                current?.meter(meterTracks)
+                keepAlive()
+            }
+
+            active -> {
+                started = true
+                restart()
+            }
+
+            current != null && keepingAlive && !permissionsChanged -> {
+                current.meter(emptyList())
+                background =
+                    viewModelScope.launch {
+                        delay(BACKGROUND_MINUTES * 60_000L)
+                        disconnect()
+                    }
+            }
+
+            else -> {
+                started = false
+                restart()
+            }
+        }
+    }
+
+    /** Connects again after the computer disconnected this phone, or after [disconnect]. */
+    fun reconnect() {
+        if (visible) started = true
         restart()
     }
 
-    /** Connects again after the computer disconnected this phone. */
-    fun reconnect() = restart()
+    /** Ends the connection until the app is opened again or [reconnect]. */
+    fun disconnect() {
+        background?.cancel()
+        background = null
+        started = false
+        restart()
+    }
+
+    /** Runs [ConnectionService] while a connection is wanted, once it has worked (it can only start while visible). */
+    private fun keepAlive() {
+        val app = getApplication<Application>()
+        val status = status.value
+        val wanted = connection.value != null && !(status is ConnectionStatus.Disconnected && status.problem in FINAL_PROBLEMS)
+        val name = mutablePairing.value?.name?.ifEmpty { null } ?: "REAPER"
+        val text = if (status is ConnectionStatus.Connected) "Connected to ${status.serverName}" else "Reconnecting to $name…"
+        when {
+            !wanted && keepingAlive -> {
+                keepingAlive = false
+                ConnectionService.stop(app)
+            }
+
+            wanted && keepingAlive -> {
+                ConnectionService.update(app, text)
+            }
+
+            wanted && visible && status is ConnectionStatus.Connected -> {
+                keepingAlive = true
+                ConnectionService.start(app, text)
+            }
+        }
+    }
 
     fun send(message: ClientMessage): Boolean = connection.value?.send(message) ?: false
 
@@ -201,7 +281,7 @@ class AppModel(
         watching?.cancel()
         watching = null
         val all = mutableComputers.value
-        if (!started || all.size < 2) return
+        if (!visible || all.size < 2) return
         watching =
             viewModelScope.launch {
                 if (!settled) {
@@ -231,12 +311,13 @@ class AppModel(
         connection.value =
             if (started && connector != null) {
                 Connection(viewModelScope, connector, info.secret, Build.MODEL).also {
-                    it.meter(meterTracks)
+                    it.meter(if (visible) meterTracks else emptyList())
                     it.start()
                 }
             } else {
                 null
             }
+        keepAlive()
     }
 
     private fun connector(info: PairingInfo): Connector? {
@@ -276,16 +357,24 @@ class AppModel(
 
     override fun onCleared() {
         connection.value?.stop()
+        if (KeepAlive.disconnect == ::disconnect) KeepAlive.disconnect = null
+        if (keepingAlive) ConnectionService.stop(getApplication())
     }
 
-    private companion object {
-        const val TAG = "BandControl"
-        const val KEY_COMPUTERS = "computers"
-        const val KEY_SECRET = "secret"
-        const val KEY_NAME = "name"
-        const val KEY_TCP = "tcp"
+    companion object {
+        /** How long a working connection stays up while the app is in the background. */
+        const val BACKGROUND_MINUTES = 10
+
+        /** Nothing to keep alive: the connection doesn't retry, or not without the user. */
+        private val FINAL_PROBLEMS = setOf(Problem.DisconnectedByComputer, Problem.PairingRejected, Problem.Incompatible)
+
+        private const val TAG = "BandControl"
+        private const val KEY_COMPUTERS = "computers"
+        private const val KEY_SECRET = "secret"
+        private const val KEY_NAME = "name"
+        private const val KEY_TCP = "tcp"
 
         /** How long the first scan may take to find every computer in range before one is picked. */
-        const val SETTLE_MS = 3_000L
+        private const val SETTLE_MS = 3_000L
     }
 }
