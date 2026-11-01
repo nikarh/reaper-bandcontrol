@@ -122,3 +122,30 @@ private fun <T> List<T>.byName(name: (T) -> String): Map<Pair<String, Int>, T> {
         n to index
     }
 }
+
+/** The mix (output track) called [name]. */
+fun BandState.mix(name: String): Track? = tracks.find { it.output && it.name == name }
+
+/**
+ * What makes the [Listening.mine] mix sound like the [Listening.to] mix: the same balance of the same sources, the
+ * others muted, the mix level left alone (it suits the listener's own ears). Empty when they already match, null
+ * when a mix is gone.
+ */
+fun BandState.listenCommands(listening: Listening): List<ClientMessage>? {
+    val mine = mix(listening.mine) ?: return null
+    val to = mix(listening.to) ?: return null
+    return commandsFor(mine, levelsOf(to, withVolume = false), Missing.Mute)
+}
+
+/** The same change for the [Listening.mine] mix as [message] makes to the [Listening.to] mix, if it is one. */
+fun BandState.mirror(
+    message: ClientMessage,
+    listening: Listening,
+): ClientMessage? {
+    val set = message.set_receive ?: return null
+    val to = mix(listening.to)?.takeIf { it.id == set.track } ?: return null
+    val mine = mix(listening.mine) ?: return null
+    if (to.receives.getOrNull(set.index)?.src != set.src) return null
+    val row = receivesOf(mine).find { it.source.id == set.src } ?: return null
+    return ClientMessage(set_receive = set.copy(track = mine.id, index = row.index))
+}

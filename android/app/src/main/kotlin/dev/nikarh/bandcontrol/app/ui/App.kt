@@ -65,7 +65,6 @@ import dev.nikarh.bandcontrol.app.AppModel
 import dev.nikarh.bandcontrol.core.ConnectionStatus
 import dev.nikarh.bandcontrol.core.link.Problem
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
-import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.defaultRegionView
 import dev.nikarh.bandcontrol.core.state.groups
 import dev.nikarh.bandcontrol.core.state.receivesOf
@@ -232,8 +231,8 @@ fun BandControlApp(
                                     selected = output,
                                     onSelect = { selectedOutput = it },
                                     meters = model.meters,
-                                    presets = output?.let { presets.of(it.name) } ?: MixPresets(),
-                                    presetActions = model,
+                                    presets = presets,
+                                    actions = model,
                                     enabled = connected,
                                     send = model::send,
                                 )

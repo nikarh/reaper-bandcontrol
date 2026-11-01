@@ -9,7 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.nikarh.bandcontrol.app.ble.BleConnector
 import dev.nikarh.bandcontrol.app.ble.NearbyScanner
-import dev.nikarh.bandcontrol.app.ui.PresetActions
+import dev.nikarh.bandcontrol.app.ui.MixActions
 import dev.nikarh.bandcontrol.core.ComputerChoice
 import dev.nikarh.bandcontrol.core.Connection
 import dev.nikarh.bandcontrol.core.ConnectionStatus
@@ -22,12 +22,16 @@ import dev.nikarh.bandcontrol.core.protocol.Crypto
 import dev.nikarh.bandcontrol.core.protocol.PairingInfo
 import dev.nikarh.bandcontrol.core.protocol.PairingSecret
 import dev.nikarh.bandcontrol.core.state.BandState
+import dev.nikarh.bandcontrol.core.state.Listening
 import dev.nikarh.bandcontrol.core.state.MixPresets
 import dev.nikarh.bandcontrol.core.state.PeakHolds
 import dev.nikarh.bandcontrol.core.state.Presets
 import dev.nikarh.bandcontrol.core.state.RegionView
 import dev.nikarh.bandcontrol.core.state.commandsFor
 import dev.nikarh.bandcontrol.core.state.levelsOf
+import dev.nikarh.bandcontrol.core.state.listenCommands
+import dev.nikarh.bandcontrol.core.state.mirror
+import dev.nikarh.bandcontrol.core.state.mix
 import dev.nikarh.bandcontrol.core.state.snapshotOf
 import dev.nikarh.bandcontrol.core.state.stopped
 import dev.nikarh.bandcontrol.core.state.toSnapshot
@@ -63,7 +67,7 @@ private val PairingInfo.id: String get() = secret.toCode()
 class AppModel(
     app: Application,
 ) : AndroidViewModel(app),
-    PresetActions {
+    MixActions {
     private val prefs = app.getSharedPreferences("bandcontrol", Context.MODE_PRIVATE)
     private val scanner = NearbyScanner(app)
 
@@ -184,6 +188,7 @@ class AppModel(
         KeepAlive.disconnect = ::disconnect
         meters.onEach { levels -> mutablePeaks.update { it.add(levels) } }.launchIn(viewModelScope)
         live.onEach { if (it.loaded) lastKnown.value = it }.launchIn(viewModelScope)
+        combine(live, stale, mutablePresets) { _, _, _ -> }.onEach { syncListening() }.launchIn(viewModelScope)
         // Stored once the project settles (not on every fader step), and when the app leaves the screen.
         live
             .filter { it.loaded }
@@ -368,7 +373,64 @@ class AppModel(
         }
     }
 
-    fun send(message: ClientMessage): Boolean = connection.value?.send(message) ?: false
+    fun send(message: ClientMessage): Boolean {
+        val sent = connection.value?.send(message) ?: false
+        // While listening, a change to the mix listened to reaches the listener's own ears right away, not only once
+        // REAPER confirmed it.
+        val listening = presets.value.listening
+        if (sent && listening != null) state.value.mirror(message, listening)?.let { sendForListening(it, catchUp = false) }
+        return sent
+    }
+
+    /** Marks [mix] as the phone owner's own mix, null for none. */
+    override fun setMine(mix: String?) = updatePresets { it.copy(mine = mix) }
+
+    /** Hear [to] in the own mix, to help with it. Its own levels are kept to go back to with [stopListening]. */
+    override fun listen(to: Track): Boolean {
+        val state = state.value
+        val mine = presets.value.mine?.let(state::mix) ?: return false
+        if (stale.value || mine.id == to.id) return false
+        val listening = Listening(mine = mine.name, to = to.name, before = state.levelsOf(mine, withVolume = false))
+        updatePresets { it.copy(listening = listening) }
+        syncListening()
+        return true
+    }
+
+    /** Back to the own mix as it was before [listen]. */
+    override fun stopListening(): Boolean {
+        val listening = presets.value.listening ?: return true
+        if (stale.value) return false
+        val state = state.value
+        val mine = state.mix(listening.mine)
+        if (mine != null && !state.commandsFor(mine, listening.before).all(::send)) return false
+        updatePresets { it.copy(listening = null) }
+        return true
+    }
+
+    /** When a receive of the own mix was last set while listening, so catching up doesn't repeat or undo it. */
+    private val listenSent = mutableMapOf<Pair<Int, Int>, Long>()
+
+    /**
+     * Sends a change of the own mix while listening. A [catchUp] (from the state REAPER confirmed) waits for the
+     * receive's last change to come back first: during a drag that state is behind the mirrored steps.
+     */
+    private fun sendForListening(
+        message: ClientMessage,
+        catchUp: Boolean,
+    ) {
+        val set = message.set_receive ?: return
+        val key = set.track to set.index
+        val now = monotonicMs()
+        if (catchUp && listenSent[key]?.let { now - it < LISTEN_RESEND_MS } == true) return
+        if (connection.value?.send(message) == true) listenSent[key] = now
+    }
+
+    /** Makes the own mix follow the mix listened to, also when it changes on another phone or in REAPER. */
+    private fun syncListening() {
+        val listening = presets.value.listening ?: return
+        if (stale.value) return
+        state.value.listenCommands(listening)?.forEach { sendForListening(it, catchUp = true) }
+    }
 
     private fun decide() {
         val all = mutableComputers.value
@@ -491,6 +553,9 @@ class AppModel(
         private const val SETTLE_MS = 3_000L
 
         private const val SNAPSHOT_DEBOUNCE_MS = 2_000L
+
+        /** A listening command not confirmed within this time is sent again. */
+        private const val LISTEN_RESEND_MS = 1_000L
 
         private fun snapshotKey(id: String) = "state.$id"
 

@@ -1,5 +1,6 @@
 package dev.nikarh.bandcontrol.core.state
 
+import dev.nikarh.bandcontrol.core.Commands
 import dev.nikarh.bandcontrol.proto.Receive
 import dev.nikarh.bandcontrol.proto.SetReceive
 import dev.nikarh.bandcontrol.proto.SetTrackVolume
@@ -81,5 +82,47 @@ class MixesTest {
         assertTrue(
             MixLevels(null, listOf(SourceLevel("Click", 0f, false))).sameAs(MixLevels(null, listOf(SourceLevel("Click", 1e-7f, false)))),
         )
+    }
+}
+
+class ListeningTest {
+    // Two mixes of the same sources: Drums [3+4] (13) and Bass (14), which also hears a bass DI (8).
+    private val state =
+        Fixtures.state().copy(
+            tracks =
+                Fixtures.tracks +
+                    Track(id = 8, number = 8, name = "Bass DI", volume = 1f) +
+                    Track(
+                        id = 14,
+                        number = 14,
+                        name = "Bass",
+                        volume = 0.8f,
+                        output = true,
+                        receives = listOf(Receive(src = 8, volume = 1f), Receive(src = 7, volume = 0.5f), Receive(src = 2, volume = 0.5f)),
+                    ),
+        )
+    private val listening = Listening(mine = "Bass", to = "Drums [3+4]", before = state.levelsOf(state.track(14)!!, withVolume = false))
+
+    @Test
+    fun myMixTakesTheirBalanceAndMutesWhatTheyDontHear() {
+        assertEquals(
+            listOf(
+                SetReceive(track = 14, index = 0, src = 8, mute = true),
+                SetReceive(track = 14, index = 1, src = 7, volume = 0.36f, mute = true),
+                SetReceive(track = 14, index = 2, src = 2, volume = 0.99f),
+            ),
+            state.listenCommands(listening)!!.map { it.set_receive },
+        )
+        assertEquals(null, state.listenCommands(listening.copy(to = "Gone")))
+    }
+
+    @Test
+    fun theirChangesAreMirroredToMyMix() {
+        val change = Commands.receiveVolume(13, 1, 7, 0.7f)
+        assertEquals(SetReceive(track = 14, index = 1, src = 7, volume = 0.7f), state.mirror(change, listening)?.set_receive)
+        // Changes to other mixes, or stale ones, aren't.
+        assertEquals(null, state.mirror(Commands.receiveVolume(14, 1, 7, 0.7f), listening))
+        assertEquals(null, state.mirror(Commands.receiveVolume(13, 0, 7, 0.7f), listening))
+        assertEquals(null, state.mirror(Commands.trackVolume(13, 0.7f), listening))
     }
 }

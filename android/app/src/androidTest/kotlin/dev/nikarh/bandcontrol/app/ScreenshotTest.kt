@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ActivityScenario
@@ -120,6 +122,19 @@ class ScreenshotTest {
         compose.onNodeWithTag("tab-iem").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("output-volume"), 5_000)
         shot("iem")
+        // The drummer helping the singer: two presets of the singer's mix, heard in the drummer's ears.
+        compose.onNode(hasText("Singer") and hasAnyAncestor(hasTestTag("tab-iem-outputs"))).performClick()
+        for (name in listOf("Rehearsal", "Gig")) {
+            compose.onNodeWithTag("preset-save").performClick()
+            compose.onNodeWithTag("preset-name").performTextReplacement(name)
+            compose.onNodeWithTag("preset-confirm").performClick()
+        }
+        compose.onNodeWithTag("listen").performClick()
+        compose.onNode(hasText("Drummer") and hasAnyAncestor(hasTestTag("mine-chooser"))).performClick()
+        compose.waitUntilAtLeastOneExists(hasTestTag("listening"), 5_000)
+        shot("presets")
+        compose.onNodeWithTag("listen-stop").performClick()
+        compose.waitUntilDoesNotExist(hasTestTag("listening"), 5_000)
         compose.onNodeWithContentDescription("Menu").performClick()
         compose.onNodeWithText("Share pairing with another phone").performClick()
         compose.waitUntilAtLeastOneExists(hasTestTag("share-qr"), 5_000)

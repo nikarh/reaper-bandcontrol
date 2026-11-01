@@ -68,12 +68,16 @@ title = "Personal in-ear mixes"
 
 [[feature]]
 id = "presets"
+screenshot = "presets"
 text = """
 Save a mix as a preset, like one for rehearsals and one for gigs, and switch between them with a tap. After a
 change, Revert goes back to the preset, and changes that weren't saved stay one tap away under Unsaved, so two
 balances are easy to compare. Long-press a preset to update, rename or delete it. Presets are kept on the phone.
+
+Helping a bandmate with their mix? Open it and tap Listen: your in-ears play their mix, and follow every change
+to it, until you tap Back to my mix. Your own balance comes back as it was, and theirs keeps the changes.
 """
-title = "Mix presets"
+title = "Mix presets and listening to a bandmate's mix"
 
 [[feature]]
 id = "pairing"
