@@ -41,7 +41,7 @@ The release workflows act as a GitHub App, like the other nikarh repositories: c
 
 | Secret | Value |
 | --- | --- |
-| `APP_ID` | The app's ID |
+| `APP_CLIENT_ID` | The app's client ID (`Iv…`, on the app's settings page) |
 | `APP_PRIVATE_KEY` | A private key of the app (PEM) |
 | `ANDROID_KEYSTORE_BASE64` | The Android release keystore, base64 encoded |
 | `ANDROID_KEYSTORE_PASSWORD` | Its store password |
