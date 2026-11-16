@@ -17,7 +17,7 @@ lifecycle            = "2.11.0"
 reorderable          = "3.1.0"
 spotless             = "8.11.0"
 uiautomator          = "2.4.1"
-wire                 = "7.1.2"
+wire                 = "7.2.1"
 zxing                = "3.5.4"
 
 [libraries]
