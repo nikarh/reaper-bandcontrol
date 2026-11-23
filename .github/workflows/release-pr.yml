@@ -21,7 +21,7 @@ jobs:
     environment: release
     steps:
       - name: Generate GitHub token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         id: generate-token
         with:
           client-id: ${{ secrets.APP_CLIENT_ID }}
@@ -31,7 +31,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
-      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
+      - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
         with:
           install_args: rust git-cliff
       - id: bump
@@ -47,7 +47,7 @@ jobs:
           # The F-Droid listing, with what's new in this version (changelogs/<versionCode>.txt).
           python3 scripts/build-docs.py fastlane
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:
           token: ${{ steps.generate-token.outputs.token }}
           title: Release v${{ steps.bump.outputs.version }}
