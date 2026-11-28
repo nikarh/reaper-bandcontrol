@@ -39,7 +39,10 @@ val unsigned: Boolean = providers.gradleProperty("unsigned").isPresent
 
 android {
     namespace = "dev.nikarh.bandcontrol.app"
-    compileSdk = 37
+    // 37.2: Compose 1.13 (BOM 2026.11) needs compileSdk 37.1 or later.
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         applicationId = "dev.nikarh.bandcontrol"
