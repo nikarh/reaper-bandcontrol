@@ -272,7 +272,7 @@ designed to be broadcast-safe on every OS:
   `0x00BBGGRR`; decoded directly in `daw.rs`.
 - The extension only ticks the engine while phones are connected; the engine re-snapshots on the first join.
 - Harness kills the whole process group (cage + REAPER) on drop; it never touches the user's REAPER config.
-- Android: compileSdk 37 is required by current Compose; `connectGatt(settings, ...)` is API 37 only so the old
+- Android: compileSdk 37.2 (Compose 1.13 needs 37.1 or later); `connectGatt(settings, ...)` is API 37 only so the old
   overload is used. API 33+ GATT write calls return `BluetoothStatusCodes`, not GATT status (lint caught it).
 - Faders use relative drags (no jump on tap) and keep a local value while dragging + 800 ms after release.
 - Optimistic UI must expire: if REAPER reverts a phone's change within the server's 1 s debounce, the server sends

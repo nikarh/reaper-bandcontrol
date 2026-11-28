@@ -20,7 +20,7 @@ _.path           = ["{{config_root}}/.android-sdk/platform-tools"]
 description = "Install pinned Android SDK packages into .android-sdk"
 run = """
 yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses > /dev/null
-sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.0" "build-tools;37.0.0" "platform-tools" "cmdline-tools;latest"
+sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools" "cmdline-tools;latest"
 """
 
 [tasks."android:emulator-sdk"]

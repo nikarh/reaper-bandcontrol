@@ -1,11 +1,11 @@
 [versions]
 activity             = "1.13.0"
-agp                  = "9.5.1"
+agp                  = "9.5.2"
 androidx-test-ext    = "1.3.0"
 androidx-test-rules  = "1.7.0"
 androidx-test-runner = "1.7.0"
-camerax              = "1.6.2"
-compose-bom          = "2026.09.00"
+camerax              = "1.7.0"
+compose-bom          = "2026.11.01"
 core-ktx             = "1.19.1"
 coroutines           = "1.11.0"
 icons                = "1.7.8"
@@ -17,7 +17,7 @@ lifecycle            = "2.11.0"
 reorderable          = "3.1.0"
 spotless             = "8.11.0"
 uiautomator          = "2.4.1"
-wire                 = "7.1.2"
+wire                 = "7.2.2"
 zxing                = "3.5.4"
 
 [libraries]
